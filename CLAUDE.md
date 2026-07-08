@@ -164,6 +164,8 @@ Paleta extraída da logo oficial (`public/logo.png` ✅):
 - ⚠️ Textos padrão em `src/lib/proposta.ts` (montagem, garantia, pagamento, prazo) e seed do Toldo Retrátil Cortina: **conferir redação com o João contra o orçamento real**
 - ⚠️ Evitar `useSearchParams` em client components (causa mismatch de hidratação com IDs do Base UI) — passar valores como props do Server Component
 - ⚠️ Aviso dev-only de hidratação do Base UI (IDs `base-ui-_R_…`) aparece em telas com `Select`/`RadioGroup` de valor pré-selecionado (ex.: `/orcamentos/[id]/editar`). É cosmético: os valores renderizam e salvam corretamente; some em produção. Não afeta funcionalidade
-- ⏳ Pendente: deploy Dokploy (volume `/data`, `DATABASE_PATH`, domínio)
+- ✅ **Deploy preparado e validado em container real** (2026-07-08): `Dockerfile` multi-stage standalone, `.dockerignore`, migrations SQL em `drizzle/`, `scripts/init-db.mjs` (migrations + seed idempotentes no boot). `next.config.ts` com `output: "standalone"` + `serverExternalPackages: ["better-sqlite3"]`. `db/index.ts` abre o SQLite de forma **lazy** (proxy) p/ não instanciar no build. Testado: build da imagem, boot com volume, init do banco, login/middleware, páginas com dados, cadastro público, PDF — tudo passou
+- ⏳ Pendente (só depende da Letícia): push pro GitHub `letcordeiro/gestao-toldos-gerais` + criar o app no Dokploy. Passo a passo completo em `DEPLOY.md` (env, volume `/data`, porta 3000, domínio `toldos.bionatural.tech`). `SESSION_SECRET` de produção já gerado e anotado no DEPLOY.md
 
 Para zerar o banco local: `rm -rf data/toldos.db* && npm run db:push && npm run db:seed`
+Boot em produção cria/semeia o banco sozinho via `scripts/init-db.mjs`.
