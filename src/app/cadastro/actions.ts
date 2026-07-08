@@ -1,0 +1,104 @@
+"use server";
+
+// Ações PÚBLICAS de auto-cadastro — sem exigir sessão.
+
+import { asc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@/db";
+import {
+  atendimentos,
+  clientes,
+  fases,
+  historicoFases,
+  tokensCadastro,
+} from "@/db/schema";
+
+const cadastroSchema = z.object({
+  nome: z.string().trim().min(1, "Informe seu nome"),
+  telefone: z.string().trim().min(8, "Informe um telefone válido"),
+  email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
+  endereco: z.string().trim().optional(),
+  cidade: z.string().trim().optional(),
+  descricao: z.string().trim().max(2000).optional(),
+});
+
+export type CadastroPublicoState = { erro?: string; ok?: boolean };
+
+export async function enviarAutoCadastro(
+  _prev: CadastroPublicoState,
+  formData: FormData
+): Promise<CadastroPublicoState> {
+  const token = String(formData.get("token") ?? "");
+
+  const parsed = cadastroSchema.safeParse({
+    nome: formData.get("nome"),
+    telefone: formData.get("telefone"),
+    email: formData.get("email") || undefined,
+    endereco: formData.get("endereco") || undefined,
+    cidade: formData.get("cidade") || undefined,
+    descricao: formData.get("descricao") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { erro: parsed.error.issues[0].message };
+  }
+  const dados = parsed.data;
+
+  // Com token: precisa existir, não usado e não expirado
+  let tokenRegistro = null;
+  if (token) {
+    tokenRegistro = await db.query.tokensCadastro.findFirst({
+      where: eq(tokensCadastro.token, token),
+    });
+    if (
+      !tokenRegistro ||
+      tokenRegistro.usadoEm !== null ||
+      tokenRegistro.expiraEm < new Date()
+    ) {
+      return { erro: "Este link de cadastro não é mais válido." };
+    }
+  }
+
+  const faseInicial = await db.query.fases.findFirst({
+    orderBy: asc(fases.ordem),
+  });
+  if (!faseInicial) return { erro: "Erro interno. Tente mais tarde." };
+
+  const [cliente] = await db
+    .insert(clientes)
+    .values({
+      nome: dados.nome,
+      telefone: dados.telefone,
+      email: dados.email || null,
+      endereco: dados.endereco || null,
+      cidade: dados.cidade || null,
+      origem: "auto_cadastro",
+    })
+    .returning({ id: clientes.id });
+
+  const [atendimento] = await db
+    .insert(atendimentos)
+    .values({
+      clienteId: cliente.id,
+      faseId: faseInicial.id,
+      observacoes: dados.descricao
+        ? `Auto-cadastro — o que precisa: ${dados.descricao}`
+        : "Auto-cadastro",
+    })
+    .returning({ id: atendimentos.id });
+
+  await db.insert(historicoFases).values({
+    atendimentoId: atendimento.id,
+    faseAnteriorId: null,
+    faseNovaId: faseInicial.id,
+  });
+
+  if (tokenRegistro) {
+    await db
+      .update(tokensCadastro)
+      .set({ usadoEm: new Date() })
+      .where(eq(tokensCadastro.id, tokenRegistro.id));
+  }
+
+  return { ok: true };
+}
