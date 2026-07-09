@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { format } from "date-fns";
@@ -28,13 +29,21 @@ import { exigirUsuario } from "@/lib/auth";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 
-function linkWhatsApp(telefone: string, nome: string, numero: string): string {
+function linkWhatsApp(
+  telefone: string,
+  nome: string,
+  numero: string,
+  linkProposta: string | null
+): string {
   const digitos = telefone.replace(/\D/g, "");
   const completo = digitos.startsWith("55") ? digitos : `55${digitos}`;
   const primeiroNome = nome.split(" ")[0];
   const mensagem =
-    `Olá, ${primeiroNome}! Segue a Proposta Técnica Comercial nº ${numero} da Toldos Gerais. ` +
-    `Qualquer dúvida, estamos à disposição. ${EMPRESA.telefoneFixo} · ${EMPRESA.site}`;
+    `Olá, ${primeiroNome}! Segue a Proposta Técnica Comercial nº ${numero} da Toldos Gerais.` +
+    (linkProposta
+      ? `\n\nÉ só abrir este link para ver e baixar em PDF:\n${linkProposta}`
+      : "") +
+    `\n\nQualquer dúvida, estamos à disposição. ${EMPRESA.telefoneFixo} · ${EMPRESA.site}`;
   return `https://wa.me/${completo}?text=${encodeURIComponent(mensagem)}`;
 }
 
@@ -81,6 +90,15 @@ export default async function OrcamentoPage({
     .orderBy(asc(orcamentoItens.ordem));
 
   const { orc, cliente, vendedor } = orcamento;
+
+  // Link público da proposta (para o cliente ver/baixar o PDF pelo WhatsApp).
+  const cabecalhos = await headers();
+  const host = cabecalhos.get("host");
+  const proto = cabecalhos.get("x-forwarded-proto") ?? "https";
+  const linkProposta =
+    orc.publicToken && host
+      ? `${proto}://${host}/proposta/${orc.publicToken}`
+      : null;
 
   const modeloTexto = orcamento.modeloNome
     ? orc.formato
@@ -148,11 +166,27 @@ export default async function OrcamentoPage({
           >
             Baixar PDF
           </Button>
+          {linkProposta && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <a href={linkProposta} target="_blank" rel="noopener" />
+              }
+            >
+              Link do cliente
+            </Button>
+          )}
           <Button
             nativeButton={false}
             render={
               <a
-                href={linkWhatsApp(cliente.telefone, cliente.nome, orc.numero)}
+                href={linkWhatsApp(
+                  cliente.telefone,
+                  cliente.nome,
+                  orc.numero,
+                  linkProposta
+                )}
                 target="_blank"
                 rel="noopener"
               />

@@ -121,6 +121,8 @@ export const orcamentos = sqliteTable("orcamentos", {
   })
     .notNull()
     .default("rascunho"),
+  // Token para link público de visualização da proposta (/proposta/{token}).
+  publicToken: text("public_token").unique(),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

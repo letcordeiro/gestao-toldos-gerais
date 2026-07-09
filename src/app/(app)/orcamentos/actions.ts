@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq, like } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -164,6 +165,7 @@ export async function criarOrcamento(
       formaPagamento: dados.formaPagamento || null,
       prazoEntrega: dados.prazoEntrega || null,
       status: dados.status,
+      publicToken: nanoid(12),
     })
     .returning({ id: orcamentos.id });
 
@@ -347,6 +349,7 @@ export async function duplicarOrcamento(formData: FormData) {
       formaPagamento: original.formaPagamento,
       prazoEntrega: original.prazoEntrega,
       status: "rascunho",
+      publicToken: nanoid(12),
     })
     .returning({ id: orcamentos.id });
 

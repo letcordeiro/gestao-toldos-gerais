@@ -141,6 +141,26 @@ try {
   console.warn("• link_token não aplicado (não crítico):", e.message);
 }
 
+// Backfill do token público das propostas (public_token) — crypto nativo.
+try {
+  const { randomBytes } = await import("node:crypto");
+  const semToken = sqlite
+    .prepare(
+      "SELECT id FROM orcamentos WHERE public_token IS NULL OR public_token = ''"
+    )
+    .all();
+  for (const o of semToken) {
+    const tok = randomBytes(9).toString("base64url");
+    sqlite
+      .prepare("UPDATE orcamentos SET public_token = ? WHERE id = ?")
+      .run(tok, o.id);
+  }
+  if (semToken.length > 0)
+    console.log(`✔ public_token gerado para ${semToken.length} orçamento(s)`);
+} catch (e) {
+  console.warn("• public_token não aplicado (não crítico):", e.message);
+}
+
 // Promove a gestor os e-mails listados em env VENDEDOR_GESTORES="email1,email2"
 // (idempotente; garante que os gestores configurados sempre tenham o papel).
 try {

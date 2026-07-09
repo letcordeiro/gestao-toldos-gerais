@@ -5,6 +5,7 @@ const ROTAS_PUBLICAS = [
   /^\/login$/,
   /^\/esqueci-senha$/,
   /^\/cadastro\/.+/,
+  /^\/proposta\/.+/,
   /^\/api\/cadastro(\/.*)?$/,
 ];
 
