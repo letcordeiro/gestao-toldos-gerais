@@ -73,6 +73,7 @@ export function ClienteDialog({
             <Input id="email" name="email" defaultValue={cliente?.email ?? ""} />
           </div>
           <CamposEndereco
+            obrigatorio
             inicial={{
               cep: cliente?.cep,
               endereco: cliente?.endereco,

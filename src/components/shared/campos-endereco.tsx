@@ -20,7 +20,14 @@ function mascaraCep(valor: string): string {
 
 // Campos de endereço com CEP em primeiro: ao completar o CEP, busca o
 // endereço no ViaCEP e preenche rua/bairro/cidade (resta número e complemento).
-export function CamposEndereco({ inicial }: { inicial?: EnderecoInicial }) {
+// obrigatorio: exige CEP, endereço e número.
+export function CamposEndereco({
+  inicial,
+  obrigatorio = false,
+}: {
+  inicial?: EnderecoInicial;
+  obrigatorio?: boolean;
+}) {
   const [cep, setCep] = useState(inicial?.cep ?? "");
   const [endereco, setEndereco] = useState(inicial?.endereco ?? "");
   const [numero, setNumero] = useState(inicial?.numero ?? "");
@@ -56,11 +63,12 @@ export function CamposEndereco({ inicial }: { inicial?: EnderecoInicial }) {
   return (
     <>
       <div className="space-y-1.5">
-        <Label htmlFor="cep">CEP</Label>
+        <Label htmlFor="cep">CEP{obrigatorio ? " *" : ""}</Label>
         <Input
           id="cep"
           name="cep"
           value={cep}
+          required={obrigatorio}
           inputMode="numeric"
           placeholder="30000-000"
           onChange={(e) => {
@@ -76,21 +84,23 @@ export function CamposEndereco({ inicial }: { inicial?: EnderecoInicial }) {
         {erro && <p className="text-xs text-amber-600">{erro}</p>}
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="endereco">Endereço (rua/av.)</Label>
+        <Label htmlFor="endereco">Endereço (rua/av.){obrigatorio ? " *" : ""}</Label>
         <Input
           id="endereco"
           name="endereco"
           value={endereco}
+          required={obrigatorio}
           onChange={(e) => setEndereco(e.target.value)}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="numero">Número</Label>
+          <Label htmlFor="numero">Número{obrigatorio ? " *" : ""}</Label>
           <Input
             id="numero"
             name="numero"
             value={numero}
+            required={obrigatorio}
             onChange={(e) => setNumero(e.target.value)}
           />
         </div>

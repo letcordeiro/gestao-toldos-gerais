@@ -12,12 +12,15 @@ const clienteSchema = z.object({
   nome: z.string().trim().min(1, "Informe o nome"),
   telefone: z.string().trim().min(1, "Informe o telefone"),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
-  endereco: z.string().trim().optional(),
-  numero: z.string().trim().optional(),
+  cep: z
+    .string()
+    .trim()
+    .refine((v) => v.replace(/\D/g, "").length === 8, "Informe um CEP válido"),
+  endereco: z.string().trim().min(1, "Informe o endereço"),
+  numero: z.string().trim().min(1, "Informe o número"),
   complemento: z.string().trim().optional(),
   bairro: z.string().trim().optional(),
   cidade: z.string().trim().optional(),
-  cep: z.string().trim().optional(),
 });
 
 export type ClienteFormState = { erro?: string; ok?: boolean };
@@ -33,12 +36,12 @@ export async function salvarCliente(
     nome: formData.get("nome"),
     telefone: formData.get("telefone"),
     email: formData.get("email") || undefined,
-    endereco: formData.get("endereco") || undefined,
-    numero: formData.get("numero") || undefined,
+    cep: formData.get("cep") ?? "",
+    endereco: formData.get("endereco") ?? "",
+    numero: formData.get("numero") ?? "",
     complemento: formData.get("complemento") || undefined,
     bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
-    cep: formData.get("cep") || undefined,
   });
 
   if (!parsed.success) {

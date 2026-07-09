@@ -86,7 +86,7 @@ export function FormCadastro({
                 <Label htmlFor="email">E-mail</Label>
                 <Input id="email" name="email" type="email" />
               </div>
-              <CamposEndereco />
+              <CamposEndereco obrigatorio />
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Descreva o que precisa</Label>
                 <Textarea
