@@ -88,6 +88,21 @@ const styles = StyleSheet.create({
   },
   vendedorNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
   vendedorContato: { fontSize: 8.5, color: "#4a4a4a" },
+  fotosSecao: { marginTop: 10 },
+  fotosGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 3,
+  },
+  fotoImg: {
+    width: "48.5%",
+    height: 150,
+    objectFit: "cover",
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    borderRadius: 3,
+  },
   rodape: {
     position: "absolute",
     bottom: 24,
@@ -134,6 +149,8 @@ export type DadosProposta = {
     valorMax: number | null;
   }>;
   logoDataUri: string;
+  // Fotos anexadas (data URIs) — aparecem numa seção ao final da proposta.
+  fotos: string[];
 };
 
 function Secao({
@@ -231,6 +248,18 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
             />
           </View>
         </View>
+
+        {dados.fotos.length > 0 ? (
+          <View style={styles.fotosSecao} break={dados.fotos.length > 2}>
+            <Text style={styles.tituloSecao}>FOTOS</Text>
+            <View style={styles.fotosGrid}>
+              {dados.fotos.map((src, i) => (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image key={i} src={src} style={styles.fotoImg} />
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {dados.vendedor ? (
           <View style={styles.vendedorCard} wrap={false}>

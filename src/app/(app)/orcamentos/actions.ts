@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, like } from "drizzle-orm";
+import { eq, like, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
@@ -10,11 +10,13 @@ import {
   atendimentos,
   fases,
   historicoFases,
+  orcamentoFotos,
   orcamentoItens,
   orcamentos,
 } from "@/db/schema";
 import { exigirSessao, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
+import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
 const itemSchema = z.object({
   descricao: z.string().trim().min(1),
@@ -327,6 +329,68 @@ export async function mudarStatusOrcamento(
   revalidatePath("/orcamentos");
   revalidatePath(`/orcamentos/${id}`);
   revalidatePath(`/atendimentos/${orcamento.atendimentoId}`);
+}
+
+// Verifica se o usuário pode mexer no orçamento (gestor = qualquer; vendedor = o seu).
+async function orcamentoEditavel(orcamentoId: number) {
+  const usuario = await usuarioAtual();
+  if (!usuario) return null;
+  const orc = await db.query.orcamentos.findFirst({
+    where: eq(orcamentos.id, orcamentoId),
+  });
+  if (!orc) return null;
+  if (usuario.papel === "vendedor" && orc.vendedorId !== usuario.vendedorId)
+    return null;
+  return orc;
+}
+
+export type FotoState = { erro?: string; ok?: boolean };
+
+export async function adicionarFotoOrcamento(
+  _prev: FotoState,
+  formData: FormData
+): Promise<FotoState> {
+  const orcamentoId = Number(formData.get("orcamentoId"));
+  if (!Number.isInteger(orcamentoId) || orcamentoId <= 0)
+    return { erro: "Orçamento inválido" };
+
+  const orc = await orcamentoEditavel(orcamentoId);
+  if (!orc) return { erro: "Sem permissão para este orçamento" };
+
+  const file = formData.get("foto");
+  if (!(file instanceof File) || file.size === 0)
+    return { erro: "Escolha uma imagem" };
+
+  const salvo = await salvarFoto(orcamentoId, file);
+  if (!salvo.ok) return { erro: salvo.erro };
+
+  const [{ maxOrdem }] = await db
+    .select({ maxOrdem: sql<number>`coalesce(max(${orcamentoFotos.ordem}), -1)` })
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, orcamentoId));
+
+  await db.insert(orcamentoFotos).values({
+    orcamentoId,
+    arquivo: salvo.arquivo,
+    ordem: (maxOrdem ?? -1) + 1,
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+  return { ok: true };
+}
+
+export async function removerFotoOrcamento(fotoId: number) {
+  const id = z.coerce.number().int().positive().parse(fotoId);
+  const foto = await db.query.orcamentoFotos.findFirst({
+    where: eq(orcamentoFotos.id, id),
+  });
+  if (!foto) return;
+  const orc = await orcamentoEditavel(foto.orcamentoId);
+  if (!orc) return;
+
+  await db.delete(orcamentoFotos).where(eq(orcamentoFotos.id, id));
+  await removerFotoArquivo(foto.orcamentoId, foto.arquivo);
+  revalidatePath(`/orcamentos/${foto.orcamentoId}`);
 }
 
 // Cria um novo orçamento (rascunho) copiando todos os dados de um existente.

@@ -1,9 +1,10 @@
 import Image from "next/image";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  orcamentoFotos,
   orcamentos,
   vendedores,
 } from "@/db/schema";
@@ -21,6 +22,7 @@ export default async function PropostaPublicaPage({
 
   const [linha] = await db
     .select({
+      id: orcamentos.id,
       numero: orcamentos.numero,
       clienteNome: clientes.nome,
       vendedorNome: vendedores.nome,
@@ -47,6 +49,12 @@ export default async function PropostaPublicaPage({
       </main>
     );
   }
+
+  const fotos = await db
+    .select({ id: orcamentoFotos.id })
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, linha.id))
+    .orderBy(asc(orcamentoFotos.ordem));
 
   const contato = linha.vendedorTelefone
     ? linkWhatsApp(
@@ -78,6 +86,27 @@ export default async function PropostaPublicaPage({
           Sua proposta está pronta. Toque no botão abaixo para ver ou baixar o
           documento em PDF.
         </div>
+
+        {fotos.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {fotos.map((f) => (
+              <a
+                key={f.id}
+                href={`/proposta/${token}/fotos/${f.id}`}
+                target="_blank"
+                rel="noopener"
+                className="aspect-square overflow-hidden rounded-md border bg-secondary"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/proposta/${token}/fotos/${f.id}`}
+                  alt="Foto da proposta"
+                  className="h-full w-full object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        )}
         <Button
           size="lg"
           className="w-full"

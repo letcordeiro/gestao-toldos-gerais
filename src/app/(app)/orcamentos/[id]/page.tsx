@@ -9,6 +9,7 @@ import {
   atendimentos,
   clientes,
   modelosToldo,
+  orcamentoFotos,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -28,6 +29,7 @@ import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
+import { FotosOrcamento } from "./fotos-orcamento";
 
 function linkWhatsApp(
   telefone: string,
@@ -88,6 +90,17 @@ export default async function OrcamentoPage({
     .from(orcamentoItens)
     .where(eq(orcamentoItens.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoItens.ordem));
+
+  const fotos = await db
+    .select({ id: orcamentoFotos.id, arquivo: orcamentoFotos.arquivo })
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, orcamentoId))
+    .orderBy(asc(orcamentoFotos.ordem));
+
+  // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam fotos.
+  const podeEditarFotos =
+    usuario.papel === "gestor" ||
+    orcamento.orc.vendedorId === usuario.vendedorId;
 
   const { orc, cliente, vendedor } = orcamento;
 
@@ -283,6 +296,22 @@ export default async function OrcamentoPage({
             {EMPRESA.razaoSocial} — {EMPRESA.site} / {EMPRESA.emailVendas} —{" "}
             {EMPRESA.endereco} – {EMPRESA.telefoneFixo}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Aparecem no PDF e no link que o cliente recebe.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <FotosOrcamento
+            orcamentoId={orc.id}
+            fotos={fotos}
+            podeEditar={podeEditarFotos}
+          />
         </CardContent>
       </Card>
     </div>

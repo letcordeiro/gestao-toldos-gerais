@@ -64,6 +64,13 @@
       "when": 1783599090000,
       "tag": "0008_orcamento_enviado_em",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1783599100000,
+      "tag": "0009_orcamento_fotos",
+      "breakpoints": true
     }
   ]
 }

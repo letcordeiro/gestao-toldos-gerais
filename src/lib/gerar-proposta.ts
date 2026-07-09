@@ -11,11 +11,13 @@ import {
   atendimentos,
   clientes,
   modelosToldo,
+  orcamentoFotos,
   orcamentoItens,
   orcamentos,
   vendedores,
 } from "@/db/schema";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
+import { contentTypeFoto, lerFoto } from "@/lib/uploads";
 import {
   PropostaPDF,
   type DadosProposta,
@@ -60,6 +62,20 @@ export async function gerarProposta(
   const logo = fs.readFileSync(path.join(process.cwd(), "public", "logo.png"));
   const logoDataUri = `data:image/png;base64,${logo.toString("base64")}`;
 
+  // Fotos anexadas → data URIs para embutir no PDF.
+  const fotosRows = await db
+    .select()
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, linha.orc.id))
+    .orderBy(asc(orcamentoFotos.ordem));
+  const fotos = fotosRows
+    .map((f) => {
+      const bytes = lerFoto(linha.orc.id, f.arquivo);
+      if (!bytes) return null;
+      return `data:${contentTypeFoto(f.arquivo)};base64,${bytes.toString("base64")}`;
+    })
+    .filter((s): s is string => s !== null);
+
   const dados: DadosProposta = {
     numero: linha.orc.numero,
     dataExtenso: format(linha.orc.criadoEm, "d 'de' MMMM 'de' yyyy", {
@@ -96,6 +112,7 @@ export async function gerarProposta(
       valorMax: item.valorMax,
     })),
     logoDataUri,
+    fotos,
   };
 
   const documento = createElement(PropostaPDF, {

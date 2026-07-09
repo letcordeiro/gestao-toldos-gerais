@@ -142,6 +142,21 @@ export const orcamentoItens = sqliteTable("orcamento_itens", {
   ordem: integer("ordem").notNull().default(0),
 });
 
+// Fotos anexadas ao orçamento pelo vendedor (armazenadas no volume /data/uploads).
+// Aparecem no PDF e na página pública da proposta.
+export const orcamentoFotos = sqliteTable("orcamento_fotos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orcamentoId: integer("orcamento_id")
+    .notNull()
+    .references(() => orcamentos.id),
+  arquivo: text("arquivo").notNull(), // nome do arquivo no disco
+  legenda: text("legenda"),
+  ordem: integer("ordem").notNull().default(0),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const tokensCadastro = sqliteTable("tokens_cadastro", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   token: text("token").notNull().unique(),
