@@ -10,42 +10,50 @@ import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { formatarValorItem } from "@/lib/format";
 
+const VERDE = "#004e36";
+
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 40,
-    paddingBottom: 70,
-    paddingHorizontal: 50,
-    fontSize: 10,
+    paddingTop: 28,
+    paddingBottom: 58,
+    paddingHorizontal: 42,
+    fontSize: 9,
     fontFamily: "Helvetica",
     color: "#1a1a1a",
-    lineHeight: 1.45,
+    lineHeight: 1.28,
   },
   cabecalho: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 12,
   },
-  logo: { width: 110 },
+  logo: { width: 88 },
   tituloDoc: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: "Helvetica-Bold",
-    color: "#004e36",
+    color: VERDE,
     textAlign: "right",
   },
-  data: { marginBottom: 16 },
-  destinatario: { marginBottom: 16 },
-  secao: { marginBottom: 12 },
+  data: { marginBottom: 8, color: "#4a4a4a" },
+  destinatario: {
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e5e5",
+  },
+  secao: { marginBottom: 7 },
+  secaoInline: { marginBottom: 0 },
   tituloSecao: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontFamily: "Helvetica-Bold",
-    color: "#004e36",
-    marginBottom: 3,
+    color: VERDE,
+    marginBottom: 1.5,
   },
   itemLinha: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   itemPontilhado: {
     flexGrow: 1,
@@ -58,38 +66,36 @@ const styles = StyleSheet.create({
   itemValor: { fontFamily: "Helvetica-Bold" },
   subtitulo: {
     fontFamily: "Helvetica-Oblique",
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: 4,
+    marginBottom: 2,
   },
+  duasColunas: { flexDirection: "row", gap: 16, marginBottom: 7 },
+  coluna: { flex: 1 },
   vendedorCard: {
-    marginTop: 16,
-    padding: 10,
+    marginTop: 10,
+    padding: 8,
     borderWidth: 1,
     borderColor: "#e5e5e5",
     borderRadius: 4,
     backgroundColor: "#f5f7f6",
   },
   vendedorLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
-    color: "#004e36",
-    marginBottom: 3,
-  },
-  vendedorNome: {
-    fontSize: 11,
-    fontFamily: "Helvetica-Bold",
+    color: VERDE,
     marginBottom: 2,
   },
-  vendedorContato: { fontSize: 9, color: "#4a4a4a" },
+  vendedorNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
+  vendedorContato: { fontSize: 8.5, color: "#4a4a4a" },
   rodape: {
     position: "absolute",
-    bottom: 30,
-    left: 50,
-    right: 50,
+    bottom: 24,
+    left: 42,
+    right: 42,
     borderTopWidth: 1,
     borderTopColor: "#e5e5e5",
-    paddingTop: 8,
-    fontSize: 8,
+    paddingTop: 6,
+    fontSize: 7.5,
     color: "#6b6b6b",
     textAlign: "center",
   },
@@ -102,7 +108,9 @@ export type DadosProposta = {
     nome: string;
     telefone: string;
     endereco: string | null;
+    bairro: string | null;
     cidade: string | null;
+    cep: string | null;
   };
   modeloNome: string | null;
   formatoLabel: string | null;
@@ -125,10 +133,18 @@ export type DadosProposta = {
   logoDataUri: string;
 };
 
-function Secao({ titulo, texto }: { titulo: string; texto: string | null }) {
+function Secao({
+  titulo,
+  texto,
+  style,
+}: {
+  titulo: string;
+  texto: string | null;
+  style?: (typeof styles)["secao"] | (typeof styles)["secaoInline"];
+}) {
   if (!texto) return null;
   return (
-    <View style={styles.secao} wrap={false}>
+    <View style={style ?? styles.secao} wrap={false}>
       <Text style={styles.tituloSecao}>{titulo}</Text>
       <Text>{texto}</Text>
     </View>
@@ -136,9 +152,20 @@ function Secao({ titulo, texto }: { titulo: string; texto: string | null }) {
 }
 
 export function PropostaPDF({ dados }: { dados: DadosProposta }) {
-  const enderecoCliente = [dados.cliente.endereco, dados.cliente.cidade]
+  const enderecoCliente = [
+    dados.cliente.endereco,
+    dados.cliente.bairro,
+    dados.cliente.cidade,
+    dados.cliente.cep ? `CEP ${dados.cliente.cep}` : null,
+  ]
     .filter(Boolean)
-    .join(" — ");
+    .join(" – ");
+
+  const modeloTexto = dados.modeloNome
+    ? dados.formatoLabel
+      ? `${dados.modeloNome} — Formato: ${dados.formatoLabel}`
+      : dados.modeloNome
+    : null;
 
   return (
     <Document
@@ -158,25 +185,13 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
 
         <View style={styles.destinatario}>
           <Text style={{ fontFamily: "Helvetica-Bold" }}>
-            A/c de {dados.cliente.nome} {dados.cliente.telefone}
+            A/c de {dados.cliente.nome} — {dados.cliente.telefone}
           </Text>
           {enderecoCliente ? <Text>{enderecoCliente}</Text> : null}
         </View>
 
-        <Secao
-          titulo="MODELO"
-          texto={
-            dados.modeloNome
-              ? dados.formatoLabel
-                ? `${dados.modeloNome} — Formato: ${dados.formatoLabel}`
-                : dados.modeloNome
-              : null
-          }
-        />
-        <Secao
-          titulo="DESCRIÇÃO DO MATERIAL"
-          texto={dados.descricaoMaterial}
-        />
+        <Secao titulo="MODELO" texto={modeloTexto} />
+        <Secao titulo="DESCRIÇÃO DO MATERIAL" texto={dados.descricaoMaterial} />
         <Secao titulo="ESTRUTURA" texto={dados.estruturaLabel} />
         <Secao
           titulo="FIXAÇÃO E VEDAÇÃO DA ESTRUTURA"
@@ -204,8 +219,22 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           )}
         </View>
 
-        <Secao titulo="FORMA DE PAGAMENTO" texto={dados.formaPagamento} />
-        <Secao titulo="PRAZO DE ENTREGA" texto={dados.prazoEntrega} />
+        <View style={styles.duasColunas}>
+          <View style={styles.coluna}>
+            <Secao
+              titulo="FORMA DE PAGAMENTO"
+              texto={dados.formaPagamento}
+              style={styles.secaoInline}
+            />
+          </View>
+          <View style={styles.coluna}>
+            <Secao
+              titulo="PRAZO DE ENTREGA"
+              texto={dados.prazoEntrega}
+              style={styles.secaoInline}
+            />
+          </View>
+        </View>
 
         {dados.vendedor ? (
           <View style={styles.vendedorCard} wrap={false}>
@@ -226,7 +255,8 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
 
         <View style={styles.rodape} fixed>
           <Text>
-            {EMPRESA.razaoSocial} — {EMPRESA.site} / {EMPRESA.emailVendas}
+            {EMPRESA.razaoSocial} — CNPJ {EMPRESA.cnpj} — {EMPRESA.site} /{" "}
+            {EMPRESA.emailVendas}
           </Text>
           <Text>
             Av. Waldir Soeiro Emrich, 4645 A – Diamante – Belo Horizonte/MG –{" "}

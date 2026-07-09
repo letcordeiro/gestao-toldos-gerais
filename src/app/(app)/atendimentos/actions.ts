@@ -134,7 +134,12 @@ const observacoesSchema = z.object({
   observacoes: z.string().trim().max(5000),
 });
 
-export async function atualizarObservacoes(formData: FormData) {
+export type ObservacoesState = { ok?: boolean };
+
+export async function atualizarObservacoes(
+  _prev: ObservacoesState,
+  formData: FormData
+): Promise<ObservacoesState> {
   await exigirSessao();
   const parsed = observacoesSchema.parse({
     atendimentoId: formData.get("atendimentoId"),
@@ -150,4 +155,5 @@ export async function atualizarObservacoes(formData: FormData) {
     .where(eq(atendimentos.id, parsed.atendimentoId));
 
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
+  return { ok: true };
 }

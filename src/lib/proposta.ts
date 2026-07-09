@@ -2,17 +2,15 @@
 // TODO: conferir redação final com o João (modelo real da empresa).
 
 export const MONTAGEM_COBERTURA =
-  "A montagem da cobertura será executada por equipe própria da Toldos Gerais, " +
-  "com todos os equipamentos de segurança necessários (EPIs), em conformidade " +
-  "com as normas técnicas aplicáveis. O local será entregue limpo após a " +
-  "conclusão dos serviços.";
+  "Montagem por equipe própria da Toldos Gerais, com EPIs e conforme as " +
+  "normas técnicas. O local é entregue limpo ao fim dos serviços.";
 
 export const GARANTIA_PADRAO =
-  "Garantia de 1 (um) ano contra defeitos de fabricação e instalação, " +
-  "contados a partir da data de conclusão da montagem.";
+  "1 (um) ano contra defeitos de fabricação e instalação, a partir da conclusão da montagem.";
 
 export const FORMA_PAGAMENTO_PADRAO =
-  "50% de entrada na aprovação do orçamento e 50% na conclusão da instalação.";
+  "50% de entrada na aprovação e 50% na conclusão da instalação.";
 
+// Prazo de entrega fixo (padrão). O número de dias pode ser alterado por orçamento.
 export const PRAZO_ENTREGA_PADRAO =
   "20 (vinte) dias úteis a partir da confirmação do pedido e do pagamento da entrada.";

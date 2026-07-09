@@ -19,7 +19,9 @@ type Cliente = {
   telefone: string;
   email: string | null;
   endereco: string | null;
+  bairro: string | null;
   cidade: string | null;
+  cep: string | null;
 };
 
 export function ClienteDialog({
@@ -63,30 +65,44 @@ export function ClienteDialog({
               placeholder="(31) 9…"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                name="email"
-                defaultValue={cliente?.email ?? ""}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cidade">Cidade</Label>
-              <Input
-                id="cidade"
-                name="cidade"
-                defaultValue={cliente?.cidade ?? ""}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">E-mail</Label>
+            <Input id="email" name="email" defaultValue={cliente?.email ?? ""} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="endereco">Endereço</Label>
+            <Label htmlFor="endereco">Endereço (rua e número)</Label>
             <Input
               id="endereco"
               name="endereco"
               defaultValue={cliente?.endereco ?? ""}
+              placeholder="Rua tal, 123"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="bairro">Bairro</Label>
+              <Input
+                id="bairro"
+                name="bairro"
+                defaultValue={cliente?.bairro ?? ""}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                name="cep"
+                defaultValue={cliente?.cep ?? ""}
+                placeholder="30000-000"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cidade">Cidade</Label>
+            <Input
+              id="cidade"
+              name="cidade"
+              defaultValue={cliente?.cidade ?? ""}
             />
           </div>
           {state.erro && (

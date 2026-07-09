@@ -1,6 +1,7 @@
 // Dados oficiais da Toldos Gerais Ltda — usados no PDF e no rodapé.
 export const EMPRESA = {
   razaoSocial: "Toldos Gerais Ltda",
+  cnpj: "02.873.343/0001-96",
   site: "www.toldosgerais.com.br",
   endereco:
     "Av. Waldir Soeiro Emrich, 4.645 A – Diamante – CEP 30660-560 – Belo Horizonte/MG",

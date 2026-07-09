@@ -78,8 +78,18 @@ export function FormCadastro({ token }: { token?: string }) {
                 <Input id="email" name="email" type="email" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="endereco">Endereço</Label>
-                <Input id="endereco" name="endereco" />
+                <Label htmlFor="endereco">Endereço (rua e número)</Label>
+                <Input id="endereco" name="endereco" placeholder="Rua tal, 123" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="bairro">Bairro</Label>
+                  <Input id="bairro" name="bairro" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input id="cep" name="cep" placeholder="30000-000" />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="cidade">Cidade</Label>

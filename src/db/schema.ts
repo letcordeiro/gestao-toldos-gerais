@@ -6,8 +6,10 @@ export const clientes = sqliteTable("clientes", {
   nome: text("nome").notNull(),
   telefone: text("telefone").notNull(),
   email: text("email"),
-  endereco: text("endereco"),
+  endereco: text("endereco"), // rua e número
+  bairro: text("bairro"),
   cidade: text("cidade"),
+  cep: text("cep"),
   origem: text("origem", { enum: ["interno", "auto_cadastro"] })
     .notNull()
     .default("interno"),

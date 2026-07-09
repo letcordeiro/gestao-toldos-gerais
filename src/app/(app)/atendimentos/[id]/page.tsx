@@ -20,9 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { FaseSelect } from "@/components/shared/fase-select";
-import { atualizarObservacoes } from "../actions";
+import { linkWhatsApp } from "@/lib/whatsapp";
+import { ObservacoesForm } from "./observacoes-form";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
@@ -114,9 +114,19 @@ export default async function AtendimentoPage({
             <CardTitle className="text-base">Cliente</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p>
-              <span className="text-muted-foreground">Telefone:</span>{" "}
-              {cliente.telefone}
+            <p className="flex items-center gap-2">
+              <span>
+                <span className="text-muted-foreground">Telefone:</span>{" "}
+                {cliente.telefone}
+              </span>
+              <a
+                href={linkWhatsApp(cliente.telefone)}
+                target="_blank"
+                rel="noopener"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                WhatsApp ↗
+              </a>
             </p>
             {cliente.email && (
               <p>
@@ -124,16 +134,17 @@ export default async function AtendimentoPage({
                 {cliente.email}
               </p>
             )}
-            {cliente.endereco && (
+            {(cliente.endereco || cliente.bairro || cliente.cidade || cliente.cep) && (
               <p>
                 <span className="text-muted-foreground">Endereço:</span>{" "}
-                {cliente.endereco}
-              </p>
-            )}
-            {cliente.cidade && (
-              <p>
-                <span className="text-muted-foreground">Cidade:</span>{" "}
-                {cliente.cidade}
+                {[
+                  cliente.endereco,
+                  cliente.bairro,
+                  cliente.cidade,
+                  cliente.cep ? `CEP ${cliente.cep}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" – ")}
               </p>
             )}
             <p>
@@ -158,22 +169,10 @@ export default async function AtendimentoPage({
             <CardTitle className="text-base">Observações</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={atualizarObservacoes} className="space-y-3">
-              <input
-                type="hidden"
-                name="atendimentoId"
-                value={atendimento.id}
-              />
-              <Textarea
-                name="observacoes"
-                rows={5}
-                defaultValue={atendimento.observacoes ?? ""}
-                placeholder="Anotações do atendimento…"
-              />
-              <Button type="submit" variant="secondary" size="sm">
-                Salvar observações
-              </Button>
-            </form>
+            <ObservacoesForm
+              atendimentoId={atendimento.id}
+              valorInicial={atendimento.observacoes ?? ""}
+            />
           </CardContent>
         </Card>
 

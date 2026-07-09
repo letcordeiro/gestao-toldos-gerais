@@ -70,6 +70,17 @@ export default async function AtendimentosPage({
     entradas.map((e) => [e.atendimentoId, new Date(e.desde * 1000)])
   );
 
+  // Resumo do funil: total de atendimentos por fase (visão geral, sem filtro)
+  const contagens = await db
+    .select({
+      faseId: atendimentos.faseId,
+      total: sql<number>`count(*)`,
+    })
+    .from(atendimentos)
+    .groupBy(atendimentos.faseId);
+  const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
+  const totalGeral = contagens.reduce((s, c) => s + c.total, 0);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -78,6 +89,40 @@ export default async function AtendimentosPage({
           <GerarLinkDialog />
           <NovoAtendimentoDialog clientes={todosClientes} />
         </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/atendimentos"
+          className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+            !fase
+              ? "border-primary bg-primary/10 font-medium text-primary"
+              : "text-muted-foreground hover:bg-secondary"
+          }`}
+        >
+          Todos <span className="text-muted-foreground">({totalGeral})</span>
+        </Link>
+        {todasFases.map((f) => {
+          const n = totalPorFase.get(f.id) ?? 0;
+          if (n === 0 && String(f.id) !== fase) return null;
+          const ativo = String(f.id) === fase;
+          return (
+            <Link
+              key={f.id}
+              href={`/atendimentos?fase=${f.id}`}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
+                ativo
+                  ? "border-primary bg-primary/10 font-medium"
+                  : "text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              <span
+                className="size-2 rounded-full"
+                style={{ backgroundColor: f.cor }}
+              />
+              {f.nome} <span className="text-muted-foreground">({n})</span>
+            </Link>
+          );
+        })}
       </div>
       <FiltrosFunil fases={todasFases} q={q} fase={fase} />
       <div className="rounded-lg border bg-card">

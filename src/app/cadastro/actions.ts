@@ -22,7 +22,9 @@ const cadastroSchema = z.object({
   telefone: z.string().trim().min(8, "Informe um telefone válido"),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
   endereco: z.string().trim().optional(),
+  bairro: z.string().trim().optional(),
   cidade: z.string().trim().optional(),
+  cep: z.string().trim().optional(),
   descricao: z.string().trim().max(2000).optional(),
 });
 
@@ -39,7 +41,9 @@ export async function enviarAutoCadastro(
     telefone: formData.get("telefone"),
     email: formData.get("email") || undefined,
     endereco: formData.get("endereco") || undefined,
+    bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
+    cep: formData.get("cep") || undefined,
     descricao: formData.get("descricao") || undefined,
   });
 
@@ -77,7 +81,9 @@ export async function enviarAutoCadastro(
       telefone: clientes.telefone,
       email: clientes.email,
       endereco: clientes.endereco,
+      bairro: clientes.bairro,
       cidade: clientes.cidade,
+      cep: clientes.cep,
     })
     .from(clientes);
   const existente = todos.find(
@@ -98,7 +104,9 @@ export async function enviarAutoCadastro(
     if (!existente.email && dados.email) preencher.email = dados.email;
     if (!existente.endereco && dados.endereco)
       preencher.endereco = dados.endereco;
+    if (!existente.bairro && dados.bairro) preencher.bairro = dados.bairro;
     if (!existente.cidade && dados.cidade) preencher.cidade = dados.cidade;
+    if (!existente.cep && dados.cep) preencher.cep = dados.cep;
     if (Object.keys(preencher).length > 0) {
       await db.update(clientes).set(preencher).where(eq(clientes.id, clienteId));
     }
@@ -110,7 +118,9 @@ export async function enviarAutoCadastro(
         telefone: dados.telefone,
         email: dados.email || null,
         endereco: dados.endereco || null,
+        bairro: dados.bairro || null,
         cidade: dados.cidade || null,
+        cep: dados.cep || null,
         origem: "auto_cadastro",
       })
       .returning({ id: clientes.id });

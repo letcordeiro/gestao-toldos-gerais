@@ -13,7 +13,9 @@ const clienteSchema = z.object({
   telefone: z.string().trim().min(1, "Informe o telefone"),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
   endereco: z.string().trim().optional(),
+  bairro: z.string().trim().optional(),
   cidade: z.string().trim().optional(),
+  cep: z.string().trim().optional(),
 });
 
 export type ClienteFormState = { erro?: string; ok?: boolean };
@@ -30,7 +32,9 @@ export async function salvarCliente(
     telefone: formData.get("telefone"),
     email: formData.get("email") || undefined,
     endereco: formData.get("endereco") || undefined,
+    bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
+    cep: formData.get("cep") || undefined,
   });
 
   if (!parsed.success) {
@@ -43,7 +47,9 @@ export async function salvarCliente(
     telefone: dados.telefone,
     email: dados.email || null,
     endereco: dados.endereco || null,
+    bairro: dados.bairro || null,
     cidade: dados.cidade || null,
+    cep: dados.cep || null,
   };
 
   if (dados.id) {
