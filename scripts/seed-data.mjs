@@ -28,7 +28,11 @@ export const MODELOS = [
       "Fixação em alvenaria ou estrutura existente com parabolts e buchas adequadas ao substrato. Vedação entre a estrutura e a parede com rufos e aplicação de silicone/PU, garantindo estanqueidade.",
   },
   { nome: "Toldos em Lona" },
-  { nome: "Toldos Italianos e Motorização" },
+  {
+    nome: "Toldos Italianos e Motorização",
+    estruturaSempreAluminio: true,
+    usaFormato: true,
+  },
   { nome: "Lonas Tensionadas" },
   { nome: "Sombreadores" },
   { nome: "Cobertura Termoacústica (telha sanduíche)" },
@@ -36,4 +40,12 @@ export const MODELOS = [
   { nome: "Cobertura de Policarbonato e Vidro" },
   { nome: "Estrutura Geodésica" },
   { nome: "Coberturas Móveis" },
+];
+
+export const VENDEDORES = [
+  {
+    nome: "João Avelar",
+    telefone: "(31) 99864-3502",
+    email: "avelarjoao@toldosgerais.com.br",
+  },
 ];

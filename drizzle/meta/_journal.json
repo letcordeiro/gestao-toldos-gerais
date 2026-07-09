@@ -15,6 +15,13 @@
       "when": 1783558986375,
       "tag": "0001_conscious_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783559825831,
+      "tag": "0002_workable_karen_page",
+      "breakpoints": true
     }
   ]
 }

@@ -18,9 +18,9 @@ type Modelo = {
   id: number;
   nome: string;
   descricaoMaterial: string | null;
-  estruturaAluminio: string | null;
-  estruturaFerro: string | null;
   fixacaoVedacao: string | null;
+  estruturaSempreAluminio: boolean;
+  usaFormato: boolean;
 };
 
 export function ModeloDialog({
@@ -63,24 +63,6 @@ export function ModeloDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="estruturaAluminio">Estrutura — alumínio</Label>
-            <Textarea
-              id="estruturaAluminio"
-              name="estruturaAluminio"
-              rows={3}
-              defaultValue={modelo?.estruturaAluminio ?? ""}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="estruturaFerro">Estrutura — ferro</Label>
-            <Textarea
-              id="estruturaFerro"
-              name="estruturaFerro"
-              rows={3}
-              defaultValue={modelo?.estruturaFerro ?? ""}
-            />
-          </div>
-          <div className="space-y-1.5">
             <Label htmlFor="fixacaoVedacao">Fixação e vedação</Label>
             <Textarea
               id="fixacaoVedacao"
@@ -88,6 +70,31 @@ export function ModeloDialog({
               rows={3}
               defaultValue={modelo?.fixacaoVedacao ?? ""}
             />
+          </div>
+          <div className="space-y-2 rounded-lg border p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Opções específicas do modelo
+            </p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="estruturaSempreAluminio"
+                value="1"
+                defaultChecked={modelo?.estruturaSempreAluminio}
+                className="size-4"
+              />
+              Estrutura sempre em alumínio (esconde a escolha alumínio/metálica)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="usaFormato"
+                value="1"
+                defaultChecked={modelo?.usaFormato}
+                className="size-4"
+              />
+              Tem formato (Capotinha / Braço Retrátil) — ex.: Toldos Italianos
+            </label>
           </div>
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>

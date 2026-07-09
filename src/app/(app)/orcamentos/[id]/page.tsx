@@ -10,6 +10,7 @@ import {
   modelosToldo,
   orcamentoItens,
   orcamentos,
+  vendedores,
 } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatarValorItem } from "@/lib/format";
+import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { StatusSelect } from "./status-select";
@@ -49,11 +51,13 @@ export default async function OrcamentoPage({
       atendimentoId: atendimentos.id,
       cliente: clientes,
       modeloNome: modelosToldo.nome,
+      vendedor: vendedores,
     })
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
     .leftJoin(modelosToldo, eq(orcamentos.modeloId, modelosToldo.id))
+    .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
     .where(eq(orcamentos.id, orcamentoId));
 
   if (!orcamento) notFound();
@@ -64,15 +68,18 @@ export default async function OrcamentoPage({
     .where(eq(orcamentoItens.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoItens.ordem));
 
-  const { orc, cliente } = orcamento;
+  const { orc, cliente, vendedor } = orcamento;
+
+  const modeloTexto = orcamento.modeloNome
+    ? orc.formato
+      ? `${orcamento.modeloNome} — Formato: ${rotuloFormato(orc.formato)}`
+      : orcamento.modeloNome
+    : null;
 
   const secoes: Array<{ titulo: string; texto: string | null }> = [
-    { titulo: "MODELO", texto: orcamento.modeloNome },
+    { titulo: "MODELO", texto: modeloTexto },
     { titulo: "DESCRIÇÃO DO MATERIAL", texto: orc.descricaoMaterial },
-    {
-      titulo: `ESTRUTURA${orc.tipoEstrutura ? ` (${orc.tipoEstrutura === "aluminio" ? "alumínio" : "ferro"})` : ""}`,
-      texto: orc.estruturaTexto,
-    },
+    { titulo: "ESTRUTURA", texto: rotuloEstrutura(orc.tipoEstrutura) || null },
     { titulo: "FIXAÇÃO E VEDAÇÃO DA ESTRUTURA", texto: orc.fixacaoVedacao },
     { titulo: "MONTAGEM DA COBERTURA", texto: MONTAGEM_COBERTURA },
     { titulo: "GARANTIA", texto: orc.garantiaTexto },
@@ -202,6 +209,20 @@ export default async function OrcamentoPage({
             <div>
               <h3 className="font-semibold text-primary">PRAZO DE ENTREGA</h3>
               <p className="whitespace-pre-line">{orc.prazoEntrega}</p>
+            </div>
+          )}
+
+          {vendedor && (
+            <div className="rounded-lg border bg-secondary/40 p-3">
+              <p className="text-xs font-semibold text-primary">
+                VENDEDOR RESPONSÁVEL
+              </p>
+              <p className="font-medium">{vendedor.nome}</p>
+              <p className="text-sm text-muted-foreground">
+                {[vendedor.telefone, vendedor.email]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             </div>
           )}
 

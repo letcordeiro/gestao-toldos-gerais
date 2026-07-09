@@ -13,7 +13,9 @@ import {
   modelosToldo,
   orcamentoItens,
   orcamentos,
+  vendedores,
 } from "@/db/schema";
+import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { PropostaPDF, type DadosProposta } from "./proposta-pdf";
 
 export async function GET(
@@ -31,11 +33,13 @@ export async function GET(
       orc: orcamentos,
       cliente: clientes,
       modeloNome: modelosToldo.nome,
+      vendedor: vendedores,
     })
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
     .leftJoin(modelosToldo, eq(orcamentos.modeloId, modelosToldo.id))
+    .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
     .where(eq(orcamentos.id, orcamentoId));
 
   if (!linha) {
@@ -63,13 +67,20 @@ export async function GET(
       cidade: linha.cliente.cidade,
     },
     modeloNome: linha.modeloNome,
+    formatoLabel: linha.orc.formato ? rotuloFormato(linha.orc.formato) : null,
     descricaoMaterial: linha.orc.descricaoMaterial,
-    estruturaTexto: linha.orc.estruturaTexto,
-    tipoEstrutura: linha.orc.tipoEstrutura,
+    estruturaLabel: rotuloEstrutura(linha.orc.tipoEstrutura) || null,
     fixacaoVedacao: linha.orc.fixacaoVedacao,
     garantiaTexto: linha.orc.garantiaTexto,
     formaPagamento: linha.orc.formaPagamento,
     prazoEntrega: linha.orc.prazoEntrega,
+    vendedor: linha.vendedor
+      ? {
+          nome: linha.vendedor.nome,
+          telefone: linha.vendedor.telefone,
+          email: linha.vendedor.email,
+        }
+      : null,
     itens: itens.map((item) => ({
       descricao: item.descricao,
       valorMin: item.valorMin,

@@ -61,7 +61,28 @@ export const modelosToldo = sqliteTable("modelos_toldo", {
   estruturaAluminio: text("estrutura_aluminio"),
   estruturaFerro: text("estrutura_ferro"),
   fixacaoVedacao: text("fixacao_vedacao"),
+  // Toldos Italianos: estrutura sempre em alumínio + escolha de formato
+  estruturaSempreAluminio: integer("estrutura_sempre_aluminio", {
+    mode: "boolean",
+  })
+    .notNull()
+    .default(false),
+  usaFormato: integer("usa_formato", { mode: "boolean" })
+    .notNull()
+    .default(false),
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+});
+
+// Vendedores responsáveis pelos orçamentos (cartão de contato no PDF).
+export const vendedores = sqliteTable("vendedores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  telefone: text("telefone"),
+  email: text("email"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
 });
 
 export const orcamentos = sqliteTable("orcamentos", {
@@ -71,9 +92,11 @@ export const orcamentos = sqliteTable("orcamentos", {
     .notNull()
     .references(() => atendimentos.id),
   modeloId: integer("modelo_id").references(() => modelosToldo.id),
+  vendedorId: integer("vendedor_id").references(() => vendedores.id),
   descricaoMaterial: text("descricao_material"),
   estruturaTexto: text("estrutura_texto"),
-  tipoEstrutura: text("tipo_estrutura", { enum: ["aluminio", "ferro"] }),
+  tipoEstrutura: text("tipo_estrutura", { enum: ["aluminio", "metalica"] }),
+  formato: text("formato", { enum: ["capotinha", "braco_retratil"] }),
   fixacaoVedacao: text("fixacao_vedacao"),
   garantiaTexto: text("garantia_texto"),
   formaPagamento: text("forma_pagamento"),

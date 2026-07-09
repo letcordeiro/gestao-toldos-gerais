@@ -15,6 +15,7 @@ const NAV = [
   { href: "/orcamentos", label: "Orçamentos" },
   { href: "/cadastros/clientes", label: "Clientes" },
   { href: "/cadastros/modelos", label: "Modelos" },
+  { href: "/cadastros/vendedores", label: "Vendedores" },
   { href: "/cadastros/fases", label: "Fases" },
 ];
 

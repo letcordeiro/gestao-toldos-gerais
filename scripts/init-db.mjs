@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { FASES, MODELOS } from "./seed-data.mjs";
+import { FASES, MODELOS, VENDEDORES } from "./seed-data.mjs";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DATABASE_PATH ?? "./data/toldos.db";
@@ -44,7 +44,7 @@ const contarModelos = sqlite
   .get().c;
 if (contarModelos === 0) {
   const insert = sqlite.prepare(
-    "INSERT INTO modelos_toldo (nome, descricao_material, estrutura_aluminio, estrutura_ferro, fixacao_vedacao, ativo) VALUES (?, ?, ?, ?, ?, 1)"
+    "INSERT INTO modelos_toldo (nome, descricao_material, estrutura_aluminio, estrutura_ferro, fixacao_vedacao, estrutura_sempre_aluminio, usa_formato, ativo) VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
   );
   const tx = sqlite.transaction(() => {
     for (const m of MODELOS)
@@ -53,13 +53,42 @@ if (contarModelos === 0) {
         m.descricaoMaterial ?? null,
         m.estruturaAluminio ?? null,
         m.estruturaFerro ?? null,
-        m.fixacaoVedacao ?? null
+        m.fixacaoVedacao ?? null,
+        m.estruturaSempreAluminio ? 1 : 0,
+        m.usaFormato ? 1 : 0
       );
   });
   tx();
   console.log(`✔ ${MODELOS.length} modelos criados`);
 } else {
   console.log(`• Modelos já existem (${contarModelos}), pulando`);
+}
+
+// Garante as flags do modelo italiano em bancos que já existiam (idempotente)
+const italiano = sqlite
+  .prepare(
+    "UPDATE modelos_toldo SET estrutura_sempre_aluminio = 1, usa_formato = 1 WHERE nome LIKE '%Italian%'"
+  )
+  .run();
+if (italiano.changes > 0)
+  console.log(`✔ flags do modelo italiano aplicadas (${italiano.changes})`);
+
+// Seed de vendedores (idempotente)
+const contarVendedores = sqlite
+  .prepare("SELECT count(*) AS c FROM vendedores")
+  .get().c;
+if (contarVendedores === 0) {
+  const insert = sqlite.prepare(
+    "INSERT INTO vendedores (nome, telefone, email, ativo) VALUES (?, ?, ?, 1)"
+  );
+  const tx = sqlite.transaction(() => {
+    for (const v of VENDEDORES)
+      insert.run(v.nome, v.telefone ?? null, v.email ?? null);
+  });
+  tx();
+  console.log(`✔ ${VENDEDORES.length} vendedor(es) criados`);
+} else {
+  console.log(`• Vendedores já existem (${contarVendedores}), pulando`);
 }
 
 sqlite.close();

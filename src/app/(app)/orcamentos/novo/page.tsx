@@ -1,6 +1,11 @@
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { atendimentos, clientes, modelosToldo } from "@/db/schema";
+import {
+  atendimentos,
+  clientes,
+  modelosToldo,
+  vendedores,
+} from "@/db/schema";
 import {
   FORMA_PAGAMENTO_PADRAO,
   GARANTIA_PADRAO,
@@ -31,12 +36,19 @@ export default async function NovoOrcamentoPage({
     .where(eq(modelosToldo.ativo, true))
     .orderBy(asc(modelosToldo.nome));
 
+  const listaVendedores = await db
+    .select({ id: vendedores.id, nome: vendedores.nome })
+    .from(vendedores)
+    .where(eq(vendedores.ativo, true))
+    .orderBy(asc(vendedores.nome));
+
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">Novo orçamento</h1>
       <OrcamentoForm
         atendimentos={listaAtendimentos}
         modelos={modelos}
+        vendedores={listaVendedores}
         atendimentoInicial={atendimento}
         padroes={{
           garantia: GARANTIA_PADRAO,

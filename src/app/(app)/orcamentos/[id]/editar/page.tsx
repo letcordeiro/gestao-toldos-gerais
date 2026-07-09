@@ -8,6 +8,7 @@ import {
   modelosToldo,
   orcamentoItens,
   orcamentos,
+  vendedores,
 } from "@/db/schema";
 import {
   FORMA_PAGAMENTO_PADRAO,
@@ -56,13 +57,28 @@ export default async function EditarOrcamentoPage({
     .where(eq(modelosToldo.ativo, true))
     .orderBy(asc(modelosToldo.nome));
 
+  const listaVendedores = await db
+    .select({ id: vendedores.id, nome: vendedores.nome })
+    .from(vendedores)
+    .where(eq(vendedores.ativo, true))
+    .orderBy(asc(vendedores.nome));
+
+  // Estrutura legada 'ferro' passa a ser exibida/editada como 'metalica'
+  const tipoEstrutura =
+    orcamento.tipoEstrutura === "aluminio"
+      ? "aluminio"
+      : orcamento.tipoEstrutura
+        ? "metalica"
+        : "aluminio";
+
   const inicial: OrcamentoInicial = {
     id: orcamento.id,
     atendimentoId: orcamento.atendimentoId,
     modeloId: orcamento.modeloId,
-    tipoEstrutura: orcamento.tipoEstrutura ?? "aluminio",
+    vendedorId: orcamento.vendedorId,
+    tipoEstrutura,
+    formato: orcamento.formato ?? "",
     descricaoMaterial: orcamento.descricaoMaterial ?? "",
-    estruturaTexto: orcamento.estruturaTexto ?? "",
     fixacaoVedacao: orcamento.fixacaoVedacao ?? "",
     garantiaTexto: orcamento.garantiaTexto ?? "",
     formaPagamento: orcamento.formaPagamento ?? "",
@@ -91,6 +107,7 @@ export default async function EditarOrcamentoPage({
       <OrcamentoForm
         atendimentos={listaAtendimentos}
         modelos={modelos}
+        vendedores={listaVendedores}
         orcamento={inicial}
         padroes={{
           garantia: GARANTIA_PADRAO,

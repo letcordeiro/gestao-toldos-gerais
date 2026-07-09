@@ -61,6 +61,26 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 4,
   },
+  vendedorCard: {
+    marginTop: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    borderRadius: 4,
+    backgroundColor: "#f5f7f6",
+  },
+  vendedorLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: "#004e36",
+    marginBottom: 3,
+  },
+  vendedorNome: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 2,
+  },
+  vendedorContato: { fontSize: 9, color: "#4a4a4a" },
   rodape: {
     position: "absolute",
     bottom: 30,
@@ -85,13 +105,18 @@ export type DadosProposta = {
     cidade: string | null;
   };
   modeloNome: string | null;
+  formatoLabel: string | null;
   descricaoMaterial: string | null;
-  estruturaTexto: string | null;
-  tipoEstrutura: string | null;
+  estruturaLabel: string | null;
   fixacaoVedacao: string | null;
   garantiaTexto: string | null;
   formaPagamento: string | null;
   prazoEntrega: string | null;
+  vendedor: {
+    nome: string;
+    telefone: string | null;
+    email: string | null;
+  } | null;
   itens: Array<{
     descricao: string;
     valorMin: number | null;
@@ -138,15 +163,21 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           {enderecoCliente ? <Text>{enderecoCliente}</Text> : null}
         </View>
 
-        <Secao titulo="MODELO" texto={dados.modeloNome} />
+        <Secao
+          titulo="MODELO"
+          texto={
+            dados.modeloNome
+              ? dados.formatoLabel
+                ? `${dados.modeloNome} — Formato: ${dados.formatoLabel}`
+                : dados.modeloNome
+              : null
+          }
+        />
         <Secao
           titulo="DESCRIÇÃO DO MATERIAL"
           texto={dados.descricaoMaterial}
         />
-        <Secao
-          titulo={`ESTRUTURA${dados.tipoEstrutura ? ` EM ${dados.tipoEstrutura === "aluminio" ? "ALUMÍNIO" : "FERRO"}` : ""}`}
-          texto={dados.estruturaTexto}
-        />
+        <Secao titulo="ESTRUTURA" texto={dados.estruturaLabel} />
         <Secao
           titulo="FIXAÇÃO E VEDAÇÃO DA ESTRUTURA"
           texto={dados.fixacaoVedacao}
@@ -175,6 +206,23 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
 
         <Secao titulo="FORMA DE PAGAMENTO" texto={dados.formaPagamento} />
         <Secao titulo="PRAZO DE ENTREGA" texto={dados.prazoEntrega} />
+
+        {dados.vendedor ? (
+          <View style={styles.vendedorCard} wrap={false}>
+            <Text style={styles.vendedorLabel}>VENDEDOR RESPONSÁVEL</Text>
+            <Text style={styles.vendedorNome}>{dados.vendedor.nome}</Text>
+            {dados.vendedor.telefone ? (
+              <Text style={styles.vendedorContato}>
+                Telefone/WhatsApp: {dados.vendedor.telefone}
+              </Text>
+            ) : null}
+            {dados.vendedor.email ? (
+              <Text style={styles.vendedorContato}>
+                E-mail: {dados.vendedor.email}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.rodape} fixed>
           <Text>

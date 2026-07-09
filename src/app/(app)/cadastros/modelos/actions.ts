@@ -11,9 +11,9 @@ const modeloSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   nome: z.string().trim().min(1, "Informe o nome"),
   descricaoMaterial: z.string().trim().optional(),
-  estruturaAluminio: z.string().trim().optional(),
-  estruturaFerro: z.string().trim().optional(),
   fixacaoVedacao: z.string().trim().optional(),
+  estruturaSempreAluminio: z.boolean(),
+  usaFormato: z.boolean(),
 });
 
 export type ModeloFormState = { erro?: string; ok?: boolean };
@@ -28,9 +28,9 @@ export async function salvarModelo(
     id: formData.get("id") || undefined,
     nome: formData.get("nome"),
     descricaoMaterial: formData.get("descricaoMaterial") || undefined,
-    estruturaAluminio: formData.get("estruturaAluminio") || undefined,
-    estruturaFerro: formData.get("estruturaFerro") || undefined,
     fixacaoVedacao: formData.get("fixacaoVedacao") || undefined,
+    estruturaSempreAluminio: formData.get("estruturaSempreAluminio") === "1",
+    usaFormato: formData.get("usaFormato") === "1",
   });
 
   if (!parsed.success) {
@@ -41,9 +41,9 @@ export async function salvarModelo(
   const valores = {
     nome: dados.nome,
     descricaoMaterial: dados.descricaoMaterial || null,
-    estruturaAluminio: dados.estruturaAluminio || null,
-    estruturaFerro: dados.estruturaFerro || null,
     fixacaoVedacao: dados.fixacaoVedacao || null,
+    estruturaSempreAluminio: dados.estruturaSempreAluminio,
+    usaFormato: dados.usaFormato,
   };
 
   if (dados.id) {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { desc, eq, like } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -25,9 +25,10 @@ const itemSchema = z.object({
 const orcamentoSchema = z.object({
   atendimentoId: z.coerce.number().int().positive("Escolha o atendimento"),
   modeloId: z.coerce.number().int().positive().optional(),
-  tipoEstrutura: z.enum(["aluminio", "ferro"]),
+  vendedorId: z.coerce.number().int().positive().optional(),
+  tipoEstrutura: z.enum(["aluminio", "metalica"]),
+  formato: z.enum(["capotinha", "braco_retratil"]).optional(),
   descricaoMaterial: z.string().trim().optional(),
-  estruturaTexto: z.string().trim().optional(),
   fixacaoVedacao: z.string().trim().optional(),
   garantiaTexto: z.string().trim().optional(),
   formaPagamento: z.string().trim().optional(),
@@ -70,14 +71,16 @@ function converterItens(
 
 async function proximoNumero(): Promise<string> {
   const ano = new Date().getFullYear();
-  const [ultimo] = await db
+  const linhas = await db
     .select({ numero: orcamentos.numero })
     .from(orcamentos)
-    .where(like(orcamentos.numero, `${ano}-%`))
-    .orderBy(desc(orcamentos.numero))
-    .limit(1);
-  const seq = ultimo ? parseInt(ultimo.numero.split("-")[1], 10) + 1 : 1;
-  return `${ano}-${String(seq).padStart(3, "0")}`;
+    .where(like(orcamentos.numero, `${ano}-%`));
+  // Maior sequência numérica do ano (ignora sufixos não numéricos)
+  const maxSeq = linhas.reduce((max, { numero }) => {
+    const n = parseInt(numero.split("-")[1] ?? "", 10);
+    return Number.isFinite(n) ? Math.max(max, n) : max;
+  }, 0);
+  return `${ano}-${String(maxSeq + 1).padStart(3, "0")}`;
 }
 
 async function moverParaOrcamentoEnviado(atendimentoId: number) {
@@ -118,9 +121,10 @@ export async function criarOrcamento(
   const parsed = orcamentoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),
     modeloId: formData.get("modeloId") || undefined,
+    vendedorId: formData.get("vendedorId") || undefined,
     tipoEstrutura: formData.get("tipoEstrutura"),
+    formato: formData.get("formato") || undefined,
     descricaoMaterial: formData.get("descricaoMaterial") || undefined,
-    estruturaTexto: formData.get("estruturaTexto") || undefined,
     fixacaoVedacao: formData.get("fixacaoVedacao") || undefined,
     garantiaTexto: formData.get("garantiaTexto") || undefined,
     formaPagamento: formData.get("formaPagamento") || undefined,
@@ -146,9 +150,10 @@ export async function criarOrcamento(
       numero,
       atendimentoId: dados.atendimentoId,
       modeloId: dados.modeloId ?? null,
+      vendedorId: dados.vendedorId ?? null,
       descricaoMaterial: dados.descricaoMaterial || null,
-      estruturaTexto: dados.estruturaTexto || null,
       tipoEstrutura: dados.tipoEstrutura,
+      formato: dados.formato ?? null,
       fixacaoVedacao: dados.fixacaoVedacao || null,
       garantiaTexto: dados.garantiaTexto || null,
       formaPagamento: dados.formaPagamento || null,
@@ -202,9 +207,10 @@ export async function atualizarOrcamento(
   const parsed = orcamentoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),
     modeloId: formData.get("modeloId") || undefined,
+    vendedorId: formData.get("vendedorId") || undefined,
     tipoEstrutura: formData.get("tipoEstrutura"),
+    formato: formData.get("formato") || undefined,
     descricaoMaterial: formData.get("descricaoMaterial") || undefined,
-    estruturaTexto: formData.get("estruturaTexto") || undefined,
     fixacaoVedacao: formData.get("fixacaoVedacao") || undefined,
     garantiaTexto: formData.get("garantiaTexto") || undefined,
     formaPagamento: formData.get("formaPagamento") || undefined,
@@ -226,9 +232,10 @@ export async function atualizarOrcamento(
     .set({
       atendimentoId: dados.atendimentoId,
       modeloId: dados.modeloId ?? null,
+      vendedorId: dados.vendedorId ?? null,
       descricaoMaterial: dados.descricaoMaterial || null,
-      estruturaTexto: dados.estruturaTexto || null,
       tipoEstrutura: dados.tipoEstrutura,
+      formato: dados.formato ?? null,
       fixacaoVedacao: dados.fixacaoVedacao || null,
       garantiaTexto: dados.garantiaTexto || null,
       formaPagamento: dados.formaPagamento || null,

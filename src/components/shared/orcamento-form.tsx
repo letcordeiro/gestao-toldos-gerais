@@ -35,10 +35,15 @@ type Modelo = {
   id: number;
   nome: string;
   descricaoMaterial: string | null;
-  estruturaAluminio: string | null;
-  estruturaFerro: string | null;
   fixacaoVedacao: string | null;
+  estruturaSempreAluminio: boolean;
+  usaFormato: boolean;
 };
+
+type VendedorOpcao = { id: number; nome: string };
+
+type TipoEstrutura = "aluminio" | "metalica";
+type Formato = "capotinha" | "braco_retratil" | "";
 
 type Item = {
   descricao: string;
@@ -52,9 +57,10 @@ export type OrcamentoInicial = {
   id: number;
   atendimentoId: number;
   modeloId: number | null;
-  tipoEstrutura: "aluminio" | "ferro";
+  vendedorId: number | null;
+  tipoEstrutura: TipoEstrutura;
+  formato: Formato;
   descricaoMaterial: string;
-  estruturaTexto: string;
   fixacaoVedacao: string;
   garantiaTexto: string;
   formaPagamento: string;
@@ -72,12 +78,14 @@ const ITEM_VAZIO: Item = {
 export function OrcamentoForm({
   atendimentos,
   modelos,
+  vendedores,
   atendimentoInicial,
   padroes,
   orcamento,
 }: {
   atendimentos: AtendimentoOpcao[];
   modelos: Modelo[];
+  vendedores: VendedorOpcao[];
   atendimentoInicial?: string;
   padroes: { garantia: string; formaPagamento: string; prazoEntrega: string };
   orcamento?: OrcamentoInicial;
@@ -91,17 +99,22 @@ export function OrcamentoForm({
   const [atendimentoId, setAtendimentoId] = useState(
     orcamento ? String(orcamento.atendimentoId) : atendimentoInicial ?? ""
   );
+  const [vendedorId, setVendedorId] = useState(
+    orcamento?.vendedorId
+      ? String(orcamento.vendedorId)
+      : vendedores[0]
+        ? String(vendedores[0].id)
+        : ""
+  );
   const [modeloId, setModeloId] = useState(
     orcamento?.modeloId ? String(orcamento.modeloId) : ""
   );
-  const [tipoEstrutura, setTipoEstrutura] = useState<"aluminio" | "ferro">(
+  const [tipoEstrutura, setTipoEstrutura] = useState<TipoEstrutura>(
     orcamento?.tipoEstrutura ?? "aluminio"
   );
+  const [formato, setFormato] = useState<Formato>(orcamento?.formato ?? "");
   const [descricaoMaterial, setDescricaoMaterial] = useState(
     orcamento?.descricaoMaterial ?? ""
-  );
-  const [estruturaTexto, setEstruturaTexto] = useState(
-    orcamento?.estruturaTexto ?? ""
   );
   const [fixacaoVedacao, setFixacaoVedacao] = useState(
     orcamento?.fixacaoVedacao ?? ""
@@ -112,16 +125,22 @@ export function OrcamentoForm({
       : [{ ...ITEM_VAZIO }]
   );
 
-  function aplicarModelo(id: string, tipo: "aluminio" | "ferro") {
+  const modeloSelecionado = modelos.find((m) => String(m.id) === modeloId);
+  const estruturaFixaAluminio = modeloSelecionado?.estruturaSempreAluminio;
+  const usaFormato = modeloSelecionado?.usaFormato ?? false;
+  const tipoEstruturaEfetivo: TipoEstrutura = estruturaFixaAluminio
+    ? "aluminio"
+    : tipoEstrutura;
+
+  function aoTrocarModelo(id: string) {
+    setModeloId(id);
     const modelo = modelos.find((m) => String(m.id) === id);
     if (!modelo) return;
     setDescricaoMaterial(modelo.descricaoMaterial ?? "");
-    setEstruturaTexto(
-      (tipo === "aluminio"
-        ? modelo.estruturaAluminio
-        : modelo.estruturaFerro) ?? ""
-    );
     setFixacaoVedacao(modelo.fixacaoVedacao ?? "");
+    if (modelo.estruturaSempreAluminio) setTipoEstrutura("aluminio");
+    // Formato só existe em modelos que usam (ex.: Toldos Italianos)
+    setFormato(modelo.usaFormato ? formato || "capotinha" : "");
   }
 
   function atualizarItem(indice: number, mudanca: Partial<Item>) {
@@ -130,16 +149,16 @@ export function OrcamentoForm({
     );
   }
 
-  const modeloSelecionado = modelos.find((m) => String(m.id) === modeloId);
-
   return (
     <form action={formAction} className="space-y-4">
       {orcamento && (
         <input type="hidden" name="orcamentoId" value={orcamento.id} />
       )}
       <input type="hidden" name="atendimentoId" value={atendimentoId} />
+      <input type="hidden" name="vendedorId" value={vendedorId} />
       <input type="hidden" name="modeloId" value={modeloId} />
-      <input type="hidden" name="tipoEstrutura" value={tipoEstrutura} />
+      <input type="hidden" name="tipoEstrutura" value={tipoEstruturaEfetivo} />
+      <input type="hidden" name="formato" value={usaFormato ? formato : ""} />
       <input
         type="hidden"
         name="itens"
@@ -153,27 +172,51 @@ export function OrcamentoForm({
           <CardTitle className="text-base">Atendimento e modelo</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Atendimento / cliente *</Label>
-            <Select
-              value={atendimentoId || null}
-              items={atendimentos.map((a) => ({
-                value: String(a.id),
-                label: `${a.clienteNome} — ${a.clienteTelefone}`,
-              }))}
-              onValueChange={(v) => setAtendimentoId(v ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Escolha o atendimento" />
-              </SelectTrigger>
-              <SelectContent>
-                {atendimentos.map((a) => (
-                  <SelectItem key={a.id} value={String(a.id)}>
-                    {a.clienteNome} — {a.clienteTelefone}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Atendimento / cliente *</Label>
+              <Select
+                value={atendimentoId || null}
+                items={atendimentos.map((a) => ({
+                  value: String(a.id),
+                  label: `${a.clienteNome} — ${a.clienteTelefone}`,
+                }))}
+                onValueChange={(v) => setAtendimentoId(v ?? "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Escolha o atendimento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {atendimentos.map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.clienteNome} — {a.clienteTelefone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Vendedor responsável</Label>
+              <Select
+                value={vendedorId || null}
+                items={vendedores.map((v) => ({
+                  value: String(v.id),
+                  label: v.nome,
+                }))}
+                onValueChange={(v) => setVendedorId(v ?? "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Escolha o vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendedores.map((v) => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      {v.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -184,10 +227,7 @@ export function OrcamentoForm({
                   value: String(m.id),
                   label: m.nome,
                 }))}
-                onValueChange={(v) => {
-                  setModeloId(v ?? "");
-                  if (v) aplicarModelo(v, tipoEstrutura);
-                }}
+                onValueChange={(v) => aoTrocarModelo(v ?? "")}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Escolha o modelo" />
@@ -203,30 +243,49 @@ export function OrcamentoForm({
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de estrutura</Label>
+              {estruturaFixaAluminio ? (
+                <p className="pt-2 text-sm">
+                  Alumínio{" "}
+                  <span className="text-muted-foreground">
+                    (fixo para este modelo)
+                  </span>
+                </p>
+              ) : (
+                <RadioGroup
+                  value={tipoEstrutura}
+                  onValueChange={(v) =>
+                    setTipoEstrutura((v ?? "aluminio") as TipoEstrutura)
+                  }
+                  className="flex gap-4 pt-1.5"
+                >
+                  <label className="flex items-center gap-2 text-sm">
+                    <RadioGroupItem value="aluminio" /> Alumínio
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <RadioGroupItem value="metalica" /> Metálica
+                  </label>
+                </RadioGroup>
+              )}
+            </div>
+          </div>
+          {usaFormato && (
+            <div className="space-y-1.5">
+              <Label>Formato</Label>
               <RadioGroup
-                value={tipoEstrutura}
-                onValueChange={(v) => {
-                  const tipo = (v ?? "aluminio") as "aluminio" | "ferro";
-                  setTipoEstrutura(tipo);
-                  if (modeloId) aplicarModelo(modeloId, tipo);
-                }}
+                value={formato || "capotinha"}
+                onValueChange={(v) =>
+                  setFormato((v ?? "capotinha") as Formato)
+                }
                 className="flex gap-4 pt-1.5"
               >
                 <label className="flex items-center gap-2 text-sm">
-                  <RadioGroupItem value="aluminio" /> Alumínio
+                  <RadioGroupItem value="capotinha" /> Capotinha
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <RadioGroupItem value="ferro" /> Ferro
+                  <RadioGroupItem value="braco_retratil" /> Braço Retrátil
                 </label>
               </RadioGroup>
             </div>
-          </div>
-          {modeloSelecionado && (
-            <p className="text-xs text-muted-foreground">
-              {edicao
-                ? "Trocar o modelo/tipo sobrescreve os textos abaixo."
-                : "Textos preenchidos a partir do modelo — edite à vontade abaixo."}
-            </p>
           )}
         </CardContent>
       </Card>
@@ -244,18 +303,6 @@ export function OrcamentoForm({
               rows={3}
               value={descricaoMaterial}
               onChange={(e) => setDescricaoMaterial(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="estruturaTexto">
-              Estrutura ({tipoEstrutura === "aluminio" ? "alumínio" : "ferro"})
-            </Label>
-            <Textarea
-              id="estruturaTexto"
-              name="estruturaTexto"
-              rows={3}
-              value={estruturaTexto}
-              onChange={(e) => setEstruturaTexto(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
