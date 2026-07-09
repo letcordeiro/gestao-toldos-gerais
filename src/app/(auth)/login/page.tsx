@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { login, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,14 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? "Entrando…" : "Entrar"}
             </Button>
+            <p className="text-center text-sm">
+              <Link
+                href="/esqueci-senha"
+                className="text-muted-foreground hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

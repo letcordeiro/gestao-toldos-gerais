@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,54 +12,43 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { gerarLinkCadastro } from "./actions";
 
+// Link único e permanente de auto-cadastro, o mesmo para todos os clientes.
+// O formulário identifica automaticamente se a pessoa já está cadastrada.
 export function GerarLinkDialog() {
-  const [url, setUrl] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [url, setUrl] = useState("");
 
-  function gerar() {
-    startTransition(async () => {
-      const { token } = await gerarLinkCadastro();
-      setUrl(`${window.location.origin}/cadastro/${token}`);
-    });
-  }
+  useEffect(() => {
+    setUrl(`${window.location.origin}/cadastro/publico`);
+  }, []);
 
   return (
-    <Dialog onOpenChange={(aberto) => !aberto && setUrl(null)}>
+    <Dialog>
       <DialogTrigger render={<Button variant="outline" />}>
-        Gerar link de cadastro
+        Link de cadastro
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Link de auto-cadastro</DialogTitle>
+          <DialogTitle>Link de cadastro do cliente</DialogTitle>
           <DialogDescription>
-            Válido por 7 dias, uso único. O cliente preenche os dados e entra
-            direto no funil como “Novo lead”.
+            Link único para divulgar (WhatsApp, Instagram, etc.). Serve para
+            todos: o cliente preenche os dados e entra no funil como “Novo
+            lead”. Se já for cadastrado, o sistema reconhece pelo telefone e não
+            duplica.
           </DialogDescription>
         </DialogHeader>
-        {url ? (
-          <div className="flex gap-2">
-            <Input readOnly value={url} className="text-xs" />
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                await navigator.clipboard.writeText(url);
-                toast.success("Link copiado");
-              }}
-            >
-              Copiar
-            </Button>
-          </div>
-        ) : (
-          <Button onClick={gerar} disabled={pending}>
-            {pending ? "Gerando…" : "Gerar novo link"}
+        <div className="flex gap-2">
+          <Input readOnly value={url} className="text-xs" />
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              await navigator.clipboard.writeText(url);
+              toast.success("Link copiado");
+            }}
+          >
+            Copiar
           </Button>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Link permanente (sem validade):{" "}
-          <span className="font-mono">/cadastro/publico</span>
-        </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

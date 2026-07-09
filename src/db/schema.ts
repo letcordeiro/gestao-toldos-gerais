@@ -108,3 +108,18 @@ export const tokensCadastro = sqliteTable("tokens_cadastro", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Usuários com senha redefinível (recuperação por código).
+// O login também aceita as credenciais do env AUTH_USERS como fallback/master:
+// se existe linha aqui para o e-mail, ela tem prioridade; senão, cai no env.
+export const usuarios = sqliteTable("usuarios", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  senhaHash: text("senha_hash").notNull(),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  atualizadoEm: integer("atualizado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

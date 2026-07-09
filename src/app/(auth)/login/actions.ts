@@ -25,7 +25,7 @@ export async function login(
   }
 
   const { email, senha } = parsed.data;
-  if (!validarCredenciais(email, senha)) {
+  if (!(await validarCredenciais(email, senha))) {
     return { erro: "E-mail ou senha incorretos" };
   }
 

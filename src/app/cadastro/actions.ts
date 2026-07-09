@@ -13,6 +13,10 @@ import {
   tokensCadastro,
 } from "@/db/schema";
 
+function soDigitos(valor: string): string {
+  return valor.replace(/\D/g, "");
+}
+
 const cadastroSchema = z.object({
   nome: z.string().trim().min(1, "Informe seu nome"),
   telefone: z.string().trim().min(8, "Informe um telefone válido"),
@@ -64,26 +68,66 @@ export async function enviarAutoCadastro(
   });
   if (!faseInicial) return { erro: "Erro interno. Tente mais tarde." };
 
-  const [cliente] = await db
-    .insert(clientes)
-    .values({
-      nome: dados.nome,
-      telefone: dados.telefone,
-      email: dados.email || null,
-      endereco: dados.endereco || null,
-      cidade: dados.cidade || null,
-      origem: "auto_cadastro",
+  // Detecta se a pessoa já está cadastrada (mesmo telefone, comparando só dígitos).
+  const telefoneDigitos = soDigitos(dados.telefone);
+  const emailNovo = dados.email ? dados.email.toLowerCase() : null;
+  const todos = await db
+    .select({
+      id: clientes.id,
+      telefone: clientes.telefone,
+      email: clientes.email,
+      endereco: clientes.endereco,
+      cidade: clientes.cidade,
     })
-    .returning({ id: clientes.id });
+    .from(clientes);
+  const existente = todos.find(
+    (c) =>
+      (telefoneDigitos.length >= 8 &&
+        soDigitos(c.telefone) === telefoneDigitos) ||
+      (emailNovo != null && c.email?.toLowerCase() === emailNovo)
+  );
 
+  let clienteId: number;
+  let recorrente = false;
+
+  if (existente) {
+    // Já cadastrado: reaproveita o cliente e completa campos que estavam vazios.
+    recorrente = true;
+    clienteId = existente.id;
+    const preencher: Record<string, string> = {};
+    if (!existente.email && dados.email) preencher.email = dados.email;
+    if (!existente.endereco && dados.endereco)
+      preencher.endereco = dados.endereco;
+    if (!existente.cidade && dados.cidade) preencher.cidade = dados.cidade;
+    if (Object.keys(preencher).length > 0) {
+      await db.update(clientes).set(preencher).where(eq(clientes.id, clienteId));
+    }
+  } else {
+    const [cliente] = await db
+      .insert(clientes)
+      .values({
+        nome: dados.nome,
+        telefone: dados.telefone,
+        email: dados.email || null,
+        endereco: dados.endereco || null,
+        cidade: dados.cidade || null,
+        origem: "auto_cadastro",
+      })
+      .returning({ id: clientes.id });
+    clienteId = cliente.id;
+  }
+
+  const prefixo = recorrente
+    ? "Auto-cadastro (cliente recorrente)"
+    : "Auto-cadastro";
   const [atendimento] = await db
     .insert(atendimentos)
     .values({
-      clienteId: cliente.id,
+      clienteId,
       faseId: faseInicial.id,
       observacoes: dados.descricao
-        ? `Auto-cadastro — o que precisa: ${dados.descricao}`
-        : "Auto-cadastro",
+        ? `${prefixo} — o que precisa: ${dados.descricao}`
+        : prefixo,
     })
     .returning({ id: atendimentos.id });
 

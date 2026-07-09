@@ -1,7 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
 
-const ROTAS_PUBLICAS = [/^\/login$/, /^\/cadastro\/.+/, /^\/api\/cadastro(\/.*)?$/];
+const ROTAS_PUBLICAS = [
+  /^\/login$/,
+  /^\/esqueci-senha$/,
+  /^\/cadastro\/.+/,
+  /^\/api\/cadastro(\/.*)?$/,
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
