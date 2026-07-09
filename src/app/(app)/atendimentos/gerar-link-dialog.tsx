@@ -33,6 +33,16 @@ export function GerarLinkDialog({ links }: { links: VendedorLink[] }) {
     origin && escolhido ? `${origin}/cadastro/${escolhido.token}` : "";
   const multiplos = links.length > 1;
 
+  // Mensagem de primeiro contato: o vendedor se apresenta e pede o cadastro.
+  const primeiroNome = escolhido?.nome?.split(" ")[0] ?? "";
+  const mensagem =
+    `Olá! Aqui é ${primeiroNome}, da Toldos Gerais — vou ser o vendedor responsável pelo seu atendimento. 😊\n\n` +
+    `Para eu preparar seu orçamento, é só fazer um cadastro rápido neste link e me contar o que você precisa (medidas, local, tipo de cobertura, etc.):\n${url}\n\n` +
+    `Assim que você enviar, já dou início ao seu atendimento. Qualquer dúvida, pode falar comigo por aqui!`;
+  const linkWhatsApp = url
+    ? `https://wa.me/?text=${encodeURIComponent(mensagem)}`
+    : "";
+
   return (
     <Dialog>
       <DialogTrigger render={<Button variant="outline" />}>
@@ -83,6 +93,19 @@ export function GerarLinkDialog({ links }: { links: VendedorLink[] }) {
                 Copiar
               </Button>
             </div>
+            <Button
+              className="w-full"
+              nativeButton={false}
+              render={
+                <a href={linkWhatsApp} target="_blank" rel="noopener" />
+              }
+            >
+              Enviar no WhatsApp
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Abre o WhatsApp com uma mensagem de primeiro contato pronta (você
+              escolhe o cliente e pode editar antes de enviar).
+            </p>
           </div>
         )}
       </DialogContent>
