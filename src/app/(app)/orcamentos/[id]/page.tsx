@@ -105,13 +105,13 @@ export default async function OrcamentoPage({
 
   const { orc, cliente, vendedor } = orcamento;
 
-  // Link público da proposta (para o cliente ver/baixar o PDF pelo WhatsApp).
+  // Link público da proposta — abre direto o PDF do orçamento (o que o cliente recebe).
   const cabecalhos = await headers();
   const host = cabecalhos.get("host");
   const proto = cabecalhos.get("x-forwarded-proto") ?? "https";
   const linkProposta =
     orc.publicToken && host
-      ? `${proto}://${host}/proposta/${orc.publicToken}`
+      ? `${proto}://${host}/proposta/${orc.publicToken}/pdf`
       : null;
 
   const modeloTexto = orcamento.modeloNome
@@ -192,6 +192,7 @@ export default async function OrcamentoPage({
             </Button>
           )}
           <Button
+            className="w-full sm:w-auto"
             nativeButton={false}
             render={
               <a

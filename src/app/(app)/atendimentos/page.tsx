@@ -255,9 +255,9 @@ export default async function AtendimentosPage({
           <TableHeader>
             <TableRow>
               <TableHead>Cliente</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead className="hidden sm:table-cell">Telefone</TableHead>
               <TableHead>Fase</TableHead>
-              <TableHead>Na fase</TableHead>
+              <TableHead className="hidden sm:table-cell">Na fase</TableHead>
               <TableHead className="hidden md:table-cell">Observações</TableHead>
             </TableRow>
           </TableHeader>
@@ -281,8 +281,11 @@ export default async function AtendimentosPage({
                   >
                     {linha.clienteNome}
                   </Link>
+                  <span className="block text-xs font-normal text-muted-foreground sm:hidden">
+                    {linha.clienteTelefone}
+                  </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
                   {linha.clienteTelefone}
                 </TableCell>
                 <TableCell>
@@ -292,7 +295,7 @@ export default async function AtendimentosPage({
                     fases={todasFases}
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
                   {tempoNaFase(
                     desdePorAtendimento.get(linha.id) ?? linha.criadoEm
                   )}
