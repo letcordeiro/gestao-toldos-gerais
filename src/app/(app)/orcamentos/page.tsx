@@ -2,7 +2,14 @@ import Link from "next/link";
 import { desc, eq, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
-import { atendimentos, clientes, orcamentoItens, orcamentos } from "@/db/schema";
+import {
+  atendimentos,
+  clientes,
+  orcamentoItens,
+  orcamentos,
+  vendedores,
+} from "@/db/schema";
+import { exigirUsuario } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +33,14 @@ const STATUS_BADGE: Record<
 };
 
 export default async function OrcamentosPage() {
+  const usuario = await exigirUsuario();
+  const ehGestor = usuario.papel === "gestor";
+  // Vendedor vê só os próprios orçamentos.
+  const escopo =
+    !ehGestor && usuario.vendedorId != null
+      ? eq(orcamentos.vendedorId, usuario.vendedorId)
+      : undefined;
+
   const linhas = await db
     .select({
       id: orcamentos.id,
@@ -33,6 +48,7 @@ export default async function OrcamentosPage() {
       status: orcamentos.status,
       criadoEm: orcamentos.criadoEm,
       clienteNome: clientes.nome,
+      vendedorNome: vendedores.nome,
       total: sql<number | null>`(
         select sum(${orcamentoItens.valorMin})
         from ${orcamentoItens}
@@ -42,6 +58,8 @@ export default async function OrcamentosPage() {
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
+    .where(escopo)
     .orderBy(desc(orcamentos.criadoEm));
 
   return (
@@ -58,6 +76,9 @@ export default async function OrcamentosPage() {
             <TableRow>
               <TableHead>Número</TableHead>
               <TableHead>Cliente</TableHead>
+              {ehGestor && (
+                <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
+              )}
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">Total (a partir de)</TableHead>
               <TableHead className="hidden md:table-cell">Data</TableHead>
@@ -67,7 +88,7 @@ export default async function OrcamentosPage() {
             {linhas.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={ehGestor ? 6 : 5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhum orçamento ainda.
@@ -87,6 +108,11 @@ export default async function OrcamentosPage() {
                     </Link>
                   </TableCell>
                   <TableCell>{linha.clienteNome}</TableCell>
+                  {ehGestor && (
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                      {linha.vendedorNome ?? "—"}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Badge variant={badge.variant}>{badge.label}</Badge>
                   </TableCell>

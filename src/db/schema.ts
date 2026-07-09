@@ -35,6 +35,8 @@ export const atendimentos = sqliteTable("atendimentos", {
   faseId: integer("fase_id")
     .notNull()
     .references(() => fases.id),
+  // Vendedor dono do atendimento (null = lead do pool, visível só a gestores)
+  vendedorId: integer("vendedor_id"),
   observacoes: text("observacoes"),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
@@ -85,6 +87,10 @@ export const vendedores = sqliteTable("vendedores", {
   email: text("email"),
   // Login do vendedor: quem tem senhaHash consegue entrar no sistema
   senhaHash: text("senha_hash"),
+  // Papel de acesso: gestor vê tudo e gerencia cadastros; vendedor vê só o seu
+  papel: text("papel", { enum: ["gestor", "vendedor"] })
+    .notNull()
+    .default("vendedor"),
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()

@@ -1,6 +1,8 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { vendedores } from "@/db/schema";
+import { exigirGestor } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +16,7 @@ import { AtivoVendedorSwitch } from "./ativo-switch";
 import { VendedorDialog } from "./vendedor-dialog";
 
 export default async function VendedoresPage() {
+  await exigirGestor();
   const linhas = await db
     .select()
     .from(vendedores)
@@ -31,6 +34,7 @@ export default async function VendedoresPage() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead className="hidden md:table-cell">E-mail</TableHead>
+              <TableHead>Papel</TableHead>
               <TableHead>Acesso</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-0" />
@@ -40,7 +44,7 @@ export default async function VendedoresPage() {
             {linhas.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhum vendedor cadastrado.
@@ -55,6 +59,15 @@ export default async function VendedoresPage() {
                 <TableCell className="font-medium">{vendedor.nome}</TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
                   {vendedor.email}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      vendedor.papel === "gestor" ? "default" : "secondary"
+                    }
+                  >
+                    {vendedor.papel === "gestor" ? "Gestor" : "Vendedor"}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm">
                   {vendedor.senhaHash ? (
@@ -74,6 +87,7 @@ export default async function VendedoresPage() {
                       telefone: vendedor.telefone,
                       email: vendedor.email,
                       temAcesso: Boolean(vendedor.senhaHash),
+                      papel: vendedor.papel,
                     }}
                     trigger={
                       <Button variant="ghost" size="sm">

@@ -1,6 +1,8 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { modelosToldo } from "@/db/schema";
+import { exigirUsuario } from "@/lib/auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +16,8 @@ import { AtivoSwitch } from "./ativo-switch";
 import { ModeloDialog } from "./modelo-dialog";
 
 export default async function ModelosPage() {
+  const usuario = await exigirUsuario();
+  const ehGestor = usuario.papel === "gestor";
   const linhas = await db
     .select()
     .from(modelosToldo)
@@ -25,7 +29,11 @@ export default async function ModelosPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           Modelos de toldo
         </h1>
-        <ModeloDialog trigger={<Button>Novo modelo</Button>} />
+        {ehGestor ? (
+          <ModeloDialog trigger={<Button>Novo modelo</Button>} />
+        ) : (
+          <Badge variant="secondary">Somente consulta</Badge>
+        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
@@ -36,7 +44,7 @@ export default async function ModelosPage() {
                 Descrição do material
               </TableHead>
               <TableHead>Ativo</TableHead>
-              <TableHead className="w-0" />
+              {ehGestor && <TableHead className="w-0" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -52,18 +60,26 @@ export default async function ModelosPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <AtivoSwitch id={modelo.id} ativo={modelo.ativo} />
+                  {ehGestor ? (
+                    <AtivoSwitch id={modelo.id} ativo={modelo.ativo} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {modelo.ativo ? "Sim" : "Não"}
+                    </span>
+                  )}
                 </TableCell>
-                <TableCell className="text-right">
-                  <ModeloDialog
-                    modelo={modelo}
-                    trigger={
-                      <Button variant="ghost" size="sm">
-                        Editar
-                      </Button>
-                    }
-                  />
-                </TableCell>
+                {ehGestor && (
+                  <TableCell className="text-right">
+                    <ModeloDialog
+                      modelo={modelo}
+                      trigger={
+                        <Button variant="ghost" size="sm">
+                          Editar
+                        </Button>
+                      }
+                    />
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

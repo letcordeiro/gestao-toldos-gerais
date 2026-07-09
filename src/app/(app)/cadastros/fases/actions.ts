@@ -5,7 +5,7 @@ import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { atendimentos, fases } from "@/db/schema";
-import { exigirSessao } from "@/lib/auth";
+import { exigirGestor } from "@/lib/auth";
 
 const faseSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -20,7 +20,7 @@ export async function salvarFase(
   _prev: FaseFormState,
   formData: FormData
 ): Promise<FaseFormState> {
-  await exigirSessao();
+  await exigirGestor();
 
   const parsed = faseSchema.safeParse({
     id: formData.get("id") || undefined,
@@ -46,7 +46,7 @@ export async function salvarFase(
 }
 
 export async function excluirFase(id: number): Promise<{ erro?: string }> {
-  await exigirSessao();
+  await exigirGestor();
   const faseId = z.coerce.number().int().positive().parse(id);
 
   const [{ total }] = await db

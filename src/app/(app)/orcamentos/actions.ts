@@ -12,7 +12,7 @@ import {
   orcamentoItens,
   orcamentos,
 } from "@/db/schema";
-import { exigirSessao } from "@/lib/auth";
+import { exigirSessao, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
 
 const itemSchema = z.object({
@@ -109,7 +109,8 @@ export async function criarOrcamento(
   _prev: OrcamentoFormState,
   formData: FormData
 ): Promise<OrcamentoFormState> {
-  await exigirSessao();
+  const usuario = await usuarioAtual();
+  if (!usuario) return { erro: "Sessão expirada" };
 
   let itensBrutos: unknown;
   try {
@@ -138,6 +139,10 @@ export async function criarOrcamento(
   }
   const dados = parsed.data;
 
+  // Vendedor só emite orçamento em seu próprio nome.
+  const vendedorId =
+    usuario.papel === "vendedor" ? usuario.vendedorId : dados.vendedorId ?? null;
+
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
   const itensConvertidos = conversao.itens;
@@ -150,7 +155,7 @@ export async function criarOrcamento(
       numero,
       atendimentoId: dados.atendimentoId,
       modeloId: dados.modeloId ?? null,
-      vendedorId: dados.vendedorId ?? null,
+      vendedorId,
       descricaoMaterial: dados.descricaoMaterial || null,
       tipoEstrutura: dados.tipoEstrutura,
       formato: dados.formato ?? null,
@@ -171,6 +176,19 @@ export async function criarOrcamento(
       ordem: i,
     }))
   );
+
+  // Vendedor que orça um lead do pool passa a ser dono do atendimento.
+  if (usuario.papel === "vendedor" && usuario.vendedorId != null) {
+    const at = await db.query.atendimentos.findFirst({
+      where: eq(atendimentos.id, dados.atendimentoId),
+    });
+    if (at && at.vendedorId == null) {
+      await db
+        .update(atendimentos)
+        .set({ vendedorId: usuario.vendedorId })
+        .where(eq(atendimentos.id, dados.atendimentoId));
+    }
+  }
 
   if (dados.status === "enviado") {
     await moverParaOrcamentoEnviado(dados.atendimentoId);

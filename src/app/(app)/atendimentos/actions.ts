@@ -13,7 +13,7 @@ import {
   historicoFases,
   tokensCadastro,
 } from "@/db/schema";
-import { exigirSessao } from "@/lib/auth";
+import { exigirSessao, usuarioAtual } from "@/lib/auth";
 
 const novoAtendimentoSchema = z
   .object({
@@ -35,7 +35,8 @@ export async function criarAtendimento(
   _prev: NovoAtendimentoState,
   formData: FormData
 ): Promise<NovoAtendimentoState> {
-  await exigirSessao();
+  const usuario = await usuarioAtual();
+  if (!usuario) return { erro: "Sessão expirada" };
 
   const parsed = novoAtendimentoSchema.safeParse({
     clienteId: formData.get("clienteId") || undefined,
@@ -73,11 +74,16 @@ export async function criarAtendimento(
     clienteId = novoCliente.id;
   }
 
+  // Vendedor que cria o atendimento vira dono; gestor cria no pool (sem dono).
+  const vendedorId =
+    usuario.papel === "vendedor" ? usuario.vendedorId : null;
+
   const [novo] = await db
     .insert(atendimentos)
     .values({
       clienteId,
       faseId: faseInicial.id,
+      vendedorId,
       observacoes: dados.observacoes || null,
     })
     .returning({ id: atendimentos.id });

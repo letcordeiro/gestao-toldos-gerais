@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { exigirSessao, encerrarSessao } from "@/lib/auth";
+import { exigirUsuario, encerrarSessao } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 async function sair() {
@@ -10,13 +10,14 @@ async function sair() {
   redirect("/login");
 }
 
+// soGestor: itens de administração escondidos do vendedor
 const NAV = [
-  { href: "/atendimentos", label: "Atendimentos" },
-  { href: "/orcamentos", label: "Orçamentos" },
-  { href: "/cadastros/clientes", label: "Clientes" },
-  { href: "/cadastros/modelos", label: "Modelos" },
-  { href: "/cadastros/vendedores", label: "Vendedores" },
-  { href: "/cadastros/fases", label: "Fases" },
+  { href: "/atendimentos", label: "Atendimentos", soGestor: false },
+  { href: "/orcamentos", label: "Orçamentos", soGestor: false },
+  { href: "/cadastros/clientes", label: "Clientes", soGestor: false },
+  { href: "/cadastros/modelos", label: "Modelos", soGestor: false },
+  { href: "/cadastros/vendedores", label: "Vendedores", soGestor: true },
+  { href: "/cadastros/fases", label: "Fases", soGestor: true },
 ];
 
 export default async function AppLayout({
@@ -24,7 +25,9 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await exigirSessao();
+  const usuario = await exigirUsuario();
+  const ehGestor = usuario.papel === "gestor";
+  const navItens = NAV.filter((item) => ehGestor || !item.soGestor);
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,7 +43,7 @@ export default async function AppLayout({
             />
           </Link>
           <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
-            {NAV.map((item) => (
+            {navItens.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -50,11 +53,17 @@ export default async function AppLayout({
               </Link>
             ))}
           </nav>
-          <form action={sair}>
-            <Button variant="ghost" size="sm" type="submit">
-              Sair
-            </Button>
-          </form>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              {usuario.nome ?? usuario.email}
+              {ehGestor ? " · gestor" : " · vendedor"}
+            </span>
+            <form action={sair}>
+              <Button variant="ghost" size="sm" type="submit">
+                Sair
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

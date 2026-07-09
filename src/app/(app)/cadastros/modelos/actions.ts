@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { modelosToldo } from "@/db/schema";
-import { exigirSessao } from "@/lib/auth";
+import { exigirGestor } from "@/lib/auth";
 
 const modeloSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -22,7 +22,7 @@ export async function salvarModelo(
   _prev: ModeloFormState,
   formData: FormData
 ): Promise<ModeloFormState> {
-  await exigirSessao();
+  await exigirGestor();
 
   const parsed = modeloSchema.safeParse({
     id: formData.get("id") || undefined,
@@ -60,7 +60,7 @@ export async function salvarModelo(
 }
 
 export async function alternarAtivo(id: number, ativo: boolean) {
-  await exigirSessao();
+  await exigirGestor();
   await db
     .update(modelosToldo)
     .set({ ativo })

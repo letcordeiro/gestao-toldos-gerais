@@ -1,6 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { atendimentos, fases } from "@/db/schema";
+import { exigirGestor } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +15,7 @@ import { FaseDialog } from "./fase-dialog";
 import { ExcluirFaseButton } from "./excluir-fase-button";
 
 export default async function FasesPage() {
+  await exigirGestor();
   const linhas = await db
     .select({
       id: fases.id,

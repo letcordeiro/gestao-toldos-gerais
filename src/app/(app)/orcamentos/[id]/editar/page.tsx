@@ -16,6 +16,7 @@ import {
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
 import { centavosParaInput } from "@/lib/format";
+import { exigirUsuario } from "@/lib/auth";
 import {
   OrcamentoForm,
   type OrcamentoInicial,
@@ -30,10 +31,20 @@ export default async function EditarOrcamentoPage({
   const orcamentoId = Number(id);
   if (!Number.isInteger(orcamentoId)) notFound();
 
+  const usuario = await exigirUsuario();
+
   const orcamento = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),
   });
   if (!orcamento) notFound();
+
+  // Vendedor só edita os próprios orçamentos.
+  if (
+    usuario.papel === "vendedor" &&
+    orcamento.vendedorId !== usuario.vendedorId
+  ) {
+    notFound();
+  }
 
   const itens = await db
     .select()

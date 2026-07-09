@@ -23,6 +23,7 @@ import {
 import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
+import { exigirUsuario } from "@/lib/auth";
 import { ObservacoesForm } from "./observacoes-form";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -41,12 +42,15 @@ export default async function AtendimentoPage({
   const atendimentoId = Number(id);
   if (!Number.isInteger(atendimentoId)) notFound();
 
+  const usuario = await exigirUsuario();
+
   const [atendimento] = await db
     .select({
       id: atendimentos.id,
       observacoes: atendimentos.observacoes,
       criadoEm: atendimentos.criadoEm,
       faseId: atendimentos.faseId,
+      vendedorId: atendimentos.vendedorId,
       cliente: clientes,
     })
     .from(atendimentos)
@@ -54,6 +58,14 @@ export default async function AtendimentoPage({
     .where(eq(atendimentos.id, atendimentoId));
 
   if (!atendimento) notFound();
+
+  // Vendedor só acessa os próprios atendimentos.
+  if (
+    usuario.papel === "vendedor" &&
+    atendimento.vendedorId !== usuario.vendedorId
+  ) {
+    notFound();
+  }
 
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
 

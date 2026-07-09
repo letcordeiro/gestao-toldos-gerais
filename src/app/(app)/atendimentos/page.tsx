@@ -3,6 +3,7 @@ import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import { atendimentos, clientes, fases, historicoFases } from "@/db/schema";
+import { exigirUsuario } from "@/lib/auth";
 import {
   Table,
   TableBody,
@@ -29,6 +30,12 @@ export default async function AtendimentosPage({
   searchParams: Promise<{ fase?: string; q?: string }>;
 }) {
   const { fase, q } = await searchParams;
+  const usuario = await exigirUsuario();
+  // Vendedor vê só os próprios atendimentos; gestor vê todos.
+  const escopoVendedor =
+    usuario.papel === "vendedor" && usuario.vendedorId != null
+      ? eq(atendimentos.vendedorId, usuario.vendedorId)
+      : undefined;
 
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
   const todosClientes = await db
@@ -37,6 +44,7 @@ export default async function AtendimentosPage({
     .orderBy(asc(clientes.nome));
 
   const filtros = [];
+  if (escopoVendedor) filtros.push(escopoVendedor);
   if (fase) filtros.push(eq(atendimentos.faseId, Number(fase)));
   if (q) {
     filtros.push(
@@ -77,6 +85,7 @@ export default async function AtendimentosPage({
       total: sql<number>`count(*)`,
     })
     .from(atendimentos)
+    .where(escopoVendedor)
     .groupBy(atendimentos.faseId);
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
   const totalGeral = contagens.reduce((s, c) => s + c.total, 0);

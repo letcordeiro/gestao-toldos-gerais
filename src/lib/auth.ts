@@ -122,6 +122,49 @@ export async function vendedorDaSessao(): Promise<{
   return v ? { id: v.id, nome: v.nome } : null;
 }
 
+export type Papel = "gestor" | "vendedor";
+export type UsuarioAtual = {
+  email: string;
+  papel: Papel;
+  /** id do vendedor logado, ou null se for admin do env/usuarios (tratado como gestor) */
+  vendedorId: number | null;
+  nome: string | null;
+};
+
+/**
+ * Usuário da sessão com papel resolvido.
+ * - Vendedor com login → papel vem da coluna `papel` (gestor|vendedor).
+ * - Admin do env/usuarios (ex.: Letícia) → sempre gestor.
+ */
+export async function usuarioAtual(): Promise<UsuarioAtual | null> {
+  const sessao = await getSessao();
+  if (!sessao) return null;
+  const v = await vendedorPorEmail(sessao.email);
+  if (v) {
+    return {
+      email: sessao.email,
+      papel: v.papel,
+      vendedorId: v.id,
+      nome: v.nome,
+    };
+  }
+  return { email: sessao.email, papel: "gestor", vendedorId: null, nome: null };
+}
+
+/** Exige sessão e retorna o usuário com papel (redireciona pro login se não logado). */
+export async function exigirUsuario(): Promise<UsuarioAtual> {
+  const u = await usuarioAtual();
+  if (!u) redirect("/login");
+  return u;
+}
+
+/** Exige que o usuário seja gestor; vendedor é mandado de volta pra home. */
+export async function exigirGestor(): Promise<UsuarioAtual> {
+  const u = await exigirUsuario();
+  if (u.papel !== "gestor") redirect("/atendimentos");
+  return u;
+}
+
 export async function criarSessao(email: string) {
   const token = await createSessionToken(email);
   const cookieStore = await cookies();

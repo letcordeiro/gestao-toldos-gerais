@@ -24,6 +24,7 @@ import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
+import { exigirUsuario } from "@/lib/auth";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 
@@ -46,6 +47,8 @@ export default async function OrcamentoPage({
   const orcamentoId = Number(id);
   if (!Number.isInteger(orcamentoId)) notFound();
 
+  const usuario = await exigirUsuario();
+
   const [orcamento] = await db
     .select({
       orc: orcamentos,
@@ -62,6 +65,14 @@ export default async function OrcamentoPage({
     .where(eq(orcamentos.id, orcamentoId));
 
   if (!orcamento) notFound();
+
+  // Vendedor só acessa os próprios orçamentos.
+  if (
+    usuario.papel === "vendedor" &&
+    orcamento.orc.vendedorId !== usuario.vendedorId
+  ) {
+    notFound();
+  }
 
   const itens = await db
     .select()

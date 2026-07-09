@@ -120,5 +120,25 @@ try {
   console.warn("• VENDEDOR_SENHAS não aplicado (não crítico):", e.message);
 }
 
+// Promove a gestor os e-mails listados em env VENDEDOR_GESTORES="email1,email2"
+// (idempotente; garante que os gestores configurados sempre tenham o papel).
+try {
+  const gestoresRaw = process.env.VENDEDOR_GESTORES ?? "";
+  const emails = gestoresRaw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  for (const email of emails) {
+    const r = sqlite
+      .prepare(
+        "UPDATE vendedores SET papel = 'gestor' WHERE lower(email) = ? AND papel <> 'gestor'"
+      )
+      .run(email);
+    if (r.changes > 0) console.log(`✔ vendedor ${email} promovido a gestor`);
+  }
+} catch (e) {
+  console.warn("• VENDEDOR_GESTORES não aplicado (não crítico):", e.message);
+}
+
 sqlite.close();
 console.log(`✔ Banco pronto em ${dbPath}`);

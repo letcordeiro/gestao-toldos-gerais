@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { vendedores } from "@/db/schema";
-import { definirSenhaVendedor, exigirSessao } from "@/lib/auth";
+import { definirSenhaVendedor, exigirGestor } from "@/lib/auth";
 
 const vendedorSchema = z
   .object({
@@ -18,6 +18,7 @@ const vendedorSchema = z
       .email("E-mail inválido")
       .optional()
       .or(z.literal("")),
+    papel: z.enum(["gestor", "vendedor"]).default("vendedor"),
     senha: z.string().optional(),
   })
   .refine((d) => !d.senha || d.senha.length >= 6, {
@@ -35,13 +36,14 @@ export async function salvarVendedor(
   _prev: VendedorFormState,
   formData: FormData
 ): Promise<VendedorFormState> {
-  await exigirSessao();
+  await exigirGestor();
 
   const parsed = vendedorSchema.safeParse({
     id: formData.get("id") || undefined,
     nome: formData.get("nome"),
     telefone: formData.get("telefone") || undefined,
     email: formData.get("email") || undefined,
+    papel: formData.get("papel") || undefined,
     senha: formData.get("senha") || undefined,
   });
 
@@ -54,6 +56,7 @@ export async function salvarVendedor(
     nome: dados.nome,
     telefone: dados.telefone || null,
     email: dados.email || null,
+    papel: dados.papel,
   };
 
   let vendedorId: number;
@@ -78,7 +81,7 @@ export async function salvarVendedor(
 }
 
 export async function alternarAtivoVendedor(id: number, ativo: boolean) {
-  await exigirSessao();
+  await exigirGestor();
   await db
     .update(vendedores)
     .set({ ativo })

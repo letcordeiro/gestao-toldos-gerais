@@ -16,6 +16,7 @@ import {
   vendedores,
 } from "@/db/schema";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
+import { usuarioAtual } from "@/lib/auth";
 import { PropostaPDF, type DadosProposta } from "./proposta-pdf";
 
 export async function GET(
@@ -43,6 +44,15 @@ export async function GET(
     .where(eq(orcamentos.id, orcamentoId));
 
   if (!linha) {
+    return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
+  }
+
+  // Vendedor só baixa PDF dos próprios orçamentos.
+  const usuario = await usuarioAtual();
+  if (
+    usuario?.papel === "vendedor" &&
+    linha.orc.vendedorId !== usuario.vendedorId
+  ) {
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 

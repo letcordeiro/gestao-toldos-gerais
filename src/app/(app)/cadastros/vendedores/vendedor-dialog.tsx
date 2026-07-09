@@ -19,6 +19,7 @@ type Vendedor = {
   telefone: string | null;
   email: string | null;
   temAcesso: boolean;
+  papel: "gestor" | "vendedor";
 };
 
 export function VendedorDialog({
@@ -69,6 +70,18 @@ export function VendedorDialog({
               name="email"
               defaultValue={vendedor?.email ?? ""}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="papel">Papel de acesso</Label>
+            <select
+              id="papel"
+              name="papel"
+              defaultValue={vendedor?.papel ?? "vendedor"}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="vendedor">Vendedor (vê só o que é dele)</option>
+              <option value="gestor">Gestor (vê tudo e gerencia)</option>
+            </select>
           </div>
           <div className="space-y-1.5 rounded-lg border p-3">
             <Label htmlFor="senha">Senha de acesso</Label>
