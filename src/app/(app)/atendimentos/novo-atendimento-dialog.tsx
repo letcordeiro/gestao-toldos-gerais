@@ -26,11 +26,16 @@ import {
 } from "./actions";
 
 type ClienteOpcao = { id: number; nome: string; telefone: string };
+type VendedorOpcao = { id: number; nome: string };
 
 export function NovoAtendimentoDialog({
   clientes,
+  vendedores,
+  ehGestor,
 }: {
   clientes: ClienteOpcao[];
+  vendedores: VendedorOpcao[];
+  ehGestor: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [modo, setModo] = useState<"novo" | "existente">("novo");
@@ -113,6 +118,26 @@ export function NovoAtendimentoDialog({
               </div>
             </TabsContent>
           </Tabs>
+          {ehGestor && (
+            <div className="space-y-1.5">
+              <Label htmlFor="vendedorId">Vendedor responsável *</Label>
+              <select
+                id="vendedorId"
+                name="vendedorId"
+                defaultValue=""
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="" disabled>
+                  Escolha o vendedor
+                </option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={String(v.id)}>
+                    {v.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="observacoes">Observações</Label>
             <Textarea id="observacoes" name="observacoes" rows={3} />

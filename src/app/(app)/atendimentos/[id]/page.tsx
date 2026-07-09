@@ -11,6 +11,7 @@ import {
   fases,
   historicoFases,
   orcamentos,
+  vendedores,
 } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
 import { exigirUsuario } from "@/lib/auth";
 import { ObservacoesForm } from "./observacoes-form";
+import { AtribuirVendedor } from "./atribuir-vendedor";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
@@ -68,6 +70,21 @@ export default async function AtendimentoPage({
   }
 
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
+
+  const ehGestor = usuario.papel === "gestor";
+  // Vendedor responsável atual + (só gestor) lista para reatribuir.
+  const vendedorAtual = atendimento.vendedorId
+    ? await db.query.vendedores.findFirst({
+        where: eq(vendedores.id, atendimento.vendedorId),
+      })
+    : null;
+  const listaVendedores = ehGestor
+    ? await db
+        .select({ id: vendedores.id, nome: vendedores.nome })
+        .from(vendedores)
+        .where(eq(vendedores.ativo, true))
+        .orderBy(asc(vendedores.nome))
+    : [];
 
   const faseAnterior = alias(fases, "fase_anterior");
   const historico = await db
@@ -161,6 +178,20 @@ export default async function AtendimentoPage({
                   : "Interno"}
               </Badge>
             </p>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Vendedor:</span>{" "}
+              {ehGestor ? (
+                <AtribuirVendedor
+                  atendimentoId={atendimento.id}
+                  vendedorId={atendimento.vendedorId}
+                  vendedores={listaVendedores}
+                />
+              ) : (
+                <span className="font-medium">
+                  {vendedorAtual?.nome ?? "—"}
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground">
               Atendimento criado em{" "}
               {format(atendimento.criadoEm, "dd/MM/yyyy 'às' HH:mm", {

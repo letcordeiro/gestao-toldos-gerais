@@ -19,7 +19,13 @@ import {
   type CadastroPublicoState,
 } from "./actions";
 
-export function FormCadastro({ token }: { token?: string }) {
+export function FormCadastro({
+  token,
+  vendedorNome,
+}: {
+  token?: string;
+  vendedorNome?: string;
+}) {
   const [state, formAction, pending] = useActionState<
     CadastroPublicoState,
     FormData
@@ -41,7 +47,9 @@ export function FormCadastro({ token }: { token?: string }) {
             <>
               <CardTitle>Solicite seu orçamento</CardTitle>
               <CardDescription>
-                Preencha seus dados e entraremos em contato.
+                {vendedorNome
+                  ? `Atendimento com ${vendedorNome}. Preencha seus dados e entraremos em contato.`
+                  : "Preencha seus dados e entraremos em contato."}
               </CardDescription>
             </>
           )}

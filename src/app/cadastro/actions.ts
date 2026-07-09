@@ -2,7 +2,7 @@
 
 // Ações PÚBLICAS de auto-cadastro — sem exigir sessão.
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -10,7 +10,7 @@ import {
   clientes,
   fases,
   historicoFases,
-  tokensCadastro,
+  vendedores,
 } from "@/db/schema";
 
 function soDigitos(valor: string): string {
@@ -56,19 +56,14 @@ export async function enviarAutoCadastro(
   }
   const dados = parsed.data;
 
-  // Com token: precisa existir, não usado e não expirado
-  let tokenRegistro = null;
-  if (token) {
-    tokenRegistro = await db.query.tokensCadastro.findFirst({
-      where: eq(tokensCadastro.token, token),
-    });
-    if (
-      !tokenRegistro ||
-      tokenRegistro.usadoEm !== null ||
-      tokenRegistro.expiraEm < new Date()
-    ) {
-      return { erro: "Este link de cadastro não é mais válido." };
-    }
+  // O token é o link exclusivo de um vendedor: todo lead nasce atribuído a ele.
+  const vendedor = token
+    ? await db.query.vendedores.findFirst({
+        where: and(eq(vendedores.linkToken, token), eq(vendedores.ativo, true)),
+      })
+    : null;
+  if (!vendedor) {
+    return { erro: "Este link de cadastro não é mais válido." };
   }
 
   const faseInicial = await db.query.fases.findFirst({
@@ -141,6 +136,7 @@ export async function enviarAutoCadastro(
     .values({
       clienteId,
       faseId: faseInicial.id,
+      vendedorId: vendedor.id,
       observacoes: dados.descricao
         ? `${prefixo} — o que precisa: ${dados.descricao}`
         : prefixo,
@@ -152,13 +148,6 @@ export async function enviarAutoCadastro(
     faseAnteriorId: null,
     faseNovaId: faseInicial.id,
   });
-
-  if (tokenRegistro) {
-    await db
-      .update(tokensCadastro)
-      .set({ usadoEm: new Date() })
-      .where(eq(tokensCadastro.id, tokenRegistro.id));
-  }
 
   return { ok: true };
 }

@@ -91,6 +91,9 @@ export const vendedores = sqliteTable("vendedores", {
   papel: text("papel", { enum: ["gestor", "vendedor"] })
     .notNull()
     .default("vendedor"),
+  // Link público de cadastro exclusivo do vendedor (/cadastro/{linkToken}).
+  // Leads que entram por ele já nascem atribuídos a este vendedor.
+  linkToken: text("link_token").unique(),
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()

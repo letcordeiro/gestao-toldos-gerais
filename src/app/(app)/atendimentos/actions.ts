@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -11,13 +10,14 @@ import {
   clientes,
   fases,
   historicoFases,
-  tokensCadastro,
+  vendedores,
 } from "@/db/schema";
-import { exigirSessao, usuarioAtual } from "@/lib/auth";
+import { exigirGestor, exigirSessao, usuarioAtual } from "@/lib/auth";
 
 const novoAtendimentoSchema = z
   .object({
     clienteId: z.coerce.number().int().positive().optional(),
+    vendedorId: z.coerce.number().int().positive().optional(),
     nome: z.string().trim().optional(),
     telefone: z.string().trim().optional(),
     email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
@@ -40,6 +40,7 @@ export async function criarAtendimento(
 
   const parsed = novoAtendimentoSchema.safeParse({
     clienteId: formData.get("clienteId") || undefined,
+    vendedorId: formData.get("vendedorId") || undefined,
     nome: formData.get("nome") || undefined,
     telefone: formData.get("telefone") || undefined,
     email: formData.get("email") || undefined,
@@ -52,6 +53,13 @@ export async function criarAtendimento(
     return { erro: parsed.error.issues[0].message };
   }
   const dados = parsed.data;
+
+  // Todo atendimento tem um vendedor: vendedor cria em seu nome; gestor escolhe.
+  const vendedorId =
+    usuario.papel === "vendedor" ? usuario.vendedorId : dados.vendedorId ?? null;
+  if (!vendedorId) {
+    return { erro: "Escolha o vendedor responsável pelo atendimento" };
+  }
 
   const faseInicial = await db.query.fases.findFirst({
     orderBy: asc(fases.ordem),
@@ -73,10 +81,6 @@ export async function criarAtendimento(
       .returning({ id: clientes.id });
     clienteId = novoCliente.id;
   }
-
-  // Vendedor que cria o atendimento vira dono; gestor cria no pool (sem dono).
-  const vendedorId =
-    usuario.papel === "vendedor" ? usuario.vendedorId : null;
 
   const [novo] = await db
     .insert(atendimentos)
@@ -127,12 +131,24 @@ export async function mudarFase(atendimentoId: number, faseId: number) {
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
 }
 
-export async function gerarLinkCadastro(): Promise<{ token: string }> {
-  await exigirSessao();
-  const token = nanoid(8);
-  const expiraEm = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
-  await db.insert(tokensCadastro).values({ token, expiraEm });
-  return { token };
+// Gestor (re)atribui o vendedor responsável por um atendimento.
+export async function atribuirVendedor(atendimentoId: number, vendedorId: number) {
+  await exigirGestor();
+  const at = z.coerce.number().int().positive().parse(atendimentoId);
+  const vend = z.coerce.number().int().positive().parse(vendedorId);
+
+  const vendedor = await db.query.vendedores.findFirst({
+    where: eq(vendedores.id, vend),
+  });
+  if (!vendedor) return;
+
+  await db
+    .update(atendimentos)
+    .set({ vendedorId: vend, atualizadoEm: new Date() })
+    .where(eq(atendimentos.id, at));
+
+  revalidatePath("/atendimentos");
+  revalidatePath(`/atendimentos/${at}`);
 }
 
 const observacoesSchema = z.object({

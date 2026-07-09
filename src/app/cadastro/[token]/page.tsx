@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { tokensCadastro } from "@/db/schema";
+import { vendedores } from "@/db/schema";
 import { FormCadastro } from "../form-cadastro";
 import { EMPRESA } from "@/lib/empresa";
 
@@ -11,14 +11,12 @@ export default async function CadastroTokenPage({
 }) {
   const { token } = await params;
 
-  const registro = await db.query.tokensCadastro.findFirst({
-    where: eq(tokensCadastro.token, token),
+  // O token é o link exclusivo de um vendedor: o lead nasce atribuído a ele.
+  const vendedor = await db.query.vendedores.findFirst({
+    where: and(eq(vendedores.linkToken, token), eq(vendedores.ativo, true)),
   });
 
-  const valido =
-    registro && registro.usadoEm === null && registro.expiraEm >= new Date();
-
-  if (!valido) {
+  if (!vendedor) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="max-w-sm space-y-2 text-center">
@@ -34,5 +32,5 @@ export default async function CadastroTokenPage({
     );
   }
 
-  return <FormCadastro token={token} />;
+  return <FormCadastro token={token} vendedorNome={vendedor.nome} />;
 }

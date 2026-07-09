@@ -2,7 +2,13 @@ import Link from "next/link";
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
-import { atendimentos, clientes, fases, historicoFases } from "@/db/schema";
+import {
+  atendimentos,
+  clientes,
+  fases,
+  historicoFases,
+  vendedores,
+} from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import {
   Table,
@@ -42,6 +48,24 @@ export default async function AtendimentosPage({
     .select({ id: clientes.id, nome: clientes.nome, telefone: clientes.telefone })
     .from(clientes)
     .orderBy(asc(clientes.nome));
+
+  // Vendedores ativos com link de cadastro.
+  const vendedoresAtivos = await db
+    .select({
+      id: vendedores.id,
+      nome: vendedores.nome,
+      linkToken: vendedores.linkToken,
+      papel: vendedores.papel,
+    })
+    .from(vendedores)
+    .where(eq(vendedores.ativo, true))
+    .orderBy(asc(vendedores.nome));
+
+  const ehGestor = usuario.papel === "gestor";
+  // Link de cadastro: gestor vê o de todos; vendedor só o seu.
+  const linksCadastro = vendedoresAtivos
+    .filter((v) => v.linkToken && (ehGestor || v.id === usuario.vendedorId))
+    .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
 
   const filtros = [];
   if (escopoVendedor) filtros.push(escopoVendedor);
@@ -95,8 +119,12 @@ export default async function AtendimentosPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
         <div className="flex gap-2">
-          <GerarLinkDialog />
-          <NovoAtendimentoDialog clientes={todosClientes} />
+          <GerarLinkDialog links={linksCadastro} />
+          <NovoAtendimentoDialog
+            clientes={todosClientes}
+            vendedores={vendedoresAtivos.map((v) => ({ id: v.id, nome: v.nome }))}
+            ehGestor={ehGestor}
+          />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

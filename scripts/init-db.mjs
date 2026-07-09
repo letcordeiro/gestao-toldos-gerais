@@ -120,6 +120,27 @@ try {
   console.warn("• VENDEDOR_SENHAS não aplicado (não crítico):", e.message);
 }
 
+// Backfill do link público por vendedor (link_token) — usa crypto nativo,
+// sem dependência empacotada (evita a armadilha do bundling que derrubou o boot).
+try {
+  const { randomBytes } = await import("node:crypto");
+  const semLink = sqlite
+    .prepare(
+      "SELECT id FROM vendedores WHERE link_token IS NULL OR link_token = ''"
+    )
+    .all();
+  for (const v of semLink) {
+    const tok = randomBytes(8).toString("base64url");
+    sqlite
+      .prepare("UPDATE vendedores SET link_token = ? WHERE id = ?")
+      .run(tok, v.id);
+  }
+  if (semLink.length > 0)
+    console.log(`✔ link_token gerado para ${semLink.length} vendedor(es)`);
+} catch (e) {
+  console.warn("• link_token não aplicado (não crítico):", e.message);
+}
+
 // Promove a gestor os e-mails listados em env VENDEDOR_GESTORES="email1,email2"
 // (idempotente; garante que os gestores configurados sempre tenham o papel).
 try {
