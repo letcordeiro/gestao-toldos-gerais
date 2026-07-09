@@ -6,6 +6,7 @@ import {
   atendimentos,
   clientes,
   modelosToldo,
+  orcamentoFotos,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -18,9 +19,16 @@ import {
 import { centavosParaInput } from "@/lib/format";
 import { exigirUsuario } from "@/lib/auth";
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   OrcamentoForm,
   type OrcamentoInicial,
 } from "@/components/shared/orcamento-form";
+import { FotosOrcamento } from "../fotos-orcamento";
 
 export default async function EditarOrcamentoPage({
   params,
@@ -51,6 +59,12 @@ export default async function EditarOrcamentoPage({
     .from(orcamentoItens)
     .where(eq(orcamentoItens.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoItens.ordem));
+
+  const fotos = await db
+    .select({ id: orcamentoFotos.id, arquivo: orcamentoFotos.arquivo })
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, orcamentoId))
+    .orderBy(asc(orcamentoFotos.ordem));
 
   const listaAtendimentos = await db
     .select({
@@ -115,6 +129,23 @@ export default async function EditarOrcamentoPage({
           Editar orçamento {orcamento.numero}
         </h1>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Aparecem no PDF e no link que o cliente recebe. Pode adicionar agora
+            ou depois, no orçamento salvo.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <FotosOrcamento
+            orcamentoId={orcamento.id}
+            fotos={fotos}
+            podeEditar
+          />
+        </CardContent>
+      </Card>
+
       <OrcamentoForm
         atendimentos={listaAtendimentos}
         modelos={modelos}
