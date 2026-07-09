@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { AtivoSwitch } from "./ativo-switch";
 import { ModeloDialog } from "./modelo-dialog";
+import { VerModeloDialog } from "./ver-modelo-dialog";
 
 export default async function ModelosPage() {
   const usuario = await exigirUsuario();
@@ -44,7 +45,7 @@ export default async function ModelosPage() {
                 Descrição do material
               </TableHead>
               <TableHead>Ativo</TableHead>
-              {ehGestor && <TableHead className="w-0" />}
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -68,18 +69,28 @@ export default async function ModelosPage() {
                     </span>
                   )}
                 </TableCell>
-                {ehGestor && (
-                  <TableCell className="text-right">
-                    <ModeloDialog
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <VerModeloDialog
                       modelo={modelo}
                       trigger={
                         <Button variant="ghost" size="sm">
-                          Editar
+                          Ver
                         </Button>
                       }
                     />
-                  </TableCell>
-                )}
+                    {ehGestor && (
+                      <ModeloDialog
+                        modelo={modelo}
+                        trigger={
+                          <Button variant="ghost" size="sm">
+                            Editar
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
