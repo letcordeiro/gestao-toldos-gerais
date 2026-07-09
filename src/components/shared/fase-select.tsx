@@ -22,6 +22,8 @@ export function FaseSelect({
   fases: Fase[];
 }) {
   const [pending, startTransition] = useTransition();
+  const faseAtual = fases.find((f) => f.id === faseId);
+  const cor = faseAtual?.cor;
 
   return (
     <Select
@@ -34,8 +36,28 @@ export function FaseSelect({
         }
       }}
     >
-      <SelectTrigger className="w-[200px] bg-card">
-        <SelectValue />
+      {/* O gatilho fica na cor definida para a fase selecionada. */}
+      <SelectTrigger
+        className="w-[200px] font-medium"
+        style={
+          cor
+            ? {
+                backgroundColor: `${cor}1a`,
+                borderColor: `${cor}80`,
+                color: cor,
+              }
+            : undefined
+        }
+      >
+        <span className="flex items-center gap-2">
+          {cor && (
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: cor }}
+            />
+          )}
+          <SelectValue />
+        </span>
       </SelectTrigger>
       <SelectContent>
         {fases.map((fase) => (

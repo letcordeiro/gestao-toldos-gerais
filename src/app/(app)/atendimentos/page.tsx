@@ -256,8 +256,8 @@ export default async function AtendimentosPage({
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-              <TableHead>Fase</TableHead>
-              <TableHead className="hidden sm:table-cell">Na fase</TableHead>
+              <TableHead>Status do atendimento</TableHead>
+              <TableHead className="hidden sm:table-cell">No status</TableHead>
               <TableHead className="hidden md:table-cell">Observações</TableHead>
             </TableRow>
           </TableHeader>
