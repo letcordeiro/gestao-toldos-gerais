@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -12,6 +12,17 @@ export const metadata: Metadata = {
   title: "Gestão Toldos Gerais",
   description:
     "Sistema interno de orçamentos e funil de atendimento da Toldos Gerais",
+  // Nome e comportamento ao adicionar à tela de início do celular.
+  applicationName: "Toldos Gerais",
+  appleWebApp: {
+    capable: true,
+    title: "Toldos Gerais",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#004e36",
 };
 
 export default function RootLayout({
