@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { mascaraMoeda } from "@/lib/format";
 import {
   atualizarOrcamento,
   criarOrcamento,
@@ -386,9 +387,11 @@ export function OrcamentoForm({
                     <Input
                       value={item.valorMin}
                       placeholder="0,00"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       onChange={(e) =>
-                        atualizarItem(i, { valorMin: e.target.value })
+                        atualizarItem(i, {
+                          valorMin: mascaraMoeda(e.target.value),
+                        })
                       }
                     />
                   </div>
@@ -399,9 +402,11 @@ export function OrcamentoForm({
                     <Input
                       value={item.valorMax}
                       placeholder="faixa"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       onChange={(e) =>
-                        atualizarItem(i, { valorMax: e.target.value })
+                        atualizarItem(i, {
+                          valorMax: mascaraMoeda(e.target.value),
+                        })
                       }
                     />
                   </div>

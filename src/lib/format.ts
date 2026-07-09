@@ -19,6 +19,16 @@ export function centavosParaInput(centavos: number | null): string {
   return decimalPtBR.format(centavos / 100);
 }
 
+/**
+ * Máscara de moeda para digitação: usa só os dígitos como centavos.
+ * Ex.: "850000" → "8.500,00". Vazio permanece vazio.
+ */
+export function mascaraMoeda(valor: string): string {
+  const digitos = valor.replace(/\D/g, "");
+  if (!digitos) return "";
+  return decimalPtBR.format(parseInt(digitos, 10) / 100);
+}
+
 /** Converte entrada do usuário ("1.234,56") em centavos. Retorna null se inválida. */
 export function parseParaCentavos(valor: string): number | null {
   const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");

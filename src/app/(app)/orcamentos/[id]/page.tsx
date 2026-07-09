@@ -24,6 +24,7 @@ import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
+import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 
 function linkWhatsApp(telefone: string, nome: string, numero: string): string {
@@ -117,6 +118,12 @@ export default async function OrcamentoPage({
           >
             Editar
           </Button>
+          <form action={duplicarOrcamento}>
+            <input type="hidden" name="orcamentoId" value={orc.id} />
+            <Button type="submit" variant="outline">
+              Duplicar
+            </Button>
+          </form>
           <Button
             variant="outline"
             nativeButton={false}

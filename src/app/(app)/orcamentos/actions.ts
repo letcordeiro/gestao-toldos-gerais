@@ -297,3 +297,53 @@ export async function mudarStatusOrcamento(
   revalidatePath(`/orcamentos/${id}`);
   revalidatePath(`/atendimentos/${orcamento.atendimentoId}`);
 }
+
+// Cria um novo orçamento (rascunho) copiando todos os dados de um existente.
+export async function duplicarOrcamento(formData: FormData) {
+  await exigirSessao();
+  const id = z.coerce.number().int().positive().parse(formData.get("orcamentoId"));
+
+  const original = await db.query.orcamentos.findFirst({
+    where: eq(orcamentos.id, id),
+  });
+  if (!original) return;
+
+  const itens = await db
+    .select()
+    .from(orcamentoItens)
+    .where(eq(orcamentoItens.orcamentoId, id));
+
+  const numero = await proximoNumero();
+  const [novo] = await db
+    .insert(orcamentos)
+    .values({
+      numero,
+      atendimentoId: original.atendimentoId,
+      modeloId: original.modeloId,
+      vendedorId: original.vendedorId,
+      descricaoMaterial: original.descricaoMaterial,
+      tipoEstrutura: original.tipoEstrutura,
+      formato: original.formato,
+      fixacaoVedacao: original.fixacaoVedacao,
+      garantiaTexto: original.garantiaTexto,
+      formaPagamento: original.formaPagamento,
+      prazoEntrega: original.prazoEntrega,
+      status: "rascunho",
+    })
+    .returning({ id: orcamentos.id });
+
+  if (itens.length > 0) {
+    await db.insert(orcamentoItens).values(
+      itens.map((item) => ({
+        orcamentoId: novo.id,
+        descricao: item.descricao,
+        valorMin: item.valorMin,
+        valorMax: item.valorMax,
+        ordem: item.ordem,
+      }))
+    );
+  }
+
+  revalidatePath("/orcamentos");
+  redirect(`/orcamentos/${novo.id}/editar`);
+}
