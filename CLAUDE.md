@@ -170,7 +170,7 @@ Paleta extraída da logo oficial (`public/logo.png` ✅):
   - Volume persistente: mount **toldos-data → /data** (banco `toldos.db`).
   - Env no Dokploy: `DATABASE_PATH=/data/toldos.db`, `SESSION_SECRET` (guardado no painel), `AUTH_USERS`.
   - `Dockerfile` multi-stage standalone, `scripts/init-db.mjs` roda migrations + seed no boot (idempotente), `db/index.ts` abre SQLite lazy (proxy).
-- ⏳ **Autodeploy on push NÃO está ligado** (usei provider Git com URL pública, não o GitHub App). Para atualizar: `git push` + botão **Deploy** no Dokploy (Webhook URL disponível na aba Deployments para automatizar depois). SSH key local `~/.ssh/id_ed25519_toldos` autoriza o push.
+- ✅ **Autodeploy on push LIGADO**: webhook do GitHub (`Settings → Webhooks`) aponta para a Webhook URL do Dokploy (aba Deployments), evento `push`, content-type JSON. Todo `git push` na `main` publica sozinho (Docker reaproveita cache quando o código não muda). SSH key local `~/.ssh/id_ed25519_toldos` (registrada no GitHub como "Mac Toldos") autoriza o push.
 
 Para zerar o banco local: `rm -rf data/toldos.db* && npm run db:push && npm run db:seed`
 Boot em produção cria/semeia o banco sozinho via `scripts/init-db.mjs`.
