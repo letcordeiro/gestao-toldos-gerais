@@ -30,5 +30,5 @@ export async function login(
   }
 
   await criarSessao(email);
-  redirect("/atendimentos");
+  redirect("/painel");
 }

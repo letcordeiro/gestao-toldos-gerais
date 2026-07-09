@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { modelosToldo } from "@/db/schema";
+import { modelosToldo, orcamentos } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 
 const modeloSchema = z.object({
@@ -66,4 +66,24 @@ export async function alternarAtivo(id: number, ativo: boolean) {
     .set({ ativo })
     .where(eq(modelosToldo.id, z.coerce.number().int().positive().parse(id)));
   revalidatePath("/cadastros/modelos");
+}
+
+export async function excluirModelo(id: number): Promise<{ erro?: string }> {
+  await exigirGestor();
+  const modeloId = z.coerce.number().int().positive().parse(id);
+
+  // Trava: não excluir modelo já usado em algum orçamento.
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(orcamentos)
+    .where(eq(orcamentos.modeloId, modeloId));
+  if (total > 0) {
+    return {
+      erro: `Modelo em uso por ${total} orçamento(s). Desative-o em vez de excluir.`,
+    };
+  }
+
+  await db.delete(modelosToldo).where(eq(modelosToldo.id, modeloId));
+  revalidatePath("/cadastros/modelos");
+  return {};
 }

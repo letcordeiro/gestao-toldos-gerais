@@ -15,6 +15,7 @@ import {
 import { AtivoSwitch } from "./ativo-switch";
 import { ModeloDialog } from "./modelo-dialog";
 import { VerModeloDialog } from "./ver-modelo-dialog";
+import { ExcluirModeloButton } from "./excluir-modelo-button";
 
 export default async function ModelosPage() {
   const usuario = await exigirUsuario();
@@ -80,14 +81,20 @@ export default async function ModelosPage() {
                       }
                     />
                     {ehGestor && (
-                      <ModeloDialog
-                        modelo={modelo}
-                        trigger={
-                          <Button variant="ghost" size="sm">
-                            Editar
-                          </Button>
-                        }
-                      />
+                      <>
+                        <ModeloDialog
+                          modelo={modelo}
+                          trigger={
+                            <Button variant="ghost" size="sm">
+                              Editar
+                            </Button>
+                          }
+                        />
+                        <ExcluirModeloButton
+                          modeloId={modelo.id}
+                          nome={modelo.nome}
+                        />
+                      </>
                     )}
                   </div>
                 </TableCell>
