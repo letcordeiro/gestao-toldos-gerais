@@ -16,7 +16,8 @@ import { salvarVendedor, type VendedorFormState } from "./actions";
 type Vendedor = {
   id: number;
   nome: string;
-  telefone: string | null;
+  whatsapp: string | null;
+  telefoneFixo: string | null;
   email: string | null;
   temAcesso: boolean;
   papel: "gestor" | "vendedor";
@@ -54,15 +55,29 @@ export function VendedorDialog({
             <Label htmlFor="nome">Nome *</Label>
             <Input id="nome" name="nome" defaultValue={vendedor?.nome} />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="telefone">Telefone / WhatsApp</Label>
-            <Input
-              id="telefone"
-              name="telefone"
-              defaultValue={vendedor?.telefone ?? ""}
-              placeholder="(31) 9…"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="whatsapp">WhatsApp</Label>
+              <Input
+                id="whatsapp"
+                name="whatsapp"
+                defaultValue={vendedor?.whatsapp ?? ""}
+                placeholder="(31) 9…"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="telefoneFixo">Telefone fixo</Label>
+              <Input
+                id="telefoneFixo"
+                name="telefoneFixo"
+                defaultValue={vendedor?.telefoneFixo ?? ""}
+                placeholder="(31) 3…"
+              />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            O próprio vendedor confirma/completa esses dados no primeiro acesso.
+          </p>
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail (login)</Label>
             <Input

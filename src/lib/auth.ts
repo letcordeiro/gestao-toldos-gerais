@@ -129,7 +129,28 @@ export type UsuarioAtual = {
   /** id do vendedor logado, ou null se for admin do env/usuarios (tratado como gestor) */
   vendedorId: number | null;
   nome: string | null;
+  /** true quando o vendedor já completou o cadastro (ou não é vendedor) */
+  perfilCompleto: boolean;
 };
+
+/** Nome com pelo menos nome + sobrenome. */
+export function temNomeSobrenome(nome: string | null | undefined): boolean {
+  if (!nome) return false;
+  return nome.trim().split(/\s+/).filter(Boolean).length >= 2;
+}
+
+/** Perfil do vendedor completo: nome+sobrenome, WhatsApp e e-mail. */
+export function perfilVendedorCompleto(v: {
+  nome: string | null;
+  whatsapp: string | null;
+  email: string | null;
+}): boolean {
+  return (
+    temNomeSobrenome(v.nome) &&
+    Boolean(v.whatsapp?.trim()) &&
+    Boolean(v.email?.trim())
+  );
+}
 
 /**
  * Usuário da sessão com papel resolvido.
@@ -146,9 +167,16 @@ export async function usuarioAtual(): Promise<UsuarioAtual | null> {
       papel: v.papel,
       vendedorId: v.id,
       nome: v.nome,
+      perfilCompleto: perfilVendedorCompleto(v),
     };
   }
-  return { email: sessao.email, papel: "gestor", vendedorId: null, nome: null };
+  return {
+    email: sessao.email,
+    papel: "gestor",
+    vendedorId: null,
+    nome: null,
+    perfilCompleto: true,
+  };
 }
 
 /** Exige sessão e retorna o usuário com papel (redireciona pro login se não logado). */
@@ -161,7 +189,7 @@ export async function exigirUsuario(): Promise<UsuarioAtual> {
 /** Exige que o usuário seja gestor; vendedor é mandado de volta pra home. */
 export async function exigirGestor(): Promise<UsuarioAtual> {
   const u = await exigirUsuario();
-  if (u.papel !== "gestor") redirect("/atendimentos");
+  if (u.papel !== "gestor") redirect("/painel");
   return u;
 }
 

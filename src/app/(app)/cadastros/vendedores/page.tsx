@@ -84,7 +84,8 @@ export default async function VendedoresPage() {
                     vendedor={{
                       id: vendedor.id,
                       nome: vendedor.nome,
-                      telefone: vendedor.telefone,
+                      whatsapp: vendedor.whatsapp,
+                      telefoneFixo: vendedor.telefoneFixo,
                       email: vendedor.email,
                       temAcesso: Boolean(vendedor.senhaHash),
                       papel: vendedor.papel,

@@ -140,7 +140,8 @@ export type DadosProposta = {
   prazoEntrega: string | null;
   vendedor: {
     nome: string;
-    telefone: string | null;
+    whatsapp: string | null;
+    telefoneFixo: string | null;
     email: string | null;
   } | null;
   itens: Array<{
@@ -265,9 +266,14 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           <View style={styles.vendedorCard} wrap={false}>
             <Text style={styles.vendedorLabel}>VENDEDOR RESPONSÁVEL</Text>
             <Text style={styles.vendedorNome}>{dados.vendedor.nome}</Text>
-            {dados.vendedor.telefone ? (
+            {dados.vendedor.whatsapp ? (
               <Text style={styles.vendedorContato}>
-                Telefone/WhatsApp: {dados.vendedor.telefone}
+                WhatsApp: {dados.vendedor.whatsapp}
+              </Text>
+            ) : null}
+            {dados.vendedor.telefoneFixo ? (
+              <Text style={styles.vendedorContato}>
+                Telefone fixo: {dados.vendedor.telefoneFixo}
               </Text>
             ) : null}
             {dados.vendedor.email ? (

@@ -102,7 +102,8 @@ export async function gerarProposta(
     vendedor: linha.vendedor
       ? {
           nome: linha.vendedor.nome,
-          telefone: linha.vendedor.telefone,
+          whatsapp: linha.vendedor.whatsapp ?? linha.vendedor.telefone,
+          telefoneFixo: linha.vendedor.telefoneFixo,
           email: linha.vendedor.email,
         }
       : null,

@@ -71,6 +71,13 @@
       "when": 1783599100000,
       "tag": "0009_orcamento_fotos",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1783599110000,
+      "tag": "0010_vendedor_contatos",
+      "breakpoints": true
     }
   ]
 }

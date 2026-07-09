@@ -83,7 +83,9 @@ export const modelosToldo = sqliteTable("modelos_toldo", {
 export const vendedores = sqliteTable("vendedores", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   nome: text("nome").notNull(),
-  telefone: text("telefone"),
+  telefone: text("telefone"), // legado — mantido; usar whatsapp/telefoneFixo
+  whatsapp: text("whatsapp"),
+  telefoneFixo: text("telefone_fixo"),
   email: text("email"),
   // Login do vendedor: quem tem senhaHash consegue entrar no sistema
   senhaHash: text("senha_hash"),

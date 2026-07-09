@@ -174,6 +174,19 @@ try {
   console.warn("• enviado_em não aplicado (não crítico):", e.message);
 }
 
+// Backfill: usa o telefone legado como WhatsApp inicial dos vendedores.
+try {
+  const r = sqlite
+    .prepare(
+      "UPDATE vendedores SET whatsapp = telefone WHERE (whatsapp IS NULL OR whatsapp = '') AND telefone IS NOT NULL AND telefone <> ''"
+    )
+    .run();
+  if (r.changes > 0)
+    console.log(`✔ whatsapp preenchido do telefone em ${r.changes} vendedor(es)`);
+} catch (e) {
+  console.warn("• backfill whatsapp não aplicado (não crítico):", e.message);
+}
+
 // Promove a gestor os e-mails listados em env VENDEDOR_GESTORES="email1,email2"
 // (idempotente; garante que os gestores configurados sempre tenham o papel).
 try {

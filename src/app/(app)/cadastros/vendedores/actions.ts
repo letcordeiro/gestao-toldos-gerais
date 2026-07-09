@@ -12,7 +12,8 @@ const vendedorSchema = z
   .object({
     id: z.coerce.number().int().positive().optional(),
     nome: z.string().trim().min(1, "Informe o nome"),
-    telefone: z.string().trim().optional(),
+    whatsapp: z.string().trim().optional(),
+    telefoneFixo: z.string().trim().optional(),
     email: z
       .string()
       .trim()
@@ -42,7 +43,8 @@ export async function salvarVendedor(
   const parsed = vendedorSchema.safeParse({
     id: formData.get("id") || undefined,
     nome: formData.get("nome"),
-    telefone: formData.get("telefone") || undefined,
+    whatsapp: formData.get("whatsapp") || undefined,
+    telefoneFixo: formData.get("telefoneFixo") || undefined,
     email: formData.get("email") || undefined,
     papel: formData.get("papel") || undefined,
     senha: formData.get("senha") || undefined,
@@ -55,7 +57,8 @@ export async function salvarVendedor(
 
   const valores = {
     nome: dados.nome,
-    telefone: dados.telefone || null,
+    whatsapp: dados.whatsapp || null,
+    telefoneFixo: dados.telefoneFixo || null,
     email: dados.email || null,
     papel: dados.papel,
   };

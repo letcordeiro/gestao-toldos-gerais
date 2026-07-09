@@ -13,6 +13,7 @@ async function sair() {
 
 // soGestor: itens de administração escondidos do vendedor
 const NAV = [
+  { href: "/painel", label: "Início", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", soGestor: false },
@@ -27,6 +28,10 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const usuario = await exigirUsuario();
+  // Vendedor precisa completar o cadastro antes de usar o sistema.
+  if (usuario.vendedorId != null && !usuario.perfilCompleto) {
+    redirect("/perfil");
+  }
   const ehGestor = usuario.papel === "gestor";
   const navItens = NAV.filter((item) => ehGestor || !item.soGestor);
 
@@ -35,7 +40,7 @@ export default async function AppLayout({
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-between gap-3 py-2.5">
-            <Link href="/atendimentos" className="shrink-0">
+            <Link href="/painel" className="shrink-0">
               <Image
                 src="/logo.png"
                 alt="Toldos Gerais"
@@ -49,10 +54,19 @@ export default async function AppLayout({
               <NavLinks itens={navItens} />
             </nav>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="hidden max-w-[11rem] truncate text-xs text-muted-foreground sm:inline">
-                {usuario.nome ?? usuario.email}
-                {ehGestor ? " · gestor" : " · vendedor"}
-              </span>
+              {usuario.vendedorId != null ? (
+                <Link
+                  href="/perfil"
+                  className="hidden max-w-[11rem] truncate text-xs text-muted-foreground hover:text-foreground hover:underline sm:inline"
+                >
+                  {usuario.nome ?? usuario.email}
+                  {ehGestor ? " · gestor" : " · vendedor"}
+                </Link>
+              ) : (
+                <span className="hidden max-w-[11rem] truncate text-xs text-muted-foreground sm:inline">
+                  {usuario.nome ?? usuario.email} · gestor
+                </span>
+              )}
               <form action={sair}>
                 <Button variant="ghost" size="sm" type="submit">
                   Sair

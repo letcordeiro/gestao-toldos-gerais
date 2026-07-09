@@ -288,11 +288,17 @@ export default async function OrcamentoPage({
                 VENDEDOR RESPONSÁVEL
               </p>
               <p className="font-medium">{vendedor.nome}</p>
-              <p className="text-sm text-muted-foreground">
-                {[vendedor.telefone, vendedor.email]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+              <div className="text-sm text-muted-foreground">
+                {(vendedor.whatsapp ?? vendedor.telefone) && (
+                  <p>
+                    WhatsApp: {vendedor.whatsapp ?? vendedor.telefone}
+                  </p>
+                )}
+                {vendedor.telefoneFixo && (
+                  <p>Telefone fixo: {vendedor.telefoneFixo}</p>
+                )}
+                {vendedor.email && <p>E-mail: {vendedor.email}</p>}
+              </div>
             </div>
           )}
 
