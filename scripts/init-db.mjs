@@ -161,6 +161,19 @@ try {
   console.warn("• public_token não aplicado (não crítico):", e.message);
 }
 
+// Backfill de enviado_em nos orçamentos já enviados (usa criado_em como base).
+try {
+  const r = sqlite
+    .prepare(
+      "UPDATE orcamentos SET enviado_em = criado_em WHERE status = 'enviado' AND enviado_em IS NULL"
+    )
+    .run();
+  if (r.changes > 0)
+    console.log(`✔ enviado_em preenchido em ${r.changes} orçamento(s)`);
+} catch (e) {
+  console.warn("• enviado_em não aplicado (não crítico):", e.message);
+}
+
 // Promove a gestor os e-mails listados em env VENDEDOR_GESTORES="email1,email2"
 // (idempotente; garante que os gestores configurados sempre tenham o papel).
 try {

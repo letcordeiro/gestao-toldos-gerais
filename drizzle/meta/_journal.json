@@ -57,6 +57,13 @@
       "when": 1783599080000,
       "tag": "0007_proposta_publica",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783599090000,
+      "tag": "0008_orcamento_enviado_em",
+      "breakpoints": true
     }
   ]
 }

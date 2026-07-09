@@ -166,6 +166,7 @@ export async function criarOrcamento(
       prazoEntrega: dados.prazoEntrega || null,
       status: dados.status,
       publicToken: nanoid(12),
+      enviadoEm: dados.status === "enviado" ? new Date() : null,
     })
     .returning({ id: orcamentos.id });
 
@@ -247,6 +248,10 @@ export async function atualizarOrcamento(
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
 
+  // Marca o envio na primeira vez que vira "enviado" (não reinicia o prazo).
+  const viraEnviadoAgora =
+    dados.status === "enviado" && existente.status !== "enviado";
+
   await db
     .update(orcamentos)
     .set({
@@ -261,6 +266,7 @@ export async function atualizarOrcamento(
       formaPagamento: dados.formaPagamento || null,
       prazoEntrega: dados.prazoEntrega || null,
       status: dados.status,
+      ...(viraEnviadoAgora ? { enviadoEm: new Date() } : {}),
     })
     .where(eq(orcamentos.id, orcamentoId));
 
@@ -304,9 +310,14 @@ export async function mudarStatusOrcamento(
   });
   if (!orcamento || orcamento.status === novoStatus) return;
 
+  const marcarEnvio = novoStatus === "enviado" && orcamento.status !== "enviado";
+
   await db
     .update(orcamentos)
-    .set({ status: novoStatus })
+    .set({
+      status: novoStatus,
+      ...(marcarEnvio ? { enviadoEm: new Date() } : {}),
+    })
     .where(eq(orcamentos.id, id));
 
   if (novoStatus === "enviado") {

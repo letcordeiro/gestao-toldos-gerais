@@ -1,0 +1,1 @@
+ALTER TABLE `orcamentos` ADD `enviado_em` integer;

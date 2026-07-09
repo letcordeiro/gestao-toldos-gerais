@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, lte, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import {
@@ -7,9 +7,11 @@ import {
   clientes,
   fases,
   historicoFases,
+  orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
+import { linkWhatsApp } from "@/lib/whatsapp";
 import {
   Table,
   TableBody,
@@ -22,6 +24,8 @@ import { FaseSelect } from "@/components/shared/fase-select";
 import { FiltrosFunil } from "./filtros";
 import { GerarLinkDialog } from "./gerar-link-dialog";
 import { NovoAtendimentoDialog } from "./novo-atendimento-dialog";
+
+const DIAS_COBRANCA = 15;
 
 function tempoNaFase(desde: Date): string {
   const dias = differenceInCalendarDays(new Date(), desde);
@@ -114,8 +118,92 @@ export default async function AtendimentosPage({
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
   const totalGeral = contagens.reduce((s, c) => s + c.total, 0);
 
+  // Cobrança de retorno: orçamentos enviados há 15+ dias ainda sem desfecho
+  // (continuam "enviado", não viraram aprovado/recusado). Escopo por vendedor.
+  const corte = new Date(Date.now() - DIAS_COBRANCA * 24 * 60 * 60 * 1000);
+  const escopoOrc =
+    usuario.papel === "vendedor" && usuario.vendedorId != null
+      ? eq(orcamentos.vendedorId, usuario.vendedorId)
+      : undefined;
+  const pendencias = await db
+    .select({
+      atendimentoId: orcamentos.atendimentoId,
+      numero: orcamentos.numero,
+      enviadoEm: orcamentos.enviadoEm,
+      clienteNome: clientes.nome,
+      clienteTelefone: clientes.telefone,
+      vendedorNome: vendedores.nome,
+    })
+    .from(orcamentos)
+    .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
+    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
+    .where(
+      and(
+        eq(orcamentos.status, "enviado"),
+        lte(orcamentos.enviadoEm, corte),
+        escopoOrc
+      )
+    )
+    .orderBy(asc(orcamentos.enviadoEm));
+
   return (
     <div className="space-y-4">
+      {pendencias.length > 0 && (
+        <div className="rounded-lg border border-brand-orange/40 bg-brand-orange/10 p-4">
+          <div className="flex items-start gap-2">
+            <span className="text-lg leading-none">🔔</span>
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                {pendencias.length === 1
+                  ? "1 cliente para cobrar retorno"
+                  : `${pendencias.length} clientes para cobrar retorno`}
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  — orçamento enviado há {DIAS_COBRANCA}+ dias sem resposta
+                </span>
+              </p>
+              <ul className="space-y-1.5">
+                {pendencias.map((p) => {
+                  const dias = p.enviadoEm
+                    ? differenceInCalendarDays(new Date(), p.enviadoEm)
+                    : DIAS_COBRANCA;
+                  return (
+                    <li
+                      key={p.atendimentoId + p.numero}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+                    >
+                      <Link
+                        href={`/atendimentos/${p.atendimentoId}`}
+                        className="font-medium hover:underline"
+                      >
+                        {p.clienteNome}
+                      </Link>
+                      <span className="text-muted-foreground">
+                        · orçamento {p.numero} · há {dias} dias
+                        {ehGestor && p.vendedorNome
+                          ? ` · ${p.vendedorNome}`
+                          : ""}
+                      </span>
+                      <a
+                        href={linkWhatsApp(
+                          p.clienteTelefone,
+                          `Olá, ${p.clienteNome.split(" ")[0]}! Passando para saber se conseguiu avaliar o orçamento ${p.numero} da Toldos Gerais. Qualquer dúvida, estou à disposição.`
+                        )}
+                        target="_blank"
+                        rel="noopener"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        WhatsApp ↗
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
         <div className="flex gap-2">
