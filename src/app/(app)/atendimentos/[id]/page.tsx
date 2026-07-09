@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
+import { enderecoCompleto } from "@/lib/endereco";
 import { ObservacoesForm } from "./observacoes-form";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -134,17 +135,10 @@ export default async function AtendimentoPage({
                 {cliente.email}
               </p>
             )}
-            {(cliente.endereco || cliente.bairro || cliente.cidade || cliente.cep) && (
+            {enderecoCompleto(cliente) && (
               <p>
                 <span className="text-muted-foreground">Endereço:</span>{" "}
-                {[
-                  cliente.endereco,
-                  cliente.bairro,
-                  cliente.cidade,
-                  cliente.cep ? `CEP ${cliente.cep}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" – ")}
+                {enderecoCompleto(cliente)}
               </p>
             )}
             <p>

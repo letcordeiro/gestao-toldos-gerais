@@ -5,14 +5,29 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { vendedores } from "@/db/schema";
-import { exigirSessao } from "@/lib/auth";
+import { definirSenhaVendedor, exigirSessao } from "@/lib/auth";
 
-const vendedorSchema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  nome: z.string().trim().min(1, "Informe o nome"),
-  telefone: z.string().trim().optional(),
-  email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
-});
+const vendedorSchema = z
+  .object({
+    id: z.coerce.number().int().positive().optional(),
+    nome: z.string().trim().min(1, "Informe o nome"),
+    telefone: z.string().trim().optional(),
+    email: z
+      .string()
+      .trim()
+      .email("E-mail inválido")
+      .optional()
+      .or(z.literal("")),
+    senha: z.string().optional(),
+  })
+  .refine((d) => !d.senha || d.senha.length >= 6, {
+    message: "A senha de acesso precisa ter ao menos 6 caracteres",
+    path: ["senha"],
+  })
+  .refine((d) => !d.senha || (d.email && d.email.length > 0), {
+    message: "Para dar acesso ao vendedor, informe o e-mail dele",
+    path: ["senha"],
+  });
 
 export type VendedorFormState = { erro?: string; ok?: boolean };
 
@@ -27,6 +42,7 @@ export async function salvarVendedor(
     nome: formData.get("nome"),
     telefone: formData.get("telefone") || undefined,
     email: formData.get("email") || undefined,
+    senha: formData.get("senha") || undefined,
   });
 
   if (!parsed.success) {
@@ -40,10 +56,21 @@ export async function salvarVendedor(
     email: dados.email || null,
   };
 
+  let vendedorId: number;
   if (dados.id) {
     await db.update(vendedores).set(valores).where(eq(vendedores.id, dados.id));
+    vendedorId = dados.id;
   } else {
-    await db.insert(vendedores).values(valores);
+    const [novo] = await db
+      .insert(vendedores)
+      .values(valores)
+      .returning({ id: vendedores.id });
+    vendedorId = novo.id;
+  }
+
+  // Só troca a senha se foi digitada (deixa em branco = mantém a atual)
+  if (dados.senha) {
+    await definirSenhaVendedor(vendedorId, dados.senha);
   }
 
   revalidatePath("/cadastros/vendedores");

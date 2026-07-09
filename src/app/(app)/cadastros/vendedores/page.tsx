@@ -30,8 +30,8 @@ export default async function VendedoresPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead className="hidden md:table-cell">Telefone</TableHead>
               <TableHead className="hidden md:table-cell">E-mail</TableHead>
+              <TableHead>Acesso</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-0" />
             </TableRow>
@@ -54,17 +54,27 @@ export default async function VendedoresPage() {
               >
                 <TableCell className="font-medium">{vendedor.nome}</TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {vendedor.telefone}
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">
                   {vendedor.email}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {vendedor.senhaHash ? (
+                    <span className="text-primary">✓ tem login</span>
+                  ) : (
+                    <span className="text-muted-foreground">sem login</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <AtivoVendedorSwitch id={vendedor.id} ativo={vendedor.ativo} />
                 </TableCell>
                 <TableCell className="text-right">
                   <VendedorDialog
-                    vendedor={vendedor}
+                    vendedor={{
+                      id: vendedor.id,
+                      nome: vendedor.nome,
+                      telefone: vendedor.telefone,
+                      email: vendedor.email,
+                      temAcesso: Boolean(vendedor.senhaHash),
+                    }}
                     trigger={
                       <Button variant="ghost" size="sm">
                         Editar

@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CamposEndereco } from "@/components/shared/campos-endereco";
 import {
   enviarAutoCadastro,
   type CadastroPublicoState,
@@ -77,24 +78,7 @@ export function FormCadastro({ token }: { token?: string }) {
                 <Label htmlFor="email">E-mail</Label>
                 <Input id="email" name="email" type="email" />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="endereco">Endereço (rua e número)</Label>
-                <Input id="endereco" name="endereco" placeholder="Rua tal, 123" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="bairro">Bairro</Label>
-                  <Input id="bairro" name="bairro" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cep">CEP</Label>
-                  <Input id="cep" name="cep" placeholder="30000-000" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cidade">Cidade</Label>
-                <Input id="cidade" name="cidade" />
-              </div>
+              <CamposEndereco />
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Descreva o que precisa</Label>
                 <Textarea

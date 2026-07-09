@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CamposEndereco } from "@/components/shared/campos-endereco";
 import { salvarCliente, type ClienteFormState } from "./actions";
 
 type Cliente = {
@@ -19,6 +20,8 @@ type Cliente = {
   telefone: string;
   email: string | null;
   endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
   bairro: string | null;
   cidade: string | null;
   cep: string | null;
@@ -69,42 +72,16 @@ export function ClienteDialog({
             <Label htmlFor="email">E-mail</Label>
             <Input id="email" name="email" defaultValue={cliente?.email ?? ""} />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="endereco">Endereço (rua e número)</Label>
-            <Input
-              id="endereco"
-              name="endereco"
-              defaultValue={cliente?.endereco ?? ""}
-              placeholder="Rua tal, 123"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="bairro">Bairro</Label>
-              <Input
-                id="bairro"
-                name="bairro"
-                defaultValue={cliente?.bairro ?? ""}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cep">CEP</Label>
-              <Input
-                id="cep"
-                name="cep"
-                defaultValue={cliente?.cep ?? ""}
-                placeholder="30000-000"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cidade">Cidade</Label>
-            <Input
-              id="cidade"
-              name="cidade"
-              defaultValue={cliente?.cidade ?? ""}
-            />
-          </div>
+          <CamposEndereco
+            inicial={{
+              cep: cliente?.cep,
+              endereco: cliente?.endereco,
+              numero: cliente?.numero,
+              complemento: cliente?.complemento,
+              bairro: cliente?.bairro,
+              cidade: cliente?.cidade,
+            }}
+          />
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>
           )}

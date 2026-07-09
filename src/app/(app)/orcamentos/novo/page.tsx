@@ -11,6 +11,7 @@ import {
   GARANTIA_PADRAO,
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
+import { vendedorDaSessao } from "@/lib/auth";
 import { OrcamentoForm } from "@/components/shared/orcamento-form";
 
 export default async function NovoOrcamentoPage({
@@ -42,6 +43,9 @@ export default async function NovoOrcamentoPage({
     .where(eq(vendedores.ativo, true))
     .orderBy(asc(vendedores.nome));
 
+  // Se quem está logado é um vendedor, ele já vem como responsável
+  const vendedorLogado = await vendedorDaSessao();
+
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">Novo orçamento</h1>
@@ -49,6 +53,7 @@ export default async function NovoOrcamentoPage({
         atendimentos={listaAtendimentos}
         modelos={modelos}
         vendedores={listaVendedores}
+        vendedorPadrao={vendedorLogado?.id}
         atendimentoInicial={atendimento}
         padroes={{
           garantia: GARANTIA_PADRAO,

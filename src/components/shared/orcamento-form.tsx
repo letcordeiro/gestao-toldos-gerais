@@ -80,6 +80,7 @@ export function OrcamentoForm({
   atendimentos,
   modelos,
   vendedores,
+  vendedorPadrao,
   atendimentoInicial,
   padroes,
   orcamento,
@@ -87,6 +88,7 @@ export function OrcamentoForm({
   atendimentos: AtendimentoOpcao[];
   modelos: Modelo[];
   vendedores: VendedorOpcao[];
+  vendedorPadrao?: number;
   atendimentoInicial?: string;
   padroes: { garantia: string; formaPagamento: string; prazoEntrega: string };
   orcamento?: OrcamentoInicial;
@@ -103,9 +105,11 @@ export function OrcamentoForm({
   const [vendedorId, setVendedorId] = useState(
     orcamento?.vendedorId
       ? String(orcamento.vendedorId)
-      : vendedores[0]
-        ? String(vendedores[0].id)
-        : ""
+      : vendedorPadrao
+        ? String(vendedorPadrao)
+        : vendedores[0]
+          ? String(vendedores[0].id)
+          : ""
   );
   const [modeloId, setModeloId] = useState(
     orcamento?.modeloId ? String(orcamento.modeloId) : ""

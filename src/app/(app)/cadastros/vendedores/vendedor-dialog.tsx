@@ -18,6 +18,7 @@ type Vendedor = {
   nome: string;
   telefone: string | null;
   email: string | null;
+  temAcesso: boolean;
 };
 
 export function VendedorDialog({
@@ -62,12 +63,31 @@ export function VendedorDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email">E-mail (login)</Label>
             <Input
               id="email"
               name="email"
               defaultValue={vendedor?.email ?? ""}
             />
+          </div>
+          <div className="space-y-1.5 rounded-lg border p-3">
+            <Label htmlFor="senha">Senha de acesso</Label>
+            <Input
+              id="senha"
+              name="senha"
+              type="password"
+              autoComplete="new-password"
+              placeholder={
+                vendedor?.temAcesso
+                  ? "•••••••• (deixe em branco pra manter)"
+                  : "defina uma senha pra este vendedor entrar"
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {vendedor?.temAcesso
+                ? "Este vendedor já tem acesso. Preencha só se quiser trocar a senha."
+                : "Com e-mail + senha, o vendedor entra no sistema e vira o responsável automático dos orçamentos dele."}
+            </p>
           </div>
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>

@@ -64,6 +64,8 @@ export async function GET(
       nome: linha.cliente.nome,
       telefone: linha.cliente.telefone,
       endereco: linha.cliente.endereco,
+      numero: linha.cliente.numero,
+      complemento: linha.cliente.complemento,
       bairro: linha.cliente.bairro,
       cidade: linha.cliente.cidade,
       cep: linha.cliente.cep,

@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
+import bcrypt from "bcryptjs";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { FASES, MODELOS, VENDEDORES } from "./seed-data.mjs";
@@ -89,6 +90,27 @@ if (contarVendedores === 0) {
   console.log(`✔ ${VENDEDORES.length} vendedor(es) criados`);
 } else {
   console.log(`• Vendedores já existem (${contarVendedores}), pulando`);
+}
+
+// Senhas iniciais de vendedores via env VENDEDOR_SENHAS="email:senha,email2:senha2"
+// Só define se o vendedor ainda não tem senha (não sobrescreve o que foi trocado no cadastro).
+const senhasRaw = process.env.VENDEDOR_SENHAS ?? "";
+for (const par of senhasRaw.split(",").map((s) => s.trim()).filter(Boolean)) {
+  const idx = par.indexOf(":");
+  if (idx < 0) continue;
+  const email = par.slice(0, idx).trim().toLowerCase();
+  const senha = par.slice(idx + 1);
+  if (!email || !senha) continue;
+  const v = sqlite
+    .prepare("SELECT id, senha_hash FROM vendedores WHERE lower(email) = ?")
+    .get(email);
+  if (v && !v.senha_hash) {
+    const hash = bcrypt.hashSync(senha, 10);
+    sqlite
+      .prepare("UPDATE vendedores SET senha_hash = ? WHERE id = ?")
+      .run(hash, v.id);
+    console.log(`✔ senha inicial definida para vendedor ${email}`);
+  }
 }
 
 sqlite.close();

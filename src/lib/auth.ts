@@ -1,10 +1,10 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
-import { usuarios } from "@/db/schema";
+import { usuarios, vendedores } from "@/db/schema";
 import {
   createSessionToken,
   verifySessionToken,
@@ -29,41 +29,63 @@ function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** E-mail é reconhecido pelo sistema (existe no env OU na tabela de usuários). */
+async function vendedorPorEmail(email: string) {
+  const alvo = normalizarEmail(email);
+  if (!alvo) return null;
+  return db.query.vendedores.findFirst({
+    where: and(eq(vendedores.email, alvo), eq(vendedores.ativo, true)),
+  });
+}
+
+/** E-mail é reconhecido (env, tabela de usuários OU vendedor com login). */
 export async function emailReconhecido(email: string): Promise<boolean> {
   const alvo = normalizarEmail(email);
   if (getUsers().some((u) => u.email.toLowerCase() === alvo)) return true;
   const usuario = await db.query.usuarios.findFirst({
     where: eq(usuarios.email, alvo),
   });
-  return Boolean(usuario);
+  if (usuario) return true;
+  const vendedor = await vendedorPorEmail(alvo);
+  return Boolean(vendedor);
 }
 
-// Prioridade: se há usuário no banco (senha já redefinida), valida por ele (bcrypt).
-// Senão, cai no AUTH_USERS do env (senha inicial / master, texto puro).
+// Prioridade: usuarios (senha redefinida) > vendedor com senha > AUTH_USERS (env, master).
 export async function validarCredenciais(
   email: string,
   senha: string
 ): Promise<boolean> {
   const alvo = normalizarEmail(email);
+
   const usuario = await db.query.usuarios.findFirst({
     where: eq(usuarios.email, alvo),
   });
-  if (usuario) {
-    return bcrypt.compare(senha, usuario.senhaHash);
-  }
+  if (usuario) return bcrypt.compare(senha, usuario.senhaHash);
+
+  const vendedor = await vendedorPorEmail(alvo);
+  if (vendedor?.senhaHash) return bcrypt.compare(senha, vendedor.senhaHash);
+
   return getUsers().some(
     (u) => u.email.toLowerCase() === alvo && u.senha === senha
   );
 }
 
-/** Redefine a senha (cria/atualiza a linha em usuarios com hash bcrypt). */
+/** Redefine a senha: se for vendedor, na tabela vendedores; senão em usuarios. */
 export async function redefinirSenhaUsuario(
   email: string,
   novaSenha: string
 ): Promise<void> {
   const alvo = normalizarEmail(email);
   const hash = await bcrypt.hash(novaSenha, 10);
+
+  const vendedor = await vendedorPorEmail(alvo);
+  if (vendedor) {
+    await db
+      .update(vendedores)
+      .set({ senhaHash: hash })
+      .where(eq(vendedores.id, vendedor.id));
+    return;
+  }
+
   const existente = await db.query.usuarios.findFirst({
     where: eq(usuarios.email, alvo),
   });
@@ -75,6 +97,29 @@ export async function redefinirSenhaUsuario(
   } else {
     await db.insert(usuarios).values({ email: alvo, senhaHash: hash });
   }
+}
+
+/** Define a senha de acesso de um vendedor (bcrypt). Vazio remove o acesso. */
+export async function definirSenhaVendedor(
+  vendedorId: number,
+  senha: string
+): Promise<void> {
+  const hash = senha ? await bcrypt.hash(senha, 10) : null;
+  await db
+    .update(vendedores)
+    .set({ senhaHash: hash })
+    .where(eq(vendedores.id, vendedorId));
+}
+
+/** Vendedor correspondente à sessão logada (ou null se for admin/env). */
+export async function vendedorDaSessao(): Promise<{
+  id: number;
+  nome: string;
+} | null> {
+  const sessao = await getSessao();
+  if (!sessao) return null;
+  const v = await vendedorPorEmail(sessao.email);
+  return v ? { id: v.id, nome: v.nome } : null;
 }
 
 export async function criarSessao(email: string) {

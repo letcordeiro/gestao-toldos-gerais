@@ -9,6 +9,7 @@ import {
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { formatarValorItem } from "@/lib/format";
+import { enderecoCompleto } from "@/lib/endereco";
 
 const VERDE = "#004e36";
 
@@ -108,6 +109,8 @@ export type DadosProposta = {
     nome: string;
     telefone: string;
     endereco: string | null;
+    numero: string | null;
+    complemento: string | null;
     bairro: string | null;
     cidade: string | null;
     cep: string | null;
@@ -152,14 +155,7 @@ function Secao({
 }
 
 export function PropostaPDF({ dados }: { dados: DadosProposta }) {
-  const enderecoCliente = [
-    dados.cliente.endereco,
-    dados.cliente.bairro,
-    dados.cliente.cidade,
-    dados.cliente.cep ? `CEP ${dados.cliente.cep}` : null,
-  ]
-    .filter(Boolean)
-    .join(" – ");
+  const enderecoCliente = enderecoCompleto(dados.cliente);
 
   const modeloTexto = dados.modeloNome
     ? dados.formatoLabel

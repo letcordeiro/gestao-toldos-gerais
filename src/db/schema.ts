@@ -6,7 +6,9 @@ export const clientes = sqliteTable("clientes", {
   nome: text("nome").notNull(),
   telefone: text("telefone").notNull(),
   email: text("email"),
-  endereco: text("endereco"), // rua e número
+  endereco: text("endereco"), // logradouro (rua/av.)
+  numero: text("numero"),
+  complemento: text("complemento"),
   bairro: text("bairro"),
   cidade: text("cidade"),
   cep: text("cep"),
@@ -81,6 +83,8 @@ export const vendedores = sqliteTable("vendedores", {
   nome: text("nome").notNull(),
   telefone: text("telefone"),
   email: text("email"),
+  // Login do vendedor: quem tem senhaHash consegue entrar no sistema
+  senhaHash: text("senha_hash"),
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
