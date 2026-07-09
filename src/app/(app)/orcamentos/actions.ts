@@ -142,9 +142,9 @@ export async function criarOrcamento(
   }
   const dados = parsed.data;
 
-  // Vendedor só emite orçamento em seu próprio nome.
-  const vendedorId =
-    usuario.papel === "vendedor" ? usuario.vendedorId : dados.vendedorId ?? null;
+  // Vendedor responsável = o usuário logado (quem tem cadastro de vendedor).
+  // Admin do env sem vendedor cai no que veio do formulário.
+  const vendedorId = usuario.vendedorId ?? dados.vendedorId ?? null;
 
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
@@ -182,8 +182,24 @@ export async function criarOrcamento(
     }))
   );
 
-  // Vendedor que orça um lead do pool passa a ser dono do atendimento.
-  if (usuario.papel === "vendedor" && usuario.vendedorId != null) {
+  // Fotos anexadas já na criação (opcional).
+  const arquivos = formData
+    .getAll("fotosNovas")
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  let ordemFoto = 0;
+  for (const file of arquivos) {
+    const salvo = await salvarFoto(novo.id, file);
+    if (salvo.ok) {
+      await db.insert(orcamentoFotos).values({
+        orcamentoId: novo.id,
+        arquivo: salvo.arquivo,
+        ordem: ordemFoto++,
+      });
+    }
+  }
+
+  // Quem tem cadastro de vendedor e orça um lead do pool vira dono do atendimento.
+  if (usuario.vendedorId != null) {
     const at = await db.query.atendimentos.findFirst({
       where: eq(atendimentos.id, dados.atendimentoId),
     });

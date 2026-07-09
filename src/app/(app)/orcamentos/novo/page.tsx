@@ -54,6 +54,7 @@ export default async function NovoOrcamentoPage({
         modelos={modelos}
         vendedores={listaVendedores}
         vendedorPadrao={vendedorLogado?.id}
+        vendedorFixo={vendedorLogado ?? undefined}
         atendimentoInicial={atendimento}
         padroes={{
           garantia: GARANTIA_PADRAO,

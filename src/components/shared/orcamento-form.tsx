@@ -81,6 +81,7 @@ export function OrcamentoForm({
   modelos,
   vendedores,
   vendedorPadrao,
+  vendedorFixo,
   atendimentoInicial,
   padroes,
   orcamento,
@@ -89,11 +90,14 @@ export function OrcamentoForm({
   modelos: Modelo[];
   vendedores: VendedorOpcao[];
   vendedorPadrao?: number;
+  // Vendedor responsável travado no login (esconde o seletor).
+  vendedorFixo?: { id: number; nome: string };
   atendimentoInicial?: string;
   padroes: { garantia: string; formaPagamento: string; prazoEntrega: string };
   orcamento?: OrcamentoInicial;
 }) {
   const edicao = Boolean(orcamento);
+  const [fotosCount, setFotosCount] = useState(0);
   const [state, formAction, pending] = useActionState<
     OrcamentoFormState,
     FormData
@@ -105,11 +109,13 @@ export function OrcamentoForm({
   const [vendedorId, setVendedorId] = useState(
     orcamento?.vendedorId
       ? String(orcamento.vendedorId)
-      : vendedorPadrao
-        ? String(vendedorPadrao)
-        : vendedores[0]
-          ? String(vendedores[0].id)
-          : ""
+      : vendedorFixo
+        ? String(vendedorFixo.id)
+        : vendedorPadrao
+          ? String(vendedorPadrao)
+          : vendedores[0]
+            ? String(vendedores[0].id)
+            : ""
   );
   const [modeloId, setModeloId] = useState(
     orcamento?.modeloId ? String(orcamento.modeloId) : ""
@@ -202,25 +208,31 @@ export function OrcamentoForm({
             </div>
             <div className="space-y-1.5">
               <Label>Vendedor responsável</Label>
-              <Select
-                value={vendedorId || null}
-                items={vendedores.map((v) => ({
-                  value: String(v.id),
-                  label: v.nome,
-                }))}
-                onValueChange={(v) => setVendedorId(v ?? "")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Escolha o vendedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendedores.map((v) => (
-                    <SelectItem key={v.id} value={String(v.id)}>
-                      {v.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {vendedorFixo ? (
+                <p className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
+                  {vendedorFixo.nome}
+                </p>
+              ) : (
+                <Select
+                  value={vendedorId || null}
+                  items={vendedores.map((v) => ({
+                    value: String(v.id),
+                    label: v.nome,
+                  }))}
+                  onValueChange={(v) => setVendedorId(v ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Escolha o vendedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendedores.map((v) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -454,6 +466,42 @@ export function OrcamentoForm({
           </div>
         </CardContent>
       </Card>
+
+      {!edicao && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Fotos (opcional)</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Anexe imagens agora — elas entram no PDF e no link que o cliente
+              recebe. Você também pode adicionar depois, no orçamento salvo.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="cursor-pointer">
+                <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm hover:bg-secondary">
+                  Escolher imagens
+                </span>
+                <input
+                  type="file"
+                  name="fotosNovas"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => setFotosCount(e.target.files?.length ?? 0)}
+                />
+              </label>
+              {fotosCount > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {fotosCount === 1
+                    ? "1 imagem selecionada"
+                    : `${fotosCount} imagens selecionadas`}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {state.erro && <p className="text-sm text-destructive">{state.erro}</p>}
 
