@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatarCentavos } from "@/lib/format";
+import { LinhaClicavel } from "./linha-clicavel";
 
 const STATUS_BADGE: Record<
   string,
@@ -98,14 +99,9 @@ export default async function OrcamentosPage() {
             {linhas.map((linha) => {
               const badge = STATUS_BADGE[linha.status];
               return (
-                <TableRow key={linha.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/orcamentos/${linha.id}`}
-                      className="hover:underline"
-                    >
-                      {linha.numero}
-                    </Link>
+                <LinhaClicavel key={linha.id} href={`/orcamentos/${linha.id}`}>
+                  <TableCell className="font-medium text-primary">
+                    {linha.numero}
                   </TableCell>
                   <TableCell>{linha.clienteNome}</TableCell>
                   {ehGestor && (
@@ -122,7 +118,7 @@ export default async function OrcamentosPage() {
                   <TableCell className="hidden text-muted-foreground md:table-cell">
                     {format(linha.criadoEm, "dd/MM/yyyy")}
                   </TableCell>
-                </TableRow>
+                </LinhaClicavel>
               );
             })}
           </TableBody>
