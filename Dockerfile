@@ -42,6 +42,7 @@ COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 COPY --from=deps /app/node_modules/bindings ./node_modules/bindings
 COPY --from=deps /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 COPY --from=deps /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=deps /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
 # Volume persistente do banco (montar em /data no Dokploy)
 RUN mkdir -p /data && chown -R nextjs:nodejs /data /app
