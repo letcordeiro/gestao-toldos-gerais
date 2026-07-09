@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { exigirUsuario, encerrarSessao } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
+import { BottomNav } from "./bottom-nav";
 
 async function sair() {
   "use server";
@@ -13,13 +14,13 @@ async function sair() {
 
 // soGestor: itens de administração escondidos do vendedor
 const NAV = [
-  { href: "/painel", label: "Início", soGestor: false },
-  { href: "/atendimentos", label: "Atendimentos", soGestor: false },
-  { href: "/orcamentos", label: "Orçamentos", soGestor: false },
-  { href: "/cadastros/clientes", label: "Clientes", soGestor: false },
-  { href: "/cadastros/modelos", label: "Modelos", soGestor: false },
-  { href: "/cadastros/vendedores", label: "Vendedores", soGestor: true },
-  { href: "/cadastros/fases", label: "Fases", soGestor: true },
+  { href: "/painel", label: "Início", icon: "painel", soGestor: false },
+  { href: "/atendimentos", label: "Atendimentos", icon: "atendimentos", soGestor: false },
+  { href: "/orcamentos", label: "Orçamentos", icon: "orcamentos", soGestor: false },
+  { href: "/cadastros/clientes", label: "Clientes", icon: "clientes", soGestor: false },
+  { href: "/cadastros/modelos", label: "Modelos", icon: "modelos", soGestor: false },
+  { href: "/cadastros/vendedores", label: "Vendedores", icon: "vendedores", soGestor: true },
+  { href: "/cadastros/fases", label: "Fases", icon: "fases", soGestor: true },
 ];
 
 export default async function AppLayout({
@@ -74,13 +75,14 @@ export default async function AppLayout({
               </form>
             </div>
           </div>
-          {/* Nav em pílulas roláveis no mobile */}
-          <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-2 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <NavLinks itens={navItens} />
-          </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-5">{children}</main>
+      {/* No mobile o conteúdo precisa de espaço para a barra fixa do rodapé */}
+      <main className="mx-auto max-w-6xl px-4 py-5 pb-24 md:pb-6">
+        {children}
+      </main>
+      {/* Menu no rodapé (só mobile) */}
+      <BottomNav itens={navItens} />
     </div>
   );
 }
