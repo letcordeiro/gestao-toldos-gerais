@@ -30,6 +30,7 @@ import { exigirUsuario } from "@/lib/auth";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
+import { ExcluirOrcamentoButton } from "./excluir-orcamento-button";
 
 function linkWhatsApp(
   telefone: string,
@@ -97,8 +98,8 @@ export default async function OrcamentoPage({
     .where(eq(orcamentoFotos.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoFotos.ordem));
 
-  // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam fotos.
-  const podeEditarFotos =
+  // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam.
+  const podeEditar =
     usuario.papel === "gestor" ||
     orcamento.orc.vendedorId === usuario.vendedorId;
 
@@ -207,6 +208,9 @@ export default async function OrcamentoPage({
           >
             Enviar no WhatsApp
           </Button>
+          {orc.status === "rascunho" && podeEditar && (
+            <ExcluirOrcamentoButton orcamentoId={orc.id} numero={orc.numero} />
+          )}
         </div>
       </div>
 
@@ -310,7 +314,7 @@ export default async function OrcamentoPage({
           <FotosOrcamento
             orcamentoId={orc.id}
             fotos={fotos}
-            podeEditar={podeEditarFotos}
+            podeEditar={podeEditar}
           />
         </CardContent>
       </Card>

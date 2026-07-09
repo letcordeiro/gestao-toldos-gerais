@@ -393,6 +393,33 @@ export async function removerFotoOrcamento(fotoId: number) {
   revalidatePath(`/orcamentos/${foto.orcamentoId}`);
 }
 
+// Exclui um orçamento — permitido apenas quando está em rascunho.
+export async function excluirOrcamento(
+  orcamentoId: number
+): Promise<{ erro?: string }> {
+  const id = z.coerce.number().int().positive().parse(orcamentoId);
+  const orc = await orcamentoEditavel(id);
+  if (!orc) return { erro: "Sem permissão para este orçamento" };
+  if (orc.status !== "rascunho")
+    return { erro: "Só é possível excluir orçamentos em rascunho" };
+
+  // Remove as fotos (arquivos no disco + registros), depois itens e o orçamento.
+  const fotos = await db
+    .select()
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, id));
+  for (const foto of fotos) {
+    await removerFotoArquivo(id, foto.arquivo);
+  }
+  await db.delete(orcamentoFotos).where(eq(orcamentoFotos.orcamentoId, id));
+  await db.delete(orcamentoItens).where(eq(orcamentoItens.orcamentoId, id));
+  await db.delete(orcamentos).where(eq(orcamentos.id, id));
+
+  revalidatePath("/orcamentos");
+  revalidatePath(`/atendimentos/${orc.atendimentoId}`);
+  redirect("/orcamentos");
+}
+
 // Cria um novo orçamento (rascunho) copiando todos os dados de um existente.
 export async function duplicarOrcamento(formData: FormData) {
   await exigirSessao();
