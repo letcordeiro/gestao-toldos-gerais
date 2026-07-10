@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PerfilForm } from "./perfil-form";
+import { SegurancaForm } from "./seguranca-form";
 
 async function sair() {
   "use server";
@@ -34,40 +35,55 @@ export default async function PerfilPage() {
 
   return (
     <main className="flex min-h-screen items-start justify-center bg-background p-4 pt-10">
-      <Card className="w-full max-w-md">
-        <CardHeader className="items-center text-center">
-          <Image
-            src="/logo.png"
-            alt="Toldos Gerais"
-            width={120}
-            height={65}
-            priority
-            className="mx-auto mb-2"
-          />
-          <CardTitle>Seus dados de vendedor</CardTitle>
-          <CardDescription>
-            {primeiraVez
-              ? "Complete seu cadastro para começar a usar o sistema."
-              : "Atualize seus dados de contato quando precisar."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PerfilForm
-            primeiraVez={primeiraVez}
-            inicial={{
-              nome: vendedor.nome ?? "",
-              whatsapp: vendedor.whatsapp ?? "",
-              telefoneFixo: vendedor.telefoneFixo ?? "",
-              email: vendedor.email ?? "",
-            }}
-          />
-          <form action={sair} className="mt-4 text-center">
-            <Button variant="ghost" size="sm" type="submit">
-              Sair
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-lg space-y-4">
+        <Card>
+          <CardHeader className="items-center text-center">
+            <Image
+              src="/logo.png"
+              alt="Toldos Gerais"
+              width={120}
+              height={65}
+              priority
+              className="mx-auto mb-2"
+            />
+            <CardTitle>Seus dados de vendedor</CardTitle>
+            <CardDescription>
+              {primeiraVez
+                ? "Complete seu cadastro para começar a usar o sistema."
+                : "Atualize seus dados de contato quando precisar."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PerfilForm
+              primeiraVez={primeiraVez}
+              inicial={{
+                nome: vendedor.nome ?? "",
+                whatsapp: vendedor.whatsapp ?? "",
+                telefoneFixo: vendedor.telefoneFixo ?? "",
+                email: vendedor.email ?? "",
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Segurança</CardTitle>
+            <CardDescription>
+              Altere sua senha de acesso ao sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SegurancaForm />
+          </CardContent>
+        </Card>
+
+        <form action={sair} className="text-center">
+          <Button variant="ghost" size="sm" type="submit">
+            Sair
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

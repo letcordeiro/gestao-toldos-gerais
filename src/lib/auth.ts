@@ -83,6 +83,8 @@ export async function redefinirSenhaUsuario(
       .update(vendedores)
       .set({ senhaHash: hash })
       .where(eq(vendedores.id, vendedor.id));
+    // Remove linha antiga em usuarios (que teria prioridade em validarCredenciais).
+    await db.delete(usuarios).where(eq(usuarios.email, alvo));
     return;
   }
 

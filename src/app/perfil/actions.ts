@@ -7,26 +7,21 @@ import { z } from "zod";
 import { db } from "@/db";
 import { vendedores } from "@/db/schema";
 import {
-  definirSenhaVendedor,
   exigirUsuario,
+  redefinirSenhaUsuario,
   temNomeSobrenome,
+  validarCredenciais,
 } from "@/lib/auth";
 
-const perfilSchema = z
-  .object({
-    nome: z
-      .string()
-      .trim()
-      .min(1, "Informe seu nome")
-      .refine(temNomeSobrenome, "Informe nome e sobrenome"),
-    whatsapp: z.string().trim().min(8, "Informe um WhatsApp válido"),
-    telefoneFixo: z.string().trim().optional(),
-    novaSenha: z.string().optional(),
-  })
-  .refine((d) => !d.novaSenha || d.novaSenha.length >= 6, {
-    message: "A nova senha precisa ter ao menos 6 caracteres",
-    path: ["novaSenha"],
-  });
+const perfilSchema = z.object({
+  nome: z
+    .string()
+    .trim()
+    .min(1, "Informe seu nome")
+    .refine(temNomeSobrenome, "Informe nome e sobrenome"),
+  whatsapp: z.string().trim().min(8, "Informe um WhatsApp válido"),
+  telefoneFixo: z.string().trim().optional(),
+});
 
 export type PerfilState = { erro?: string };
 
@@ -36,14 +31,13 @@ export async function salvarPerfil(
 ): Promise<PerfilState> {
   const usuario = await exigirUsuario();
   if (usuario.vendedorId == null) {
-    redirect("/atendimentos");
+    redirect("/painel");
   }
 
   const parsed = perfilSchema.safeParse({
     nome: formData.get("nome"),
     whatsapp: formData.get("whatsapp"),
     telefoneFixo: formData.get("telefoneFixo") || undefined,
-    novaSenha: formData.get("novaSenha") || undefined,
   });
 
   if (!parsed.success) {
@@ -60,12 +54,52 @@ export async function salvarPerfil(
     })
     .where(eq(vendedores.id, usuario.vendedorId));
 
-  // Troca de senha (opcional): só quando o usuário digita uma nova.
-  if (dados.novaSenha) {
-    await definirSenhaVendedor(usuario.vendedorId, dados.novaSenha);
-  }
-
   revalidatePath("/perfil");
   revalidatePath("/painel");
   redirect("/painel");
+}
+
+// --- Troca de senha (Senha atual + Nova + Confirmar) ---
+
+const senhaSchema = z
+  .object({
+    senhaAtual: z.string().min(1, "Informe a senha atual"),
+    novaSenha: z
+      .string()
+      .min(6, "A nova senha precisa ter ao menos 6 caracteres"),
+    confirmar: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((d) => d.novaSenha === d.confirmar, {
+    message: "A confirmação não confere com a nova senha",
+    path: ["confirmar"],
+  });
+
+export type SenhaState = { erro?: string; ok?: boolean };
+
+export async function alterarSenha(
+  _prev: SenhaState,
+  formData: FormData
+): Promise<SenhaState> {
+  const usuario = await exigirUsuario();
+
+  const parsed = senhaSchema.safeParse({
+    senhaAtual: formData.get("senhaAtual"),
+    novaSenha: formData.get("novaSenha"),
+    confirmar: formData.get("confirmar"),
+  });
+
+  if (!parsed.success) {
+    return { erro: parsed.error.issues[0].message };
+  }
+  const dados = parsed.data;
+
+  // Confere a senha atual antes de trocar.
+  const confere = await validarCredenciais(usuario.email, dados.senhaAtual);
+  if (!confere) {
+    return { erro: "Senha atual incorreta" };
+  }
+
+  await redefinirSenhaUsuario(usuario.email, dados.novaSenha);
+  revalidatePath("/perfil");
+  return { ok: true };
 }

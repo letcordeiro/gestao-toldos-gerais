@@ -67,19 +67,6 @@ export function PerfilForm({
           É o e-mail do seu login. Para trocar, fale com o gestor.
         </p>
       </div>
-      <div className="space-y-1.5 rounded-lg border p-3">
-        <Label htmlFor="novaSenha">Trocar senha</Label>
-        <Input
-          id="novaSenha"
-          name="novaSenha"
-          type="password"
-          autoComplete="new-password"
-          placeholder="deixe em branco para manter a atual"
-        />
-        <p className="text-xs text-muted-foreground">
-          Preencha só se quiser definir uma nova senha (mín. 6 caracteres).
-        </p>
-      </div>
       {state.erro && <p className="text-sm text-destructive">{state.erro}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Salvando…" : "Salvar e continuar"}
