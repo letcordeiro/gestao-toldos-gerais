@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputTelefone } from "@/components/shared/input-telefone";
 import { salvarVendedor, type VendedorFormState } from "./actions";
 
 type Vendedor = {
@@ -58,20 +59,19 @@ export function VendedorDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
+              <InputTelefone
                 id="whatsapp"
                 name="whatsapp"
-                defaultValue={vendedor?.whatsapp ?? ""}
-                placeholder="(31) 9…"
+                defaultValue={vendedor?.whatsapp}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="telefoneFixo">Telefone fixo</Label>
-              <Input
+              <InputTelefone
                 id="telefoneFixo"
                 name="telefoneFixo"
-                defaultValue={vendedor?.telefoneFixo ?? ""}
-                placeholder="(31) 3…"
+                defaultValue={vendedor?.telefoneFixo}
+                placeholder="(31)3333-3333"
               />
             </div>
           </div>

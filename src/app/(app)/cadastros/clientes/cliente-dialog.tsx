@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputTelefone } from "@/components/shared/input-telefone";
 import { Label } from "@/components/ui/label";
 import { CamposEndereco } from "@/components/shared/campos-endereco";
 import { salvarCliente, type ClienteFormState } from "./actions";
@@ -60,12 +61,12 @@ export function ClienteDialog({
             <Input id="nome" name="nome" defaultValue={cliente?.nome} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="telefone">Telefone *</Label>
-            <Input
+            <Label htmlFor="telefone">Telefone / WhatsApp *</Label>
+            <InputTelefone
               id="telefone"
               name="telefone"
               defaultValue={cliente?.telefone}
-              placeholder="(31) 9…"
+              required
             />
           </div>
           <div className="space-y-1.5">

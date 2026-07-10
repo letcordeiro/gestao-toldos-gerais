@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputTelefone } from "@/components/shared/input-telefone";
 import { salvarPerfil, type PerfilState } from "./actions";
 
 export function PerfilForm({
@@ -43,22 +44,20 @@ export function PerfilForm({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="whatsapp">WhatsApp *</Label>
-        <Input
+        <InputTelefone
           id="whatsapp"
           name="whatsapp"
-          type="tel"
           defaultValue={inicial.whatsapp}
-          placeholder="(31) 9…"
+          required
         />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="telefoneFixo">Telefone fixo (se tiver)</Label>
-        <Input
+        <InputTelefone
           id="telefoneFixo"
           name="telefoneFixo"
-          type="tel"
           defaultValue={inicial.telefoneFixo}
-          placeholder="(31) 3…"
+          placeholder="(31)3333-3333"
         />
       </div>
       <div className="space-y-1.5">
@@ -66,6 +65,19 @@ export function PerfilForm({
         <Input id="email" value={inicial.email} disabled readOnly />
         <p className="text-xs text-muted-foreground">
           É o e-mail do seu login. Para trocar, fale com o gestor.
+        </p>
+      </div>
+      <div className="space-y-1.5 rounded-lg border p-3">
+        <Label htmlFor="novaSenha">Trocar senha</Label>
+        <Input
+          id="novaSenha"
+          name="novaSenha"
+          type="password"
+          autoComplete="new-password"
+          placeholder="deixe em branco para manter a atual"
+        />
+        <p className="text-xs text-muted-foreground">
+          Preencha só se quiser definir uma nova senha (mín. 6 caracteres).
         </p>
       </div>
       {state.erro && <p className="text-sm text-destructive">{state.erro}</p>}

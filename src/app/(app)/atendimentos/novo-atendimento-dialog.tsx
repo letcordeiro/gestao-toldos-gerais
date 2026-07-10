@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputTelefone } from "@/components/shared/input-telefone";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,11 +70,7 @@ export function NovoAtendimentoDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="telefone">Telefone *</Label>
-                <Input
-                  id="telefone"
-                  name="telefone"
-                  placeholder="(31) 9…"
-                />
+                <InputTelefone id="telefone" name="telefone" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

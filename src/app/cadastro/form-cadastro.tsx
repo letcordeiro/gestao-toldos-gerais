@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InputTelefone } from "@/components/shared/input-telefone";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CamposEndereco } from "@/components/shared/campos-endereco";
@@ -74,13 +75,7 @@ export function FormCadastro({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="telefone">Telefone / WhatsApp *</Label>
-                <Input
-                  id="telefone"
-                  name="telefone"
-                  type="tel"
-                  required
-                  placeholder="(31) 9…"
-                />
+                <InputTelefone id="telefone" name="telefone" required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">E-mail</Label>

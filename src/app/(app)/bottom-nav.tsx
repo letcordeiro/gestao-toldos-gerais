@@ -43,11 +43,13 @@ export function BottomNav({ itens }: { itens: Item[] }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-w-[64px] flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-medium transition-colors",
-                ativo ? "text-primary" : "text-muted-foreground"
+                "flex min-w-[76px] flex-1 flex-col items-center justify-center gap-1 px-1.5 py-3 text-xs font-medium transition-colors",
+                ativo
+                  ? "text-primary"
+                  : "text-muted-foreground active:bg-secondary"
               )}
             >
-              <Icon className="size-5 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
+              <Icon className="size-6 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
               <span className="truncate">{item.label}</span>
             </Link>
           );

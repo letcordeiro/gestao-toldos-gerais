@@ -6,17 +6,27 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { vendedores } from "@/db/schema";
-import { exigirUsuario, temNomeSobrenome } from "@/lib/auth";
+import {
+  definirSenhaVendedor,
+  exigirUsuario,
+  temNomeSobrenome,
+} from "@/lib/auth";
 
-const perfilSchema = z.object({
-  nome: z
-    .string()
-    .trim()
-    .min(1, "Informe seu nome")
-    .refine(temNomeSobrenome, "Informe nome e sobrenome"),
-  whatsapp: z.string().trim().min(8, "Informe um WhatsApp válido"),
-  telefoneFixo: z.string().trim().optional(),
-});
+const perfilSchema = z
+  .object({
+    nome: z
+      .string()
+      .trim()
+      .min(1, "Informe seu nome")
+      .refine(temNomeSobrenome, "Informe nome e sobrenome"),
+    whatsapp: z.string().trim().min(8, "Informe um WhatsApp válido"),
+    telefoneFixo: z.string().trim().optional(),
+    novaSenha: z.string().optional(),
+  })
+  .refine((d) => !d.novaSenha || d.novaSenha.length >= 6, {
+    message: "A nova senha precisa ter ao menos 6 caracteres",
+    path: ["novaSenha"],
+  });
 
 export type PerfilState = { erro?: string };
 
@@ -33,6 +43,7 @@ export async function salvarPerfil(
     nome: formData.get("nome"),
     whatsapp: formData.get("whatsapp"),
     telefoneFixo: formData.get("telefoneFixo") || undefined,
+    novaSenha: formData.get("novaSenha") || undefined,
   });
 
   if (!parsed.success) {
@@ -48,6 +59,11 @@ export async function salvarPerfil(
       telefoneFixo: dados.telefoneFixo || null,
     })
     .where(eq(vendedores.id, usuario.vendedorId));
+
+  // Troca de senha (opcional): só quando o usuário digita uma nova.
+  if (dados.novaSenha) {
+    await definirSenhaVendedor(usuario.vendedorId, dados.novaSenha);
+  }
 
   revalidatePath("/perfil");
   revalidatePath("/painel");
