@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { UserRound } from "lucide-react";
 import { exigirUsuario, encerrarSessao } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
@@ -54,18 +55,27 @@ export default async function AppLayout({
             <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
               <NavLinks itens={navItens} />
             </nav>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1">
               {usuario.vendedorId != null ? (
                 <Link
                   href="/perfil"
-                  className="hidden max-w-[11rem] truncate text-xs text-muted-foreground hover:text-foreground hover:underline sm:inline"
+                  className="flex max-w-[8.5rem] items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:max-w-[13rem]"
                 >
-                  {usuario.nome ?? usuario.email}
-                  {ehGestor ? " · gestor" : " · vendedor"}
+                  <UserRound className="size-4 shrink-0" />
+                  <span className="truncate">
+                    {usuario.nome ?? usuario.email}
+                    <span className="hidden sm:inline">
+                      {ehGestor ? " · gestor" : " · vendedor"}
+                    </span>
+                  </span>
                 </Link>
               ) : (
-                <span className="hidden max-w-[11rem] truncate text-xs text-muted-foreground sm:inline">
-                  {usuario.nome ?? usuario.email} · gestor
+                <span className="flex max-w-[8.5rem] items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground sm:max-w-[13rem]">
+                  <UserRound className="size-4 shrink-0" />
+                  <span className="truncate">
+                    {usuario.nome ?? usuario.email}
+                    <span className="hidden sm:inline"> · gestor</span>
+                  </span>
                 </span>
               )}
               <form action={sair}>
