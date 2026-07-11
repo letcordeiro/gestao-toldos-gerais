@@ -44,7 +44,7 @@ function linkWhatsApp(
   const mensagem =
     `Olá, ${primeiroNome}! Segue a Proposta Técnica Comercial nº ${numero} da Toldos Gerais.` +
     (linkProposta
-      ? `\n\nÉ só abrir este link para ver e baixar em PDF:\n${linkProposta}`
+      ? `\n\nAbra este link e toque em "Ver proposta em PDF":\n${linkProposta}`
       : "") +
     `\n\nQualquer dúvida, estamos à disposição. ${EMPRESA.telefoneFixo} · ${EMPRESA.site}`;
   return `https://wa.me/${completo}?text=${encodeURIComponent(mensagem)}`;
@@ -105,13 +105,14 @@ export default async function OrcamentoPage({
 
   const { orc, cliente, vendedor } = orcamento;
 
-  // Link público da proposta — abre direto o PDF do orçamento (o que o cliente recebe).
+  // Link público da proposta — abre uma página (funciona no navegador do
+  // WhatsApp) com botão para ver/baixar o PDF no navegador do celular.
   const cabecalhos = await headers();
   const host = cabecalhos.get("host");
   const proto = cabecalhos.get("x-forwarded-proto") ?? "https";
   const linkProposta =
     orc.publicToken && host
-      ? `${proto}://${host}/proposta/${orc.publicToken}/pdf`
+      ? `${proto}://${host}/proposta/${orc.publicToken}`
       : null;
 
   const modeloTexto = orcamento.modeloNome

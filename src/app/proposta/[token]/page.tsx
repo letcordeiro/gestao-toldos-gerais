@@ -83,7 +83,7 @@ export default async function PropostaPublicaPage({
           </p>
         </div>
         <div className="rounded-lg border bg-card p-5 text-sm text-muted-foreground">
-          Sua proposta está pronta. Toque no botão abaixo para ver ou baixar o
+          Sua proposta está pronta. Toque no botão abaixo para abrir o
           documento em PDF.
         </div>
 
@@ -107,16 +107,33 @@ export default async function PropostaPublicaPage({
             ))}
           </div>
         )}
-        <Button
-          size="lg"
-          className="w-full"
-          nativeButton={false}
-          render={
-            <a href={`/proposta/${token}/pdf`} target="_blank" rel="noopener" />
-          }
-        >
-          Ver / baixar proposta (PDF)
-        </Button>
+        <div className="space-y-2">
+          <Button
+            size="lg"
+            className="w-full text-base"
+            nativeButton={false}
+            render={
+              <a
+                href={`/proposta/${token}/pdf`}
+                target="_blank"
+                rel="noopener"
+              />
+            }
+          >
+            📄 Ver proposta em PDF
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Se não abrir,{" "}
+            <a
+              href={`/proposta/${token}/pdf`}
+              download={`proposta-${linha.numero}.pdf`}
+              className="font-medium text-primary underline"
+            >
+              baixe o PDF aqui
+            </a>
+            .
+          </p>
+        </div>
         <p className="text-sm text-muted-foreground">
           {linha.vendedorNome ? (
             <>
