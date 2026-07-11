@@ -51,6 +51,7 @@ export default async function AtendimentosPage({
   const todosClientes = await db
     .select({ id: clientes.id, nome: clientes.nome, telefone: clientes.telefone })
     .from(clientes)
+    .where(eq(clientes.ativo, true))
     .orderBy(asc(clientes.nome));
 
   // Vendedores ativos com link de cadastro.

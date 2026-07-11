@@ -15,6 +15,7 @@ export const clientes = sqliteTable("clientes", {
   origem: text("origem", { enum: ["interno", "auto_cadastro"] })
     .notNull()
     .default("interno"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

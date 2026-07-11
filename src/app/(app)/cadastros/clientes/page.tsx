@@ -15,6 +15,7 @@ import {
 import { BuscaClientes } from "./busca";
 import { ClienteDialog } from "./cliente-dialog";
 import { ExcluirClienteButton } from "./excluir-cliente-button";
+import { AtivoClienteSwitch } from "./ativo-switch";
 
 export default async function ClientesPage({
   searchParams,
@@ -45,10 +46,11 @@ export default async function ClientesPage({
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead className="hidden sm:table-cell">Telefone</TableHead>
               <TableHead className="hidden md:table-cell">Cidade</TableHead>
               <TableHead className="hidden md:table-cell">Origem</TableHead>
               <TableHead className="hidden lg:table-cell">Criado em</TableHead>
+              <TableHead>Ativo</TableHead>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
@@ -56,7 +58,7 @@ export default async function ClientesPage({
             {linhas.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhum cliente encontrado.
@@ -64,9 +66,14 @@ export default async function ClientesPage({
               </TableRow>
             )}
             {linhas.map((cliente) => (
-              <TableRow key={cliente.id}>
-                <TableCell className="font-medium">{cliente.nome}</TableCell>
-                <TableCell className="text-muted-foreground">
+              <TableRow key={cliente.id} className={cliente.ativo ? "" : "opacity-50"}>
+                <TableCell className="font-medium">
+                  {cliente.nome}
+                  <span className="block text-xs font-normal text-muted-foreground sm:hidden">
+                    {cliente.telefone}
+                  </span>
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
                   {cliente.telefone}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
@@ -81,6 +88,9 @@ export default async function ClientesPage({
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground lg:table-cell">
                   {format(cliente.criadoEm, "dd/MM/yyyy")}
+                </TableCell>
+                <TableCell>
+                  <AtivoClienteSwitch id={cliente.id} ativo={cliente.ativo} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right">
                   <ClienteDialog

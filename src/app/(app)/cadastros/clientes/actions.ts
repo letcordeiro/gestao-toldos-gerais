@@ -72,6 +72,16 @@ export async function salvarCliente(
   return { ok: true };
 }
 
+export async function alternarAtivoCliente(id: number, ativo: boolean) {
+  await exigirSessao();
+  await db
+    .update(clientes)
+    .set({ ativo })
+    .where(eq(clientes.id, z.coerce.number().int().positive().parse(id)));
+  revalidatePath("/cadastros/clientes");
+  revalidatePath("/atendimentos");
+}
+
 export async function excluirCliente(id: number): Promise<{ erro?: string }> {
   await exigirSessao();
   const clienteId = z.coerce.number().int().positive().parse(id);
