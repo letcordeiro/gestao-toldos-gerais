@@ -1,16 +1,15 @@
 import Image from "next/image";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
-  orcamentoFotos,
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { Button } from "@/components/ui/button";
 import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
+import { VisualizadorPdf } from "./visualizador-pdf";
 
 // Página PÚBLICA de visualização da proposta (link enviado ao cliente).
 export default async function PropostaPublicaPage({
@@ -50,12 +49,6 @@ export default async function PropostaPublicaPage({
     );
   }
 
-  const fotos = await db
-    .select({ id: orcamentoFotos.id })
-    .from(orcamentoFotos)
-    .where(eq(orcamentoFotos.orcamentoId, linha.id))
-    .orderBy(asc(orcamentoFotos.ordem));
-
   const contato = linha.vendedorTelefone
     ? linkWhatsApp(
         linha.vendedorTelefone,
@@ -63,78 +56,44 @@ export default async function PropostaPublicaPage({
       )
     : linkWhatsApp(EMPRESA.whatsapp);
 
+  const pdfUrl = `/proposta/${token}/pdf`;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <Image
-          src="/logo.png"
-          alt="Toldos Gerais"
-          width={160}
-          height={87}
-          priority
-          className="mx-auto"
-        />
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Proposta Técnica Comercial
-          </h1>
-          <p className="text-muted-foreground">
-            Nº {linha.numero} · {linha.clienteNome}
-          </p>
+    <main className="min-h-screen bg-muted/30">
+      {/* Barra fina fixa: logo + baixar */}
+      <div className="sticky top-0 z-10 border-b bg-card">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
+          <Image
+            src="/logo.png"
+            alt="Toldos Gerais"
+            width={80}
+            height={43}
+            priority
+          />
+          <a
+            href={pdfUrl}
+            download={`proposta-${linha.numero}.pdf`}
+            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Baixar PDF
+          </a>
         </div>
-        <div className="rounded-lg border bg-card p-5 text-sm text-muted-foreground">
-          Sua proposta está pronta. Toque no botão abaixo para abrir o
-          documento em PDF.
+      </div>
+
+      <div className="mx-auto max-w-3xl px-3 py-4 sm:px-4">
+        <div className="mb-3 text-center">
+          <h1 className="text-lg font-semibold tracking-tight">
+            Proposta Técnica Comercial Nº {linha.numero}
+          </h1>
+          <p className="text-sm text-muted-foreground">{linha.clienteNome}</p>
         </div>
 
-        {fotos.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
-            {fotos.map((f) => (
-              <a
-                key={f.id}
-                href={`/proposta/${token}/fotos/${f.id}`}
-                target="_blank"
-                rel="noopener"
-                className="aspect-square overflow-hidden rounded-md border bg-secondary"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/proposta/${token}/fotos/${f.id}`}
-                  alt="Foto da proposta"
-                  className="h-full w-full object-cover"
-                />
-              </a>
-            ))}
-          </div>
-        )}
-        <div className="space-y-2">
-          <Button
-            size="lg"
-            className="w-full text-base"
-            nativeButton={false}
-            render={
-              <a
-                href={`/proposta/${token}/pdf`}
-                target="_blank"
-                rel="noopener"
-              />
-            }
-          >
-            📄 Ver proposta em PDF
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Se não abrir,{" "}
-            <a
-              href={`/proposta/${token}/pdf`}
-              download={`proposta-${linha.numero}.pdf`}
-              className="font-medium text-primary underline"
-            >
-              baixe o PDF aqui
-            </a>
-            .
-          </p>
-        </div>
-        <p className="text-sm text-muted-foreground">
+        <VisualizadorPdf
+          url={pdfUrl}
+          downloadName={`proposta-${linha.numero}.pdf`}
+        />
+
+        <p className="pt-5 text-center text-sm text-muted-foreground">
           {linha.vendedorNome ? (
             <>
               Atendimento com <strong>{linha.vendedorNome}</strong>.{" "}
@@ -151,7 +110,7 @@ export default async function PropostaPublicaPage({
           </a>
           .
         </p>
-        <p className="pt-4 text-xs text-muted-foreground">
+        <p className="pt-3 text-center text-xs text-muted-foreground">
           {EMPRESA.razaoSocial} · {EMPRESA.site}
         </p>
       </div>
