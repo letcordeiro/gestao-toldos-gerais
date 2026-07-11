@@ -25,6 +25,7 @@ export default async function PropostaPublicaPage({
       numero: orcamentos.numero,
       clienteNome: clientes.nome,
       vendedorNome: vendedores.nome,
+      vendedorWhatsapp: vendedores.whatsapp,
       vendedorTelefone: vendedores.telefone,
     })
     .from(orcamentos)
@@ -49,9 +50,11 @@ export default async function PropostaPublicaPage({
     );
   }
 
-  const contato = linha.vendedorTelefone
+  // Fala com o WhatsApp do vendedor responsável (fallback: telefone legado, depois a empresa).
+  const whatsappVendedor = linha.vendedorWhatsapp ?? linha.vendedorTelefone;
+  const contato = whatsappVendedor
     ? linkWhatsApp(
-        linha.vendedorTelefone,
+        whatsappVendedor,
         `Olá! Tenho dúvidas sobre a proposta ${linha.numero}.`
       )
     : linkWhatsApp(EMPRESA.whatsapp);
