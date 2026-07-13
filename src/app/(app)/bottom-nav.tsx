@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Item = { href: string; label: string; icon: string };
+type Item = { href: string; label: string; curto?: string; icon: string };
 
 const ICONS: Record<string, LucideIcon> = {
   painel: Home,
@@ -31,9 +31,7 @@ export function BottomNav({ itens }: { itens: Item[] }) {
   const path = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card shadow-[0_-2px_12px_rgba(0,0,0,0.06)] md:hidden">
-      <div
-        className="mx-auto flex max-w-6xl items-stretch gap-1 overflow-x-auto px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      <div className="mx-auto flex max-w-6xl items-stretch gap-0.5 px-1 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
         {itens.map((item) => {
           const Icon = ICONS[item.icon] ?? Home;
           const ativo =
@@ -43,14 +41,16 @@ export function BottomNav({ itens }: { itens: Item[] }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-h-[3.5rem] min-w-[72px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium transition-colors active:scale-95",
+                "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1.5 text-[10px] font-medium transition-colors active:scale-95",
                 ativo
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground active:bg-secondary"
               )}
             >
-              <Icon className="size-7 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
-              <span className="truncate leading-none">{item.label}</span>
+              <Icon className="size-6 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
+              <span className="w-full truncate text-center leading-none">
+                {item.curto ?? item.label}
+              </span>
             </Link>
           );
         })}

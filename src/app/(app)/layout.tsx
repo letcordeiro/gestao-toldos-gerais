@@ -13,15 +13,16 @@ async function sair() {
   redirect("/login");
 }
 
-// soGestor: itens de administração escondidos do vendedor
+// soGestor: itens de administração escondidos do vendedor.
+// curto: rótulo compacto usado no menu inferior (mobile), pra caber em qualquer tela.
 const NAV = [
-  { href: "/painel", label: "Início", icon: "painel", soGestor: false },
-  { href: "/atendimentos", label: "Atendimentos", icon: "atendimentos", soGestor: false },
-  { href: "/orcamentos", label: "Orçamentos", icon: "orcamentos", soGestor: false },
-  { href: "/cadastros/clientes", label: "Clientes", icon: "clientes", soGestor: false },
-  { href: "/cadastros/modelos", label: "Modelos", icon: "modelos", soGestor: false },
-  { href: "/cadastros/vendedores", label: "Vendedores", icon: "vendedores", soGestor: true },
-  { href: "/cadastros/fases", label: "Fases", icon: "fases", soGestor: true },
+  { href: "/painel", label: "Início", curto: "Início", icon: "painel", soGestor: false },
+  { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
+  { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
+  { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
+  { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
+  { href: "/cadastros/vendedores", label: "Vendedores", curto: "Vend.", icon: "vendedores", soGestor: true },
+  { href: "/cadastros/fases", label: "Fases", curto: "Fases", icon: "fases", soGestor: true },
 ];
 
 export default async function AppLayout({
