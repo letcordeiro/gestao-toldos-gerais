@@ -36,6 +36,20 @@ export default async function AppLayout({
   const ehGestor = usuario.papel === "gestor";
   const navItens = NAV.filter((item) => ehGestor || !item.soGestor);
 
+  // No mobile, o gestor tem Modelos e Vendedores agrupados numa aba "Gestor".
+  const AGRUPADOS = ["modelos", "vendedores"];
+  const bottomItens = ehGestor
+    ? navItens.filter((item) => !AGRUPADOS.includes(item.icon))
+    : navItens;
+  const grupoGestor = ehGestor
+    ? {
+        label: "Gestor",
+        curto: "Gestor",
+        icon: "gestor",
+        itens: navItens.filter((item) => AGRUPADOS.includes(item.icon)),
+      }
+    : undefined;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
@@ -98,7 +112,7 @@ export default async function AppLayout({
         {children}
       </main>
       {/* Menu no rodapé (só mobile) */}
-      <BottomNav itens={navItens} />
+      <BottomNav itens={bottomItens} grupo={grupoGestor} />
     </div>
   );
 }
