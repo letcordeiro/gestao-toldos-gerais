@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputTelefone } from "@/components/shared/input-telefone";
+import { InputSenha } from "@/components/shared/input-senha";
 import { salvarVendedor, type VendedorFormState } from "./actions";
 
 type Vendedor = {
@@ -100,10 +101,9 @@ export function VendedorDialog({
           </div>
           <div className="space-y-1.5 rounded-lg border p-3">
             <Label htmlFor="senha">Senha de acesso</Label>
-            <Input
+            <InputSenha
               id="senha"
               name="senha"
-              type="password"
               autoComplete="new-password"
               placeholder={
                 vendedor?.temAcesso

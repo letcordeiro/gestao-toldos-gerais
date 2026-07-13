@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputSenha } from "@/components/shared/input-senha";
 import { Label } from "@/components/ui/label";
 import { alterarSenha, type SenhaState } from "./actions";
 
@@ -25,30 +25,27 @@ export function SegurancaForm() {
     <form ref={formRef} action={formAction} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="senhaAtual">Senha atual</Label>
-        <Input
+        <InputSenha
           id="senhaAtual"
           name="senhaAtual"
-          type="password"
           autoComplete="current-password"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="novaSenha">Nova senha</Label>
-          <Input
+          <InputSenha
             id="novaSenha"
             name="novaSenha"
-            type="password"
             autoComplete="new-password"
             placeholder="mín. 6 caracteres"
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="confirmar">Confirmar nova senha</Label>
-          <Input
+          <InputSenha
             id="confirmar"
             name="confirmar"
-            type="password"
             autoComplete="new-password"
           />
         </div>

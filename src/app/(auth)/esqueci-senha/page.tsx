@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redefinirSenha, type RecuperarState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputSenha } from "@/components/shared/input-senha";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -77,10 +78,9 @@ export default function EsqueciSenhaPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="novaSenha">Nova senha</Label>
-                <Input
+                <InputSenha
                   id="novaSenha"
                   name="novaSenha"
-                  type="password"
                   autoComplete="new-password"
                   required
                 />

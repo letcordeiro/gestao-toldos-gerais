@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputTelefone } from "@/components/shared/input-telefone";
+import { InputSenha } from "@/components/shared/input-senha";
 import {
   cadastrarVendedor,
   type CadastroVendedorState,
@@ -48,10 +49,9 @@ export function FormVendedor({ token }: { token: string }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="senha">Senha *</Label>
-          <Input
+          <InputSenha
             id="senha"
             name="senha"
-            type="password"
             autoComplete="new-password"
             placeholder="mín. 6 caracteres"
             required
@@ -59,10 +59,9 @@ export function FormVendedor({ token }: { token: string }) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="confirmar">Confirmar senha *</Label>
-          <Input
+          <InputSenha
             id="confirmar"
             name="confirmar"
-            type="password"
             autoComplete="new-password"
             required
           />
