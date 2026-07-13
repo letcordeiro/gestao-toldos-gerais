@@ -30,9 +30,9 @@ const ICONS: Record<string, LucideIcon> = {
 export function BottomNav({ itens }: { itens: Item[] }) {
   const path = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card shadow-[0_-2px_12px_rgba(0,0,0,0.06)] md:hidden">
       <div
-        className="mx-auto flex max-w-6xl items-stretch px-1 pb-[env(safe-area-inset-bottom)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mx-auto flex max-w-6xl items-stretch gap-1 overflow-x-auto px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {itens.map((item) => {
           const Icon = ICONS[item.icon] ?? Home;
@@ -43,14 +43,14 @@ export function BottomNav({ itens }: { itens: Item[] }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-w-[76px] flex-1 flex-col items-center justify-center gap-1 px-1.5 py-3 text-xs font-medium transition-colors",
+                "flex min-h-[3.5rem] min-w-[72px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium transition-colors active:scale-95",
                 ativo
-                  ? "text-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground active:bg-secondary"
               )}
             >
-              <Icon className="size-6 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
-              <span className="truncate">{item.label}</span>
+              <Icon className="size-7 shrink-0" strokeWidth={ativo ? 2.4 : 2} />
+              <span className="truncate leading-none">{item.label}</span>
             </Link>
           );
         })}

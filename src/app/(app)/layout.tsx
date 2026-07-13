@@ -88,7 +88,7 @@ export default async function AppLayout({
         </div>
       </header>
       {/* No mobile o conteúdo precisa de espaço para a barra fixa do rodapé */}
-      <main className="mx-auto max-w-6xl px-4 py-5 pb-24 md:pb-6">
+      <main className="mx-auto max-w-6xl px-4 py-5 pb-28 md:pb-6">
         {children}
       </main>
       {/* Menu no rodapé (só mobile) */}
