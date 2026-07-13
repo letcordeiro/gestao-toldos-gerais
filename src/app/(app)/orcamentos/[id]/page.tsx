@@ -44,9 +44,9 @@ function linkWhatsApp(
   const mensagem =
     `Olá, ${primeiroNome}! Segue a Proposta Técnica Comercial nº ${numero} da Toldos Gerais.` +
     (linkProposta
-      ? `\n\nAbra este link e toque em "Ver proposta em PDF":\n${linkProposta}`
+      ? `\n\nO link abaixo abre a visualização do seu orçamento. Se preferir, é só tocar em "Baixar PDF" na própria página:\n${linkProposta}`
       : "") +
-    `\n\nQualquer dúvida, estamos à disposição. ${EMPRESA.telefoneFixo} · ${EMPRESA.site}`;
+    `\n\nQualquer dúvida, estamos à disposição. ${EMPRESA.site}`;
   return `https://wa.me/${completo}?text=${encodeURIComponent(mensagem)}`;
 }
 

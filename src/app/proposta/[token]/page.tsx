@@ -206,6 +206,11 @@ export default async function PropostaPublicaPage({
               <h3 className="text-xs font-semibold tracking-wide text-primary">
                 FOTOS
               </h3>
+              <p className="mt-1 text-xs italic text-muted-foreground">
+                As imagens são apenas exemplos de aplicação do produto. O
+                resultado final pode variar conforme o local, as medidas e outros
+                fatores do seu projeto.
+              </p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {fotos.map((f) => (
                   <a

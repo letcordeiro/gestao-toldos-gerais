@@ -89,6 +89,12 @@ const styles = StyleSheet.create({
   vendedorNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
   vendedorContato: { fontSize: 8.5, color: "#4a4a4a" },
   fotosSecao: { marginTop: 10 },
+  fotosNota: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Oblique",
+    color: "#6b6b6b",
+    marginTop: 2,
+  },
   fotosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -259,6 +265,11 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
         {dados.fotos.length > 0 ? (
           <View style={styles.fotosSecao} break={dados.fotos.length > 2}>
             <Text style={styles.tituloSecao}>FOTOS</Text>
+            <Text style={styles.fotosNota}>
+              As imagens são apenas exemplos de aplicação do produto. O resultado
+              final pode variar conforme o local, as medidas e outros fatores do
+              projeto.
+            </Text>
             <View style={styles.fotosGrid}>
               {dados.fotos.map((src, i) => (
                 // eslint-disable-next-line jsx-a11y/alt-text
