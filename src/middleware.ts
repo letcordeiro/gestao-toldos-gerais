@@ -8,7 +8,6 @@ const ROTAS_PUBLICAS = [
   /^\/proposta\/.+/,
   /^\/api\/cadastro(\/.*)?$/,
   /^\/manifest\.webmanifest$/,
-  /^\/pdf\.worker\.min\.mjs$/,
 ];
 
 export async function middleware(request: NextRequest) {

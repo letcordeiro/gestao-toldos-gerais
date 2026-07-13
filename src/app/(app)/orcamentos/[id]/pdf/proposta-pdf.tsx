@@ -111,9 +111,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e5e5e5",
     paddingTop: 6,
-    fontSize: 7.5,
+    fontSize: 8,
     color: "#6b6b6b",
     textAlign: "center",
+  },
+  rodapeVendedor: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: VERDE,
+    marginBottom: 1,
   },
 });
 
@@ -262,37 +268,32 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           </View>
         ) : null}
 
-        {dados.vendedor ? (
-          <View style={styles.vendedorCard} wrap={false}>
-            <Text style={styles.vendedorLabel}>VENDEDOR RESPONSÁVEL</Text>
-            <Text style={styles.vendedorNome}>{dados.vendedor.nome}</Text>
-            {dados.vendedor.whatsapp ? (
-              <Text style={styles.vendedorContato}>
-                WhatsApp: {dados.vendedor.whatsapp}
-              </Text>
-            ) : null}
-            {dados.vendedor.telefoneFixo ? (
-              <Text style={styles.vendedorContato}>
-                Telefone fixo: {dados.vendedor.telefoneFixo}
-              </Text>
-            ) : null}
-            {dados.vendedor.email ? (
-              <Text style={styles.vendedorContato}>
-                E-mail: {dados.vendedor.email}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-
+        {/* Rodapé com os dados do vendedor responsável (fixo em todas as páginas) */}
         <View style={styles.rodape} fixed>
-          <Text>
-            {EMPRESA.razaoSocial} — CNPJ {EMPRESA.cnpj} — {EMPRESA.site} /{" "}
-            {EMPRESA.emailVendas}
-          </Text>
-          <Text>
-            Av. Waldir Soeiro Emrich, 4645 A – Diamante – Belo Horizonte/MG –{" "}
-            {EMPRESA.telefoneFixo}
-          </Text>
+          {dados.vendedor ? (
+            <>
+              <Text style={styles.rodapeVendedor}>
+                {dados.vendedor.nome} · Vendedor responsável — Toldos Gerais
+              </Text>
+              <Text>
+                {[
+                  dados.vendedor.whatsapp
+                    ? `WhatsApp ${dados.vendedor.whatsapp}`
+                    : null,
+                  dados.vendedor.telefoneFixo
+                    ? `Fixo ${dados.vendedor.telefoneFixo}`
+                    : null,
+                  dados.vendedor.email,
+                ]
+                  .filter(Boolean)
+                  .join("  ·  ")}
+              </Text>
+            </>
+          ) : (
+            <Text>
+              {EMPRESA.razaoSocial} — {EMPRESA.site} · {EMPRESA.telefoneFixo}
+            </Text>
+          )}
         </View>
       </Page>
     </Document>
