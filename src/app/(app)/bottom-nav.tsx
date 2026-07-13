@@ -40,6 +40,7 @@ export function BottomNav({ itens }: { itens: Item[] }) {
             <Link
               key={item.href}
               href={item.href}
+              data-tour={item.icon}
               className={cn(
                 "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1.5 text-[10px] font-medium transition-colors active:scale-95",
                 ativo

@@ -45,6 +45,7 @@ export default async function AppLayout({
               href="/painel"
               title="Ir para o início"
               aria-label="Ir para o início"
+              data-tour="inicio"
               className="shrink-0 rounded-md transition-opacity hover:opacity-80"
             >
               <Image
@@ -63,6 +64,7 @@ export default async function AppLayout({
               {usuario.vendedorId != null ? (
                 <Link
                   href="/perfil"
+                  data-tour="perfil"
                   className="flex max-w-[8.5rem] items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:max-w-[13rem]"
                 >
                   <UserRound className="size-4 shrink-0" />

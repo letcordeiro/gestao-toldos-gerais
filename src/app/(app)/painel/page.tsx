@@ -123,6 +123,7 @@ export default async function PainelPage() {
         email={usuario.email}
         nome={usuario.nome}
         ehGestor={ehGestor}
+        temPerfil={usuario.vendedorId != null}
       />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
