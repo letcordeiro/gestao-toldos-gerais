@@ -22,7 +22,6 @@ const NAV = [
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
   { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
   { href: "/cadastros/vendedores", label: "Vendedores", curto: "Vend.", icon: "vendedores", soGestor: true },
-  { href: "/cadastros/fases", label: "Fases", curto: "Fases", icon: "fases", soGestor: true },
 ];
 
 export default async function AppLayout({

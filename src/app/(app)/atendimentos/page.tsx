@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { linkWhatsApp } from "@/lib/whatsapp";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -207,7 +208,16 @@ export default async function AtendimentosPage({
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {ehGestor && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/cadastros/fases" />}
+            >
+              Fases
+            </Button>
+          )}
           <GerarLinkDialog links={linksCadastro} />
           <NovoAtendimentoDialog
             clientes={todosClientes}

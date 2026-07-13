@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TutorialInicial } from "./tutorial-inicial";
 
 const DIAS_COBRANCA = 15;
 const FASES_TERMINAIS = ["Concluído", "Perdido"];
@@ -118,6 +119,11 @@ export default async function PainelPage() {
 
   return (
     <div className="space-y-5">
+      <TutorialInicial
+        email={usuario.email}
+        nome={usuario.nome}
+        ehGestor={ehGestor}
+      />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
         <p className="text-sm text-muted-foreground">

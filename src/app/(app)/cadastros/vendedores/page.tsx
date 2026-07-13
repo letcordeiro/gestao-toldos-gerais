@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { AtivoVendedorSwitch } from "./ativo-switch";
 import { VendedorDialog } from "./vendedor-dialog";
+import { LinkCadastroVendedor } from "./link-cadastro-vendedor";
 
 export default async function VendedoresPage() {
   await exigirGestor();
@@ -21,6 +22,7 @@ export default async function VendedoresPage() {
     .select()
     .from(vendedores)
     .orderBy(asc(vendedores.nome));
+  const signupToken = process.env.VENDEDOR_SIGNUP_TOKEN;
 
   return (
     <div className="space-y-4">
@@ -28,6 +30,7 @@ export default async function VendedoresPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Vendedores</h1>
         <VendedorDialog trigger={<Button>Novo vendedor</Button>} />
       </div>
+      {signupToken && <LinkCadastroVendedor token={signupToken} />}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
