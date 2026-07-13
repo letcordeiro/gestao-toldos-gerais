@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { format } from "date-fns";
@@ -27,6 +26,7 @@ import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
+import { urlBase } from "@/lib/url";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
@@ -107,13 +107,10 @@ export default async function OrcamentoPage({
 
   // Link público da proposta — abre uma página (funciona no navegador do
   // WhatsApp) com botão para ver/baixar o PDF no navegador do celular.
-  const cabecalhos = await headers();
-  const host = cabecalhos.get("host");
-  const proto = cabecalhos.get("x-forwarded-proto") ?? "https";
+  // Usa urlBase() (APP_URL fixa) para não depender do Host da requisição.
+  const base = await urlBase();
   const linkProposta =
-    orc.publicToken && host
-      ? `${proto}://${host}/proposta/${orc.publicToken}`
-      : null;
+    orc.publicToken && base ? `${base}/proposta/${orc.publicToken}` : null;
 
   const modeloTexto = orcamento.modeloNome
     ? orc.formato
