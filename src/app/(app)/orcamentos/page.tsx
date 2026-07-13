@@ -67,9 +67,18 @@ export default async function OrcamentosPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Orçamentos</h1>
-        <Button nativeButton={false} render={<Link href="/orcamentos/novo" />}>
-          Novo orçamento
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/atendimentos" />}
+          >
+            Atendimentos
+          </Button>
+          <Button nativeButton={false} render={<Link href="/orcamentos/novo" />}>
+            Novo orçamento
+          </Button>
+        </div>
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
