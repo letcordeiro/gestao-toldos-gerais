@@ -16,7 +16,7 @@ async function sair() {
 // soGestor: itens de administração escondidos do vendedor.
 // curto: rótulo compacto usado no menu inferior (mobile), pra caber em qualquer tela.
 const NAV = [
-  { href: "/painel", label: "Início", curto: "Início", icon: "painel", soGestor: false },
+  { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
   { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
@@ -41,10 +41,15 @@ export default async function AppLayout({
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-between gap-3 py-2.5">
-            <Link href="/painel" className="shrink-0">
+            <Link
+              href="/painel"
+              title="Ir para o início"
+              aria-label="Ir para o início"
+              className="shrink-0 rounded-md transition-opacity hover:opacity-80"
+            >
               <Image
                 src="/logo.png"
-                alt="Toldos Gerais"
+                alt="Toldos Gerais — início"
                 width={80}
                 height={43}
                 priority
