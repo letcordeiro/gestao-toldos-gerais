@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { login, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ export default function LoginPage() {
     login,
     {}
   );
+  const [verSenha, setVerSenha] = useState(false);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -50,13 +52,29 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="senha">Senha</Label>
-              <Input
-                id="senha"
-                name="senha"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="senha"
+                  name="senha"
+                  type={verSenha ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerSenha((v) => !v)}
+                  aria-label={verSenha ? "Ocultar senha" : "Mostrar senha"}
+                  title={verSenha ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {verSenha ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
             {state.erro && (
               <p className="text-sm text-destructive">{state.erro}</p>
