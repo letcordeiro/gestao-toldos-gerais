@@ -93,15 +93,24 @@ const styles = StyleSheet.create({
   // --- Ficha de instalação (página 2) ---
   // Campos propositalmente compactos: quanto menos altura o formulário come,
   // maior fica a área de desenho (igual ao modelo da empresa).
+  instPage: {
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 42,
+    fontSize: 9,
+    fontFamily: "Helvetica",
+    color: "#1a1a1a",
+    lineHeight: 1.28,
+  },
   instCabecalho: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  instLogo: { width: 66 },
+  instLogo: { width: 44 },
   instTitulo: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     color: VERDE,
   },
@@ -129,6 +138,7 @@ const styles = StyleSheet.create({
     borderColor: "#999",
     marginTop: 2,
     padding: 3,
+    overflow: "hidden",
   },
   desenhoRotulo: {
     fontSize: 5.5,
@@ -384,7 +394,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
 
       {/* PÁGINA 2 — Ficha de INSTALAÇÃO (interna; só no PDF do vendedor) */}
       {dados.instalacao ? (
-        <Page size="A4" style={styles.page}>
+        <Page size="A4" style={styles.instPage}>
           <View style={styles.instCabecalho}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={dados.logoDataUri} style={styles.instLogo} />
@@ -547,10 +557,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
               wrap={false}: a grade nunca pode partir entre duas páginas. */}
           <View style={styles.desenhoCaixa} wrap={false}>
             <Text style={styles.desenhoRotulo}>DESENHO / CROQUI</Text>
-            <AreaDesenho
-              largura={LARGURA_CONTEUDO}
-              altura={alturaDesenho(dados.instalacao.itens.length)}
-            />
+            <AreaDesenho altura={alturaDesenho(dados.instalacao)} />
           </View>
         </Page>
       ) : null}
@@ -558,16 +565,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
   );
 }
 
-// A4 (595.28pt) menos o padding horizontal da página (42 de cada lado) e a
-// borda/padding da caixa do desenho.
-const LARGURA_CONTEUDO = 595.28 - 42 * 2 - 8;
 
-// A grade ocupa o espaço que sobra: cada linha de produto come ~20pt da página.
-// Calibrado medindo o PDF real (1 produto → 320 cabe; 4 produtos → 260 cabe).
-function alturaDesenho(qtdeItens: number): number {
-  const altura = 380 - Math.max(0, qtdeItens - 1) * 20;
-  return Math.min(380, Math.max(180, altura));
-}
 
 const COLS_INST: {
   rotulo: string;
@@ -584,20 +582,47 @@ const COLS_INST: {
 ];
 
 // Área quadriculada para o croqui da instalação (desenho à mão).
-// Mesma proporção do modelo da empresa: célula de ~13pt (~4,5mm).
+// Célula de 13pt (~4,5mm), igual ao modelo da empresa.
 const CELULA = 13;
+// A4 (595.28pt) menos o padding da página (42 de cada lado) e a borda/padding
+// da caixa do desenho.
+const LARGURA_DESENHO = 595.28 - 42 * 2 - 8;
 
-function AreaDesenho({
-  largura,
-  altura,
-}: {
-  largura: number;
-  altura: number;
-}) {
-  const colunas = Math.floor(largura / CELULA);
+// react-pdf não tem "ocupar o resto da página": flexGrow cresce sem respeitar
+// a folha, e uma grade fixa grande demais faz a caixa inteira pular de página
+// (wrap={false}). Então calculamos a altura a partir do que o formulário
+// consome — o que o faz crescer é o nº de produtos e os textos que quebram
+// linha. Valores medidos no PDF real (ver testes no log do dia).
+const ALTURA_BASE = 390; // cabe com 1 produto e textos curtos
+const ALTURA_LINHA = 11; // custo de cada linha extra de texto
+
+function linhasExtras(texto: string | null, charsPorLinha: number): number {
+  if (!texto) return 0;
+  return Math.max(0, Math.ceil(texto.length / charsPorLinha) - 1);
+}
+
+function alturaDesenho(inst: DadosInstalacaoPDF): number {
+  // Observações ocupa a largura toda (~115 caracteres por linha a 7.5pt).
+  let desconto = linhasExtras(inst.observacoes, 115) * ALTURA_LINHA;
+  // Campos estreitos que também podem quebrar (larguras de 25% a 60%).
+  desconto += linhasExtras(inst.responsavel, 42) * ALTURA_LINHA;
+  desconto += linhasExtras(inst.horario, 42) * ALTURA_LINHA;
+  desconto +=
+    Math.max(
+      linhasExtras(inst.calha, 26),
+      linhasExtras(inst.tipoEscada, 26),
+      linhasExtras(inst.condEstacionamento, 26)
+    ) * ALTURA_LINHA;
+  // Cada produto além do primeiro come ~20pt.
+  desconto += Math.max(0, inst.itens.length - 1) * 20;
+  return Math.min(ALTURA_BASE, Math.max(150, ALTURA_BASE - desconto));
+}
+
+function AreaDesenho({ altura }: { altura: number }) {
+  const colunas = Math.floor(LARGURA_DESENHO / CELULA);
   const linhas = Math.floor(altura / CELULA);
   return (
-    <Svg width={largura} height={altura}>
+    <Svg width={LARGURA_DESENHO} height={linhas * CELULA}>
       {Array.from({ length: colunas + 1 }, (_, i) => (
         <Line
           key={`v${i}`}
