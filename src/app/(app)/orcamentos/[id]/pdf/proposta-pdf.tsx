@@ -91,26 +91,33 @@ const styles = StyleSheet.create({
   vendedorNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
   vendedorContato: { fontSize: 8.5, color: "#4a4a4a" },
   // --- Ficha de instalação (página 2) ---
+  // Campos propositalmente compactos: quanto menos altura o formulário come,
+  // maior fica a área de desenho (igual ao modelo da empresa).
+  instCabecalho: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  instLogo: { width: 66 },
   instTitulo: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: VERDE,
-    textAlign: "center",
-    marginBottom: 8,
   },
-  instCaixa: { borderWidth: 1, borderColor: "#999", marginBottom: 6 },
+  instCaixa: { borderWidth: 1, borderColor: "#999", marginBottom: 3 },
   instLinha: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#999" },
   instLinhaUltima: { flexDirection: "row" },
   instCelula: {
     borderRightWidth: 1,
     borderColor: "#999",
-    paddingHorizontal: 4,
-    paddingVertical: 3,
+    paddingHorizontal: 3,
+    paddingVertical: 1.5,
     justifyContent: "flex-start",
   },
-  instCelulaFim: { paddingHorizontal: 4, paddingVertical: 3 },
-  instRotulo: { fontSize: 5.5, color: "#666", fontFamily: "Helvetica-Bold" },
-  instValor: { fontSize: 8, marginTop: 1 },
+  instCelulaFim: { paddingHorizontal: 3, paddingVertical: 1.5 },
+  instRotulo: { fontSize: 5, color: "#666", fontFamily: "Helvetica-Bold" },
+  instValor: { fontSize: 7.5, marginTop: 0.5 },
   instTabTitulo: {
     fontSize: 5.5,
     color: "#fff",
@@ -378,9 +385,9 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
       {/* PÁGINA 2 — Ficha de INSTALAÇÃO (interna; só no PDF do vendedor) */}
       {dados.instalacao ? (
         <Page size="A4" style={styles.page}>
-          <View style={styles.cabecalho}>
+          <View style={styles.instCabecalho}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={dados.logoDataUri} style={styles.logo} />
+            <Image src={dados.logoDataUri} style={styles.instLogo} />
             <Text style={styles.instTitulo}>INSTALAÇÃO</Text>
           </View>
 
@@ -524,7 +531,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
                       i === COLS_INST.length - 1
                         ? styles.instCelulaFim
                         : styles.instCelula,
-                      { width: c.largura, minHeight: 16 },
+                      { width: c.largura, minHeight: 13 },
                     ]}
                   >
                     <Text style={styles.instValor}>
@@ -558,8 +565,8 @@ const LARGURA_CONTEUDO = 595.28 - 42 * 2 - 8;
 // A grade ocupa o espaço que sobra: cada linha de produto come ~20pt da página.
 // Calibrado medindo o PDF real (1 produto → 320 cabe; 4 produtos → 260 cabe).
 function alturaDesenho(qtdeItens: number): number {
-  const altura = 320 - Math.max(0, qtdeItens - 1) * 20;
-  return Math.min(320, Math.max(180, altura));
+  const altura = 380 - Math.max(0, qtdeItens - 1) * 20;
+  return Math.min(380, Math.max(180, altura));
 }
 
 const COLS_INST: {
@@ -633,7 +640,7 @@ function Celula({
     <View
       style={[
         fim ? styles.instCelulaFim : styles.instCelula,
-        { width: largura, minHeight: 20 },
+        { width: largura, minHeight: 14 },
       ]}
     >
       <Text style={styles.instRotulo}>{rotulo}</Text>
