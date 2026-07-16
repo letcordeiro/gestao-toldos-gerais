@@ -10,8 +10,10 @@ import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  instalacaoItens,
   modelosToldo,
   orcamentoFotos,
+  orcamentoInstalacao,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -33,9 +35,14 @@ export type PropostaGerada = {
  * Carrega o orçamento por uma condição (id ou public_token), monta o PDF e
  * devolve o buffer. Retorna null se não encontrar. Compartilhado pela rota
  * autenticada (/orcamentos/[id]/pdf) e pela pública (/proposta/[token]/pdf).
+ *
+ * `incluirInstalacao` acrescenta a ficha de instalação como página 2. É a
+ * ordem de serviço INTERNA: só a rota autenticada passa true, e mesmo assim
+ * só sai quando o orçamento está aprovado. O PDF público do cliente nunca tem.
  */
 export async function gerarProposta(
-  where: SQL
+  where: SQL,
+  opts: { incluirInstalacao?: boolean } = {}
 ): Promise<PropostaGerada | null> {
   const [linha] = await db
     .select({
@@ -76,6 +83,43 @@ export async function gerarProposta(
     })
     .filter((s): s is string => s !== null);
 
+  // Ficha de instalação (página 2) — interna, só para orçamento aprovado.
+  let instalacao: DadosProposta["instalacao"] = null;
+  if (opts.incluirInstalacao && linha.orc.status === "aprovado") {
+    const ficha = await db.query.orcamentoInstalacao.findFirst({
+      where: eq(orcamentoInstalacao.orcamentoId, linha.orc.id),
+    });
+    const linhasProduto = await db
+      .select()
+      .from(instalacaoItens)
+      .where(eq(instalacaoItens.orcamentoId, linha.orc.id))
+      .orderBy(asc(instalacaoItens.ordem));
+    const dia = (d: Date | null | undefined) =>
+      d ? format(d, "dd/MM/yyyy") : null;
+    instalacao = {
+      clienteEmail: linha.cliente.email,
+      responsavel: ficha?.responsavel ?? null,
+      observacoes: ficha?.observacoes ?? null,
+      calha: ficha?.calha ?? null,
+      tipoEscada: ficha?.tipoEscada ?? null,
+      condEstacionamento: ficha?.condEstacionamento ?? null,
+      horario: ficha?.horario ?? null,
+      dataPedido: format(linha.orc.criadoEm, "dd/MM/yyyy"),
+      prevEntrega: dia(ficha?.prevEntrega),
+      dataEntrega: dia(ficha?.dataEntrega),
+      vendedorNome: linha.vendedor?.nome ?? null,
+      itens: linhasProduto.map((i) => ({
+        qtde: i.qtde,
+        produto: i.produto,
+        estrutura: i.estrutura,
+        revestimento: i.revestimento,
+        rufo: i.rufo,
+        babado: i.babado,
+        vies: i.vies,
+      })),
+    };
+  }
+
   const dados: DadosProposta = {
     numero: linha.orc.numero,
     dataExtenso: format(linha.orc.criadoEm, "d 'de' MMMM 'de' yyyy", {
@@ -114,6 +158,7 @@ export async function gerarProposta(
     })),
     logoDataUri,
     fotos,
+    instalacao,
   };
 
   const documento = createElement(PropostaPDF, {

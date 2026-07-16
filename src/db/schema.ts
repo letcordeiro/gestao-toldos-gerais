@@ -160,6 +160,46 @@ export const orcamentoFotos = sqliteTable("orcamento_fotos", {
     .default(sql`(unixepoch())`),
 });
 
+// Ficha de INSTALAÇÃO (ordem de serviço interna, só para vendedor/gestor).
+// Preenchida quando o cliente fecha; sai como página 2 do PDF autenticado.
+// Nunca entra no PDF público do cliente (/proposta/[token]/pdf).
+export const orcamentoInstalacao = sqliteTable("orcamento_instalacao", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orcamentoId: integer("orcamento_id")
+    .notNull()
+    .unique()
+    .references(() => orcamentos.id),
+  // Dados da obra / logística
+  responsavel: text("responsavel"),
+  observacoes: text("observacoes"),
+  calha: text("calha"),
+  tipoEscada: text("tipo_escada"),
+  condEstacionamento: text("cond_estacionamento"),
+  horario: text("horario"),
+  // Datas do pedido
+  prevEntrega: integer("prev_entrega", { mode: "timestamp" }),
+  dataEntrega: integer("data_entrega", { mode: "timestamp" }),
+  atualizadoEm: integer("atualizado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Linhas de produto da ficha de instalação (especificação técnica).
+export const instalacaoItens = sqliteTable("instalacao_itens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orcamentoId: integer("orcamento_id")
+    .notNull()
+    .references(() => orcamentos.id),
+  qtde: text("qtde"),
+  produto: text("produto"), // ex.: TOLDO RETO FIXO 2,41X2,35
+  estrutura: text("estrutura"), // ESTRUT / TIPO / COR — ex.: METALICA MARROM
+  revestimento: text("revestimento"), // REVEST / TIPO / COR — ex.: LONA PVC
+  rufo: text("rufo"),
+  babado: text("babado"), // BABADO / MODELO / COR
+  vies: text("vies"), // VIES / MODELO / COR
+  ordem: integer("ordem").notNull().default(0),
+});
+
 export const tokensCadastro = sqliteTable("tokens_cadastro", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   token: text("token").notNull().unique(),

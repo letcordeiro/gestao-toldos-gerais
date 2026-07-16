@@ -14,7 +14,11 @@ export async function GET(
     return NextResponse.json({ erro: "id inválido" }, { status: 400 });
   }
 
-  const proposta = await gerarProposta(eq(orcamentos.id, orcamentoId));
+  // PDF interno do vendedor: leva a ficha de instalação como página 2
+  // (o gerador só a inclui de fato quando o orçamento está aprovado).
+  const proposta = await gerarProposta(eq(orcamentos.id, orcamentoId), {
+    incluirInstalacao: true,
+  });
   if (!proposta) {
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }

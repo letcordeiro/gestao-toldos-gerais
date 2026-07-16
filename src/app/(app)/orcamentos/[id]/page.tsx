@@ -7,8 +7,10 @@ import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  instalacaoItens,
   modelosToldo,
   orcamentoFotos,
+  orcamentoInstalacao,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -30,6 +32,11 @@ import { urlBase } from "@/lib/url";
 import { duplicarOrcamento } from "../actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
+import {
+  InstalacaoForm,
+  type DadosInstalacao,
+  type LinhaInstalacao,
+} from "./instalacao-form";
 import { ExcluirOrcamentoButton } from "./excluir-orcamento-button";
 
 function linkWhatsApp(
@@ -97,6 +104,37 @@ export default async function OrcamentoPage({
     .from(orcamentoFotos)
     .where(eq(orcamentoFotos.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoFotos.ordem));
+
+  // Ficha de instalação (só usada quando o orçamento está aprovado).
+  const ficha = await db.query.orcamentoInstalacao.findFirst({
+    where: eq(orcamentoInstalacao.orcamentoId, orcamentoId),
+  });
+  const linhasFicha = await db
+    .select()
+    .from(instalacaoItens)
+    .where(eq(instalacaoItens.orcamentoId, orcamentoId))
+    .orderBy(asc(instalacaoItens.ordem));
+  const paraInput = (d: Date | null | undefined) =>
+    d ? format(d, "yyyy-MM-dd") : "";
+  const dadosInstalacao: DadosInstalacao = {
+    responsavel: ficha?.responsavel ?? "",
+    observacoes: ficha?.observacoes ?? "",
+    calha: ficha?.calha ?? "",
+    tipoEscada: ficha?.tipoEscada ?? "",
+    condEstacionamento: ficha?.condEstacionamento ?? "",
+    horario: ficha?.horario ?? "",
+    prevEntrega: paraInput(ficha?.prevEntrega),
+    dataEntrega: paraInput(ficha?.dataEntrega),
+  };
+  const linhasInstalacao: LinhaInstalacao[] = linhasFicha.map((l) => ({
+    qtde: l.qtde ?? "",
+    produto: l.produto ?? "",
+    estrutura: l.estrutura ?? "",
+    revestimento: l.revestimento ?? "",
+    rufo: l.rufo ?? "",
+    babado: l.babado ?? "",
+    vies: l.vies ?? "",
+  }));
 
   // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam.
   const podeEditar =
@@ -323,6 +361,27 @@ export default async function OrcamentoPage({
           />
         </CardContent>
       </Card>
+
+      {/* Ficha de instalação: ordem de serviço INTERNA, só depois que o
+          cliente fecha (orçamento aprovado). Não vai no link do cliente. */}
+      {orc.status === "aprovado" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Ficha de instalação</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Uso interno da equipe — sai como página 2 do PDF que você imprime.
+              O cliente não recebe esta ficha.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <InstalacaoForm
+              orcamentoId={orc.id}
+              dados={dadosInstalacao}
+              linhas={linhasInstalacao}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

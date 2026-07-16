@@ -88,6 +88,33 @@ const styles = StyleSheet.create({
   },
   vendedorNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 1 },
   vendedorContato: { fontSize: 8.5, color: "#4a4a4a" },
+  // --- Ficha de instalação (página 2) ---
+  instTitulo: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: VERDE,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  instCaixa: { borderWidth: 1, borderColor: "#999", marginBottom: 6 },
+  instLinha: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#999" },
+  instLinhaUltima: { flexDirection: "row" },
+  instCelula: {
+    borderRightWidth: 1,
+    borderColor: "#999",
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    justifyContent: "flex-start",
+  },
+  instCelulaFim: { paddingHorizontal: 4, paddingVertical: 3 },
+  instRotulo: { fontSize: 5.5, color: "#666", fontFamily: "Helvetica-Bold" },
+  instValor: { fontSize: 8, marginTop: 1 },
+  instTabTitulo: {
+    fontSize: 5.5,
+    color: "#fff",
+    fontFamily: "Helvetica-Bold",
+  },
+  instCabTab: { backgroundColor: VERDE },
   fotosSecao: { marginTop: 10 },
   fotosNota: {
     fontSize: 8,
@@ -164,6 +191,32 @@ export type DadosProposta = {
   logoDataUri: string;
   // Fotos anexadas (data URIs) — aparecem numa seção ao final da proposta.
   fotos: string[];
+  // Ficha de INSTALAÇÃO (página 2) — só no PDF interno do vendedor, quando o
+  // orçamento está aprovado. Nunca vem preenchida no PDF público do cliente.
+  instalacao?: DadosInstalacaoPDF | null;
+};
+
+export type DadosInstalacaoPDF = {
+  clienteEmail: string | null;
+  responsavel: string | null;
+  observacoes: string | null;
+  calha: string | null;
+  tipoEscada: string | null;
+  condEstacionamento: string | null;
+  horario: string | null;
+  dataPedido: string;
+  prevEntrega: string | null;
+  dataEntrega: string | null;
+  vendedorNome: string | null;
+  itens: Array<{
+    qtde: string | null;
+    produto: string | null;
+    estrutura: string | null;
+    revestimento: string | null;
+    rufo: string | null;
+    babado: string | null;
+    vies: string | null;
+  }>;
 };
 
 function Secao({
@@ -307,6 +360,208 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           )}
         </View>
       </Page>
+
+      {/* PÁGINA 2 — Ficha de INSTALAÇÃO (interna; só no PDF do vendedor) */}
+      {dados.instalacao ? (
+        <Page size="A4" style={styles.page}>
+          <View style={styles.cabecalho}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={dados.logoDataUri} style={styles.logo} />
+            <Text style={styles.instTitulo}>INSTALAÇÃO</Text>
+          </View>
+
+          {/* Dados do cliente / local */}
+          <View style={styles.instCaixa}>
+            <View style={styles.instLinha}>
+              <Celula rotulo="CLIENTE" valor={dados.cliente.nome} largura="100%" fim />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula
+                rotulo="ENDEREÇO"
+                valor={[dados.cliente.endereco, dados.cliente.numero]
+                  .filter(Boolean)
+                  .join(", ")}
+                largura="60%"
+              />
+              <Celula rotulo="BAIRRO" valor={dados.cliente.bairro} largura="40%" fim />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula rotulo="CIDADE" valor={dados.cliente.cidade} largura="40%" />
+              <Celula rotulo="CEP" valor={dados.cliente.cep} largura="25%" />
+              <Celula
+                rotulo="TELEFONE(S)"
+                valor={dados.cliente.telefone}
+                largura="35%"
+                fim
+              />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula
+                rotulo="RESPONSÁVEL"
+                valor={dados.instalacao.responsavel}
+                largura="40%"
+              />
+              <Celula
+                rotulo="E-MAIL"
+                valor={dados.instalacao.clienteEmail}
+                largura="60%"
+                fim
+              />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula
+                rotulo="REFERÊNCIAS / COMPLEMENTO"
+                valor={dados.cliente.complemento}
+                largura="100%"
+                fim
+              />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula
+                rotulo="OBSERVAÇÕES"
+                valor={dados.instalacao.observacoes}
+                largura="100%"
+                fim
+              />
+            </View>
+            <View style={styles.instLinhaUltima}>
+              <Celula rotulo="CALHA" valor={dados.instalacao.calha} largura="25%" />
+              <Celula
+                rotulo="TIPO ESCADA"
+                valor={dados.instalacao.tipoEscada}
+                largura="25%"
+              />
+              <Celula
+                rotulo="COND. ESTAC."
+                valor={dados.instalacao.condEstacionamento}
+                largura="25%"
+              />
+              <Celula
+                rotulo="HORÁRIO"
+                valor={dados.instalacao.horario}
+                largura="25%"
+                fim
+              />
+            </View>
+          </View>
+
+          {/* Dados do pedido */}
+          <View style={styles.instCaixa}>
+            <View style={styles.instLinha}>
+              <Celula rotulo="EMPRESA" valor={EMPRESA.razaoSocial} largura="100%" fim />
+            </View>
+            <View style={styles.instLinhaUltima}>
+              <Celula rotulo="Nº PEDIDO" valor={dados.numero} largura="18%" />
+              <Celula
+                rotulo="DATA PEDIDO"
+                valor={dados.instalacao.dataPedido}
+                largura="18%"
+              />
+              <Celula
+                rotulo="VENDEDOR"
+                valor={dados.instalacao.vendedorNome}
+                largura="30%"
+              />
+              <Celula
+                rotulo="PREV. ENTREGA"
+                valor={dados.instalacao.prevEntrega}
+                largura="17%"
+              />
+              <Celula
+                rotulo="DATA ENTREGA"
+                valor={dados.instalacao.dataEntrega}
+                largura="17%"
+                fim
+              />
+            </View>
+          </View>
+
+          {/* Produtos */}
+          <View style={styles.instCaixa}>
+            <View style={[styles.instLinha, styles.instCabTab]}>
+              {COLS_INST.map((c, i) => (
+                <View
+                  key={c.rotulo}
+                  style={[
+                    i === COLS_INST.length - 1
+                      ? styles.instCelulaFim
+                      : styles.instCelula,
+                    { width: c.largura },
+                  ]}
+                >
+                  <Text style={styles.instTabTitulo}>{c.rotulo}</Text>
+                </View>
+              ))}
+            </View>
+            {(dados.instalacao.itens.length
+              ? dados.instalacao.itens
+              : [null]
+            ).map((item, idx, arr) => (
+              <View
+                key={idx}
+                style={
+                  idx === arr.length - 1 ? styles.instLinhaUltima : styles.instLinha
+                }
+              >
+                {COLS_INST.map((c, i) => (
+                  <View
+                    key={c.rotulo}
+                    style={[
+                      i === COLS_INST.length - 1
+                        ? styles.instCelulaFim
+                        : styles.instCelula,
+                      { width: c.largura, minHeight: 16 },
+                    ]}
+                  >
+                    <Text style={styles.instValor}>
+                      {(item ? item[c.chave] : null) ?? ""}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        </Page>
+      ) : null}
     </Document>
+  );
+}
+
+const COLS_INST: {
+  rotulo: string;
+  chave: keyof NonNullable<DadosProposta["instalacao"]>["itens"][number];
+  largura: string;
+}[] = [
+  { rotulo: "QTDE", chave: "qtde", largura: "7%" },
+  { rotulo: "PRODUTO", chave: "produto", largura: "25%" },
+  { rotulo: "ESTRUT / TIPO / COR", chave: "estrutura", largura: "17%" },
+  { rotulo: "REVEST / TIPO / COR", chave: "revestimento", largura: "17%" },
+  { rotulo: "RUFO", chave: "rufo", largura: "8%" },
+  { rotulo: "BABADO / MODELO / COR", chave: "babado", largura: "13%" },
+  { rotulo: "VIÉS / MODELO / COR", chave: "vies", largura: "13%" },
+];
+
+// Célula rotulada da ficha de instalação.
+function Celula({
+  rotulo,
+  valor,
+  largura,
+  fim,
+}: {
+  rotulo: string;
+  valor: string | null | undefined;
+  largura: string;
+  fim?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        fim ? styles.instCelulaFim : styles.instCelula,
+        { width: largura, minHeight: 20 },
+      ]}
+    >
+      <Text style={styles.instRotulo}>{rotulo}</Text>
+      <Text style={styles.instValor}>{valor || " "}</Text>
+    </View>
   );
 }

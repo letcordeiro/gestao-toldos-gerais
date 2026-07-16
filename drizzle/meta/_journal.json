@@ -85,6 +85,13 @@
       "when": 1783599120000,
       "tag": "0011_cliente_ativo",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1783599130000,
+      "tag": "0012_ficha_instalacao",
+      "breakpoints": true
     }
   ]
 }
