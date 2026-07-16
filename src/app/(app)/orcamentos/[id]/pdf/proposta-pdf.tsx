@@ -1,8 +1,10 @@
 import {
   Document,
   Image,
+  Line,
   Page,
   StyleSheet,
+  Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
@@ -115,6 +117,18 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
   },
   instCabTab: { backgroundColor: VERDE },
+  desenhoCaixa: {
+    borderWidth: 1,
+    borderColor: "#999",
+    marginTop: 2,
+    padding: 3,
+  },
+  desenhoRotulo: {
+    fontSize: 5.5,
+    color: "#666",
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 2,
+  },
   fotosSecao: { marginTop: 10 },
   fotosNota: {
     fontSize: 8,
@@ -521,10 +535,31 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
               </View>
             ))}
           </View>
+
+          {/* Área quadriculada para o croqui — desenhada à mão pela equipe.
+              wrap={false}: a grade nunca pode partir entre duas páginas. */}
+          <View style={styles.desenhoCaixa} wrap={false}>
+            <Text style={styles.desenhoRotulo}>DESENHO / CROQUI</Text>
+            <AreaDesenho
+              largura={LARGURA_CONTEUDO}
+              altura={alturaDesenho(dados.instalacao.itens.length)}
+            />
+          </View>
         </Page>
       ) : null}
     </Document>
   );
+}
+
+// A4 (595.28pt) menos o padding horizontal da página (42 de cada lado) e a
+// borda/padding da caixa do desenho.
+const LARGURA_CONTEUDO = 595.28 - 42 * 2 - 8;
+
+// A grade ocupa o espaço que sobra: cada linha de produto come ~20pt da página.
+// Calibrado medindo o PDF real (1 produto → 320 cabe; 4 produtos → 260 cabe).
+function alturaDesenho(qtdeItens: number): number {
+  const altura = 320 - Math.max(0, qtdeItens - 1) * 20;
+  return Math.min(320, Math.max(180, altura));
 }
 
 const COLS_INST: {
@@ -540,6 +575,47 @@ const COLS_INST: {
   { rotulo: "BABADO / MODELO / COR", chave: "babado", largura: "13%" },
   { rotulo: "VIÉS / MODELO / COR", chave: "vies", largura: "13%" },
 ];
+
+// Área quadriculada para o croqui da instalação (desenho à mão).
+// Mesma proporção do modelo da empresa: célula de ~13pt (~4,5mm).
+const CELULA = 13;
+
+function AreaDesenho({
+  largura,
+  altura,
+}: {
+  largura: number;
+  altura: number;
+}) {
+  const colunas = Math.floor(largura / CELULA);
+  const linhas = Math.floor(altura / CELULA);
+  return (
+    <Svg width={largura} height={altura}>
+      {Array.from({ length: colunas + 1 }, (_, i) => (
+        <Line
+          key={`v${i}`}
+          x1={i * CELULA}
+          y1={0}
+          x2={i * CELULA}
+          y2={linhas * CELULA}
+          strokeWidth={0.3}
+          stroke="#c8c8c8"
+        />
+      ))}
+      {Array.from({ length: linhas + 1 }, (_, i) => (
+        <Line
+          key={`h${i}`}
+          x1={0}
+          y1={i * CELULA}
+          x2={colunas * CELULA}
+          y2={i * CELULA}
+          strokeWidth={0.3}
+          stroke="#c8c8c8"
+        />
+      ))}
+    </Svg>
+  );
+}
 
 // Célula rotulada da ficha de instalação.
 function Celula({
