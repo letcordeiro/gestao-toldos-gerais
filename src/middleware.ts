@@ -4,6 +4,8 @@ import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
 const ROTAS_PUBLICAS = [
   /^\/login$/,
   /^\/esqueci-senha$/,
+  /^\/redefinir-senha\/.+/,
+  /^\/senha-alterada$/,
   /^\/cadastro\/.+/,
   /^\/cadastro-vendedor\/.+/,
   /^\/proposta\/.+/,

@@ -3,10 +3,10 @@
 import { useActionState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { redefinirSenha, type RecuperarState } from "./actions";
+import { MailCheck } from "lucide-react";
+import { pedirLinkDeSenha, type RecuperarState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { InputSenha } from "@/components/shared/input-senha";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -20,7 +20,7 @@ export default function EsqueciSenhaPage() {
   const [state, formAction, pending] = useActionState<
     RecuperarState,
     FormData
-  >(redefinirSenha, {});
+  >(pedirLinkDeSenha, {});
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -35,12 +35,13 @@ export default function EsqueciSenhaPage() {
             className="mx-auto mb-2"
           />
           {state.ok ? (
-            <CardTitle>Senha redefinida</CardTitle>
+            <CardTitle>Verifique seu e-mail</CardTitle>
           ) : (
             <>
               <CardTitle>Recuperar senha</CardTitle>
               <CardDescription>
-                Informe seu e-mail, o código de recuperação e a nova senha.
+                Informe seu e-mail e enviamos um link para você criar uma nova
+                senha.
               </CardDescription>
             </>
           )}
@@ -48,11 +49,23 @@ export default function EsqueciSenhaPage() {
         <CardContent>
           {state.ok ? (
             <div className="space-y-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                Pronto! Sua senha foi alterada. Já pode entrar com a nova senha.
+              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <MailCheck className="size-6" />
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Se esse e-mail estiver cadastrado, o link de redefinição já está
+                a caminho. Ele vale por <strong>1 hora</strong>.
               </p>
-              <Button className="w-full" render={<Link href="/login" />}>
-                Ir para o login
+              <p className="text-sm text-muted-foreground">
+                Não chegou? Confira a caixa de spam.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                nativeButton={false}
+                render={<Link href="/login" />}
+              >
+                Voltar para o login
               </Button>
             </div>
           ) : (
@@ -64,24 +77,7 @@ export default function EsqueciSenhaPage() {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="codigo">Código de recuperação</Label>
-                <Input
-                  id="codigo"
-                  name="codigo"
-                  placeholder="ex.: TG-XXXXXXXX"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="novaSenha">Nova senha</Label>
-                <InputSenha
-                  id="novaSenha"
-                  name="novaSenha"
-                  autoComplete="new-password"
+                  placeholder="seu@email.com"
                   required
                 />
               </div>
@@ -89,7 +85,7 @@ export default function EsqueciSenhaPage() {
                 <p className="text-sm text-destructive">{state.erro}</p>
               )}
               <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? "Salvando…" : "Redefinir senha"}
+                {pending ? "Enviando…" : "Enviar link de redefinição"}
               </Button>
               <p className="text-center text-sm">
                 <Link

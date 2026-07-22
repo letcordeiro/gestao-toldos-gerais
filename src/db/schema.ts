@@ -200,6 +200,19 @@ export const instalacaoItens = sqliteTable("instalacao_itens", {
   ordem: integer("ordem").notNull().default(0),
 });
 
+// Pedidos de redefinição de senha por e-mail.
+// Guardamos só o HASH do token: se o banco vazar, os links não servem.
+export const tokensSenha = sqliteTable("tokens_senha", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiraEm: integer("expira_em", { mode: "timestamp" }).notNull(),
+  usadoEm: integer("usado_em", { mode: "timestamp" }),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const tokensCadastro = sqliteTable("tokens_cadastro", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   token: text("token").notNull().unique(),
