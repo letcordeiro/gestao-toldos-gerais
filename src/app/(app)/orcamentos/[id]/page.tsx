@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Download, Printer } from "lucide-react";
 import { asc, eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -206,15 +207,21 @@ export default async function OrcamentoPage({
           <Button
             variant="outline"
             nativeButton={false}
+            render={<Link href={`/orcamentos/${orc.id}/imprimir`} />}
+          >
+            <Printer className="size-4" /> Imprimir
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
             render={
               <a
-                href={`/orcamentos/${orc.id}/pdf`}
-                target="_blank"
-                rel="noopener"
+                href={`/orcamentos/${orc.id}/pdf?download=1`}
+                download={`orcamento-${orc.numero}.pdf`}
               />
             }
           >
-            Baixar PDF
+            <Download className="size-4" /> Salvar PDF
           </Button>
           {linkProposta && (
             <Button

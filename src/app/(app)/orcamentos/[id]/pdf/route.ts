@@ -5,7 +5,7 @@ import { usuarioAtual } from "@/lib/auth";
 import { gerarProposta } from "@/lib/gerar-proposta";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -32,10 +32,15 @@ export async function GET(
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 
+  // ?download=1 força o "salvar como" do navegador; sem ele o PDF abre na tela
+  // (é assim que a página de impressão consegue embutir e mandar imprimir).
+  const baixar = new URL(request.url).searchParams.get("download") === "1";
+  const disposicao = baixar ? "attachment" : "inline";
+
   return new NextResponse(new Uint8Array(proposta.buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="proposta-${proposta.numero}.pdf"`,
+      "Content-Disposition": `${disposicao}; filename="orcamento-${proposta.numero}.pdf"`,
     },
   });
 }
