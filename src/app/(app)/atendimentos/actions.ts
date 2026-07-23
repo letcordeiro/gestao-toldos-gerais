@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -108,7 +108,45 @@ const mudarFaseSchema = z.object({
   faseId: z.coerce.number().int().positive(),
 });
 
-export async function mudarFase(atendimentoId: number, faseId: number) {
+/**
+ * Orçamentos que a mudança de fase pode aprovar (os que foram ao cliente e
+ * ainda não tiveram desfecho). A tela usa isso para perguntar qual aprovar
+ * quando há mais de um.
+ */
+export async function orcamentosParaAprovar(atendimentoId: number) {
+  await exigirSessao();
+  const at = z.coerce.number().int().positive().parse(atendimentoId);
+  const linhas = await db
+    .select({
+      id: orcamentos.id,
+      numero: orcamentos.numero,
+      // Tabela e colunas escritas à mão de propósito: sem um join, o Drizzle
+      // não qualifica os nomes e o "id" da subquery acabaria resolvendo para
+      // a tabela de itens — a soma sairia errada sem dar erro nenhum.
+      total: sql<number | null>`(
+        select sum(oi.valor_min)
+        from orcamento_itens oi
+        where oi.orcamento_id = orcamentos.id
+      )`,
+    })
+    .from(orcamentos)
+    .where(
+      and(
+        eq(orcamentos.atendimentoId, at),
+        eq(orcamentos.status, "enviado")
+      )
+    )
+    .orderBy(asc(orcamentos.numero));
+  return linhas;
+}
+
+export async function mudarFase(
+  atendimentoId: number,
+  faseId: number,
+  // ids escolhidos na caixa de diálogo. undefined = aprova todos os enviados
+  // (caminho de quando existe só um, ou fallback sem JavaScript).
+  orcamentoIds?: number[]
+) {
   await exigirSessao();
   const parsed = mudarFaseSchema.parse({ atendimentoId, faseId });
 
@@ -135,13 +173,21 @@ export async function mudarFase(atendimentoId: number, faseId: number) {
     where: eq(fases.id, parsed.faseId),
   });
   if (faseNova?.liberaInstalacao) {
+    const escolhidos = orcamentoIds
+      ?.map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n > 0);
+
     await db
       .update(orcamentos)
       .set({ status: "aprovado" })
       .where(
         and(
           eq(orcamentos.atendimentoId, parsed.atendimentoId),
-          eq(orcamentos.status, "enviado")
+          eq(orcamentos.status, "enviado"),
+          // só os escolhidos, quando a tela mandou a seleção
+          ...(escolhidos && escolhidos.length
+            ? [inArray(orcamentos.id, escolhidos)]
+            : [])
         )
       );
     revalidatePath("/orcamentos");

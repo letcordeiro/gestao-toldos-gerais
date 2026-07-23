@@ -108,6 +108,38 @@ async function moverParaOrcamentoEnviado(atendimentoId: number) {
   });
 }
 
+/**
+ * Aprovar o orçamento leva o atendimento para "Orçamento aprovado".
+ * Não mexe se o atendimento JÁ está numa fase de negócio fechado — senão
+ * marcar aprovado puxaria um cliente de "Em produção" de volta.
+ */
+async function moverParaOrcamentoAprovado(atendimentoId: number) {
+  const faseAprovado = await db.query.fases.findFirst({
+    where: eq(fases.nome, "Orçamento aprovado"),
+  });
+  if (!faseAprovado) return;
+
+  const atendimento = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, atendimentoId),
+  });
+  if (!atendimento || atendimento.faseId === faseAprovado.id) return;
+
+  const faseAtual = await db.query.fases.findFirst({
+    where: eq(fases.id, atendimento.faseId),
+  });
+  if (faseAtual?.liberaInstalacao) return; // já está adiante no funil
+
+  await db
+    .update(atendimentos)
+    .set({ faseId: faseAprovado.id, atualizadoEm: new Date() })
+    .where(eq(atendimentos.id, atendimentoId));
+  await db.insert(historicoFases).values({
+    atendimentoId,
+    faseAnteriorId: atendimento.faseId,
+    faseNovaId: faseAprovado.id,
+  });
+}
+
 export async function criarOrcamento(
   _prev: OrcamentoFormState,
   formData: FormData
@@ -341,9 +373,13 @@ export async function mudarStatusOrcamento(
   if (novoStatus === "enviado") {
     await moverParaOrcamentoEnviado(orcamento.atendimentoId);
   }
+  if (novoStatus === "aprovado") {
+    await moverParaOrcamentoAprovado(orcamento.atendimentoId);
+  }
 
   revalidatePath("/orcamentos");
   revalidatePath(`/orcamentos/${id}`);
+  revalidatePath("/atendimentos");
   revalidatePath(`/atendimentos/${orcamento.atendimentoId}`);
 }
 
