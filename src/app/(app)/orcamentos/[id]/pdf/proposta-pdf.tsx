@@ -443,7 +443,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
             <View style={styles.instLinhaUltima}>
               <Celula rotulo="CALHA" valor={dados.instalacao.calha} largura="33%" />
               <Celula
-                rotulo="TIPO DE ESCADA"
+                rotulo="ESCADA ALTA"
                 valor={dados.instalacao.tipoEscada}
                 largura="34%"
               />

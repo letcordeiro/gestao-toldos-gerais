@@ -180,7 +180,7 @@ export default async function OrcamentoPage({
           <Button
             variant="outline"
             nativeButton={false}
-            render={<Link href={`/orcamentos/${orc.id}/imprimir`} />}
+            render={<Link href={`/orcamentos/${orc.id}/imprimir`} target="_blank" />}
           >
             <FileText className="size-4" /> Ver orçamento
           </Button>

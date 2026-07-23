@@ -145,10 +145,10 @@ export function InstalacaoForm({
         <Escolha
           id="tipoEscada"
           name="tipoEscada"
-          label="Tipo de escada"
+          label="Escada alta"
           valor={tipoEscada}
           onChange={setTipoEscada}
-          opcoes={["Escada alta", "Escada baixa"]}
+          opcoes={["Sim", "Não"]}
         />
         <Escolha
           id="condEstacionamento"

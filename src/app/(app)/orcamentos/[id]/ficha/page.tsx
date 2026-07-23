@@ -106,6 +106,7 @@ export default async function FichaInstalacaoPage({
       </div>
 
       <AcoesFicha
+        orcamentoId={linha.orc.id}
         pdfUrl={pdfUrl}
         nomeArquivo={`ficha-instalacao-${linha.orc.numero}.pdf`}
       />
