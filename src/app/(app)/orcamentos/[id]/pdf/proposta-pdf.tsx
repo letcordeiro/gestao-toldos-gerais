@@ -573,7 +573,7 @@ const LARGURA_DESENHO = 595.28 - 42 * 2 - 8;
 // (wrap={false}). Então calculamos a altura a partir do que o formulário
 // consome — o que o faz crescer é o nº de produtos e os textos que quebram
 // linha. Valores medidos no PDF real (ver testes no log do dia).
-const ALTURA_BASE = 430; // cabe com 1 produto e textos curtos
+const ALTURA_BASE = 480; // medido: cabe em 1 página no pior caso
 const ALTURA_LINHA = 11; // custo de cada linha extra de texto
 
 function linhasExtras(texto: string | null, charsPorLinha: number): number {
