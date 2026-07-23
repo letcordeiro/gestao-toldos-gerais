@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -10,6 +10,7 @@ import {
   clientes,
   fases,
   historicoFases,
+  orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirGestor, exigirSessao, usuarioAtual } from "@/lib/auth";
@@ -126,6 +127,25 @@ export async function mudarFase(atendimentoId: number, faseId: number) {
     faseAnteriorId: atendimento.faseId,
     faseNovaId: parsed.faseId,
   });
+
+  // Fase de negócio fechado ("Orçamento aprovado" em diante) aprova sozinha os
+  // orçamentos que estavam aguardando resposta. Não mexe em rascunho (ainda não
+  // foi ao cliente) nem em recusado (decisão já tomada).
+  const faseNova = await db.query.fases.findFirst({
+    where: eq(fases.id, parsed.faseId),
+  });
+  if (faseNova?.liberaInstalacao) {
+    await db
+      .update(orcamentos)
+      .set({ status: "aprovado" })
+      .where(
+        and(
+          eq(orcamentos.atendimentoId, parsed.atendimentoId),
+          eq(orcamentos.status, "enviado")
+        )
+      );
+    revalidatePath("/orcamentos");
+  }
 
   revalidatePath("/atendimentos");
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);

@@ -225,6 +225,8 @@ export type DadosProposta = {
   // Ficha de INSTALAÇÃO (página 2) — só no PDF interno do vendedor, quando o
   // orçamento está aprovado. Nunca vem preenchida no PDF público do cliente.
   instalacao?: DadosInstalacaoPDF | null;
+  // true = gerar SÓ a ficha de instalação (documento interno separado).
+  somenteInstalacao?: boolean;
 };
 
 export type DadosInstalacaoPDF = {
@@ -282,6 +284,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
       title={`Proposta ${dados.numero} — Toldos Gerais`}
       author={EMPRESA.razaoSocial}
     >
+      {dados.somenteInstalacao ? null : (
       <Page size="A4" style={styles.page}>
         <View style={styles.cabecalho}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -391,8 +394,9 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
           )}
         </View>
       </Page>
+      )}
 
-      {/* PÁGINA 2 — Ficha de INSTALAÇÃO (interna; só no PDF do vendedor) */}
+      {/* Ficha de INSTALAÇÃO (interna; nunca vai no PDF do cliente) */}
       {dados.instalacao ? (
         <Page size="A4" style={styles.instPage}>
           <View style={styles.instCabecalho}>

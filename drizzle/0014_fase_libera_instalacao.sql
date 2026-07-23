@@ -1,0 +1,1 @@
+ALTER TABLE `fases` ADD `libera_instalacao` integer DEFAULT false NOT NULL;

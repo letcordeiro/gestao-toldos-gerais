@@ -26,6 +26,12 @@ export const fases = sqliteTable("fases", {
   nome: text("nome").notNull(),
   ordem: integer("ordem").notNull(),
   cor: text("cor").notNull(),
+  // Fase em que o negócio já está fechado: libera a ficha de instalação e
+  // aprova o orçamento automaticamente. Marcada por fase (e não por "ordem >=")
+  // porque "Perdido" é a última da ordem e NÃO pode liberar nada.
+  liberaInstalacao: integer("libera_instalacao", { mode: "boolean" })
+    .notNull()
+    .default(false),
 });
 
 export const atendimentos = sqliteTable("atendimentos", {

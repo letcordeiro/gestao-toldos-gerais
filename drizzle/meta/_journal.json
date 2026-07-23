@@ -99,6 +99,13 @@
       "when": 1783599140000,
       "tag": "0013_tokens_senha",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1783599150000,
+      "tag": "0014_fase_libera_instalacao",
+      "breakpoints": true
     }
   ]
 }

@@ -42,7 +42,7 @@ export type PropostaGerada = {
  */
 export async function gerarProposta(
   where: SQL,
-  opts: { incluirInstalacao?: boolean } = {}
+  opts: { incluirInstalacao?: boolean; somenteInstalacao?: boolean } = {}
 ): Promise<PropostaGerada | null> {
   const [linha] = await db
     .select({
@@ -85,7 +85,7 @@ export async function gerarProposta(
 
   // Ficha de instalação (página 2) — interna, só para orçamento aprovado.
   let instalacao: DadosProposta["instalacao"] = null;
-  if (opts.incluirInstalacao && linha.orc.status === "aprovado") {
+  if (opts.incluirInstalacao || opts.somenteInstalacao) {
     const ficha = await db.query.orcamentoInstalacao.findFirst({
       where: eq(orcamentoInstalacao.orcamentoId, linha.orc.id),
     });
@@ -159,6 +159,7 @@ export async function gerarProposta(
     logoDataUri,
     fotos,
     instalacao,
+    somenteInstalacao: Boolean(opts.somenteInstalacao),
   };
 
   const documento = createElement(PropostaPDF, {

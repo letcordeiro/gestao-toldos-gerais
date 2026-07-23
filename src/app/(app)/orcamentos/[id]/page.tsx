@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Printer } from "lucide-react";
+import { ClipboardList, FileText } from "lucide-react";
 import { asc, eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -8,6 +8,7 @@ import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  fases,
   instalacaoItens,
   modelosToldo,
   orcamentoFotos,
@@ -76,10 +77,13 @@ export default async function OrcamentoPage({
       cliente: clientes,
       modeloNome: modelosToldo.nome,
       vendedor: vendedores,
+      faseNome: fases.nome,
+      faseLibera: fases.liberaInstalacao,
     })
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .leftJoin(modelosToldo, eq(orcamentos.modeloId, modelosToldo.id))
     .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
     .where(eq(orcamentos.id, orcamentoId));
@@ -144,6 +148,11 @@ export default async function OrcamentoPage({
 
   const { orc, cliente, vendedor } = orcamento;
 
+  // A ficha de instalação passa a depender da FASE do atendimento (negócio
+  // fechado), não mais do status do orçamento — assim existe um lugar só onde
+  // se diz "o cliente fechou": o funil.
+  const fichaLiberada = orcamento.faseLibera;
+
   // Link público da proposta — abre uma página (funciona no navegador do
   // WhatsApp) com botão para ver/baixar o PDF no navegador do celular.
   // Usa urlBase() (APP_URL fixa) para não depender do Host da requisição.
@@ -186,7 +195,8 @@ export default async function OrcamentoPage({
             >
               {cliente.nome}
             </Link>{" "}
-            · {format(orc.criadoEm, "dd/MM/yyyy", { locale: ptBR })}
+            · {orcamento.faseNome} ·{" "}
+            {format(orc.criadoEm, "dd/MM/yyyy", { locale: ptBR })}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -209,20 +219,19 @@ export default async function OrcamentoPage({
             nativeButton={false}
             render={<Link href={`/orcamentos/${orc.id}/imprimir`} />}
           >
-            <Printer className="size-4" /> Imprimir
+            <FileText className="size-4" /> Ver orçamento
           </Button>
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={
-              <a
-                href={`/orcamentos/${orc.id}/pdf?download=1`}
-                download={`orcamento-${orc.numero}.pdf`}
-              />
-            }
-          >
-            <Download className="size-4" /> Salvar PDF
-          </Button>
+          {fichaLiberada && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link href={`/orcamentos/${orc.id}/imprimir?doc=ficha`} />
+              }
+            >
+              <ClipboardList className="size-4" /> Ver ficha de instalação
+            </Button>
+          )}
           {linkProposta && (
             <Button
               variant="outline"
@@ -371,7 +380,7 @@ export default async function OrcamentoPage({
 
       {/* Ficha de instalação: ordem de serviço INTERNA, só depois que o
           cliente fecha (orçamento aprovado). Não vai no link do cliente. */}
-      {orc.status === "aprovado" && (
+      {fichaLiberada && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ficha de instalação</CardTitle>

@@ -207,5 +207,51 @@ try {
   console.warn("• VENDEDOR_GESTORES não aplicado (não crítico):", e.message);
 }
 
+// Fase "Orçamento aprovado" + marcação de quais fases liberam a instalação.
+// Idempotente: só cria a fase se não existir e só marca o que ainda não está.
+// "Perdido" NUNCA libera, mesmo sendo a última da ordem.
+try {
+  const LIBERAM = [
+    "Orçamento aprovado",
+    "Aguardando pagamento",
+    "Em produção",
+    "Instalação agendada",
+    "Concluído",
+  ];
+
+  const existe = sqlite
+    .prepare("SELECT id FROM fases WHERE nome = 'Orçamento aprovado'")
+    .get();
+
+  if (!existe) {
+    // Entra logo depois de "Negociação"; empurra as seguintes uma casa.
+    const negociacao = sqlite
+      .prepare("SELECT ordem FROM fases WHERE nome = 'Negociação'")
+      .get();
+    const alvo = negociacao ? negociacao.ordem + 1 : 5;
+    sqlite.prepare("UPDATE fases SET ordem = ordem + 1 WHERE ordem >= ?").run(alvo);
+    sqlite
+      .prepare(
+        "INSERT INTO fases (nome, ordem, cor, libera_instalacao) VALUES ('Orçamento aprovado', ?, '#16A34A', 1)"
+      )
+      .run(alvo);
+    console.log(`✔ fase "Orçamento aprovado" criada na ordem ${alvo}`);
+  }
+
+  const marcar = sqlite.prepare(
+    "UPDATE fases SET libera_instalacao = 1 WHERE nome = ? AND libera_instalacao = 0"
+  );
+  let n = 0;
+  for (const nome of LIBERAM) n += marcar.run(nome).changes;
+  if (n > 0) console.log(`✔ ${n} fase(s) marcadas como liberadoras da instalação`);
+
+  // Garantia explícita: fases terminais negativas nunca liberam.
+  sqlite
+    .prepare("UPDATE fases SET libera_instalacao = 0 WHERE nome = 'Perdido'")
+    .run();
+} catch (e) {
+  console.warn("• fases de instalação não aplicadas (não crítico):", e.message);
+}
+
 sqlite.close();
 console.log(`✔ Banco pronto em ${dbPath}`);

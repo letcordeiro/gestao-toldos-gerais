@@ -17,10 +17,12 @@ import { Button } from "@/components/ui/button";
  */
 export function VisualizadorImpressao({
   pdfUrl,
-  numero,
+  nomeArquivo,
+  rotulo,
 }: {
   pdfUrl: string;
-  numero: string;
+  nomeArquivo: string;
+  rotulo: string;
 }) {
   const quadro = useRef<HTMLIFrameElement>(null);
   const [carregado, setCarregado] = useState(false);
@@ -62,7 +64,7 @@ export function VisualizadorImpressao({
         <Button
           variant="outline"
           nativeButton={false}
-          render={<a href={baixarUrl} download={`orcamento-${numero}.pdf`} />}
+          render={<a href={baixarUrl} download={nomeArquivo} />}
         >
           <Download className="size-4" /> Salvar PDF
         </Button>
@@ -83,7 +85,7 @@ export function VisualizadorImpressao({
       <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground md:hidden">
         <p className="font-medium text-foreground">Imprimindo pelo celular</p>
         <p className="mt-1 leading-relaxed">
-          Toque em <strong>Abrir PDF</strong>. Quando o orçamento aparecer, use
+          Toque em <strong>Abrir PDF</strong>. Quando a {rotulo} aparecer, use
           o botão de compartilhar do celular e escolha{" "}
           <strong>Imprimir</strong>. Para guardar o arquivo, use{" "}
           <strong>Salvar PDF</strong>.
@@ -94,7 +96,7 @@ export function VisualizadorImpressao({
       <iframe
         ref={quadro}
         src={pdfUrl}
-        title={`Orçamento ${numero}`}
+        title={nomeArquivo}
         onLoad={() => setCarregado(true)}
         className="hidden min-h-0 w-full flex-1 rounded-lg border bg-card md:block"
       />

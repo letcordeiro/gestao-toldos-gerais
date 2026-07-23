@@ -4,6 +4,10 @@ import { orcamentos } from "@/db/schema";
 import { usuarioAtual } from "@/lib/auth";
 import { gerarProposta } from "@/lib/gerar-proposta";
 
+/**
+ * Ficha de instalação como documento próprio (1 página).
+ * Uso INTERNO — nunca é exposta na rota pública /proposta/[token].
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -14,32 +18,24 @@ export async function GET(
     return NextResponse.json({ erro: "id inválido" }, { status: 400 });
   }
 
-  // Só a proposta comercial. A ficha de instalação é documento separado,
-  // em /orcamentos/[id]/ficha/pdf — foi o que a equipe pediu: um botão para
-  // cada documento, em vez de dois documentos grudados no mesmo PDF.
-  const proposta = await gerarProposta(eq(orcamentos.id, orcamentoId));
-  if (!proposta) {
+  const doc = await gerarProposta(eq(orcamentos.id, orcamentoId), {
+    somenteInstalacao: true,
+  });
+  if (!doc) {
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 
-  // Vendedor só baixa PDF dos próprios orçamentos.
+  // Vendedor só acessa a ficha dos próprios orçamentos.
   const usuario = await usuarioAtual();
-  if (
-    usuario?.papel === "vendedor" &&
-    proposta.vendedorId !== usuario.vendedorId
-  ) {
+  if (usuario?.papel === "vendedor" && doc.vendedorId !== usuario.vendedorId) {
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 
-  // ?download=1 força o "salvar como" do navegador; sem ele o PDF abre na tela
-  // (é assim que a página de impressão consegue embutir e mandar imprimir).
   const baixar = new URL(request.url).searchParams.get("download") === "1";
-  const disposicao = baixar ? "attachment" : "inline";
-
-  return new NextResponse(new Uint8Array(proposta.buffer), {
+  return new NextResponse(new Uint8Array(doc.buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${disposicao}; filename="orcamento-${proposta.numero}.pdf"`,
+      "Content-Disposition": `${baixar ? "attachment" : "inline"}; filename="ficha-instalacao-${doc.numero}.pdf"`,
     },
   });
 }
