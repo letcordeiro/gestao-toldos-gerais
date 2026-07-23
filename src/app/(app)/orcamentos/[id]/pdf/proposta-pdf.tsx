@@ -227,16 +227,16 @@ export type DadosProposta = {
   instalacao?: DadosInstalacaoPDF | null;
   // true = gerar SÓ a ficha de instalação (documento interno separado).
   somenteInstalacao?: boolean;
+  // endereço do cliente já montado em uma linha
+  enderecoCompleto?: string;
 };
 
 export type DadosInstalacaoPDF = {
   clienteEmail: string | null;
   responsavel: string | null;
-  observacoes: string | null;
   calha: string | null;
   tipoEscada: string | null;
   condEstacionamento: string | null;
-  horario: string | null;
   dataPedido: string;
   prevEntrega: string | null;
   dataEntrega: string | null;
@@ -405,34 +405,31 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
             <Text style={styles.instTitulo}>INSTALAÇÃO</Text>
           </View>
 
-          {/* Dados do cliente / local */}
+          {/* Dados do cliente / local.
+              Endereço em UMA linha: metade dos clientes veio do auto-cadastro
+              com tudo digitado num campo só (rua, número e bairro juntos), e
+              separar em células deixava BAIRRO e CEP vazios. */}
           <View style={styles.instCaixa}>
             <View style={styles.instLinha}>
-              <Celula rotulo="CLIENTE" valor={dados.cliente.nome} largura="100%" fim />
-            </View>
-            <View style={styles.instLinha}>
-              <Celula
-                rotulo="ENDEREÇO"
-                valor={[dados.cliente.endereco, dados.cliente.numero]
-                  .filter(Boolean)
-                  .join(", ")}
-                largura="60%"
-              />
-              <Celula rotulo="BAIRRO" valor={dados.cliente.bairro} largura="40%" fim />
-            </View>
-            <View style={styles.instLinha}>
-              <Celula rotulo="CIDADE" valor={dados.cliente.cidade} largura="40%" />
-              <Celula rotulo="CEP" valor={dados.cliente.cep} largura="25%" />
+              <Celula rotulo="CLIENTE" valor={dados.cliente.nome} largura="62%" />
               <Celula
                 rotulo="TELEFONE(S)"
                 valor={dados.cliente.telefone}
-                largura="35%"
+                largura="38%"
                 fim
               />
             </View>
             <View style={styles.instLinha}>
               <Celula
-                rotulo="RESPONSÁVEL"
+                rotulo="ENDEREÇO"
+                valor={dados.enderecoCompleto}
+                largura="100%"
+                fim
+              />
+            </View>
+            <View style={styles.instLinha}>
+              <Celula
+                rotulo="RESPONSÁVEL NO LOCAL"
                 valor={dados.instalacao.responsavel}
                 largura="40%"
               />
@@ -443,38 +440,17 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
                 fim
               />
             </View>
-            <View style={styles.instLinha}>
-              <Celula
-                rotulo="REFERÊNCIAS / COMPLEMENTO"
-                valor={dados.cliente.complemento}
-                largura="100%"
-                fim
-              />
-            </View>
-            <View style={styles.instLinha}>
-              <Celula
-                rotulo="OBSERVAÇÕES"
-                valor={dados.instalacao.observacoes}
-                largura="100%"
-                fim
-              />
-            </View>
             <View style={styles.instLinhaUltima}>
-              <Celula rotulo="CALHA" valor={dados.instalacao.calha} largura="25%" />
+              <Celula rotulo="CALHA" valor={dados.instalacao.calha} largura="33%" />
               <Celula
-                rotulo="TIPO ESCADA"
+                rotulo="TIPO DE ESCADA"
                 valor={dados.instalacao.tipoEscada}
-                largura="25%"
+                largura="34%"
               />
               <Celula
-                rotulo="COND. ESTAC."
+                rotulo="ESTACIONAMENTO"
                 valor={dados.instalacao.condEstacionamento}
-                largura="25%"
-              />
-              <Celula
-                rotulo="HORÁRIO"
-                valor={dados.instalacao.horario}
-                largura="25%"
+                largura="33%"
                 fim
               />
             </View>
@@ -561,7 +537,7 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
               wrap={false}: a grade nunca pode partir entre duas páginas. */}
           <View style={styles.desenhoCaixa} wrap={false}>
             <Text style={styles.desenhoRotulo}>DESENHO / CROQUI</Text>
-            <AreaDesenho altura={alturaDesenho(dados.instalacao)} />
+            <AreaDesenho altura={alturaDesenho(dados.instalacao, dados.enderecoCompleto ?? "")} />
           </View>
         </Page>
       ) : null}
@@ -597,7 +573,7 @@ const LARGURA_DESENHO = 595.28 - 42 * 2 - 8;
 // (wrap={false}). Então calculamos a altura a partir do que o formulário
 // consome — o que o faz crescer é o nº de produtos e os textos que quebram
 // linha. Valores medidos no PDF real (ver testes no log do dia).
-const ALTURA_BASE = 390; // cabe com 1 produto e textos curtos
+const ALTURA_BASE = 430; // cabe com 1 produto e textos curtos
 const ALTURA_LINHA = 11; // custo de cada linha extra de texto
 
 function linhasExtras(texto: string | null, charsPorLinha: number): number {
@@ -605,19 +581,11 @@ function linhasExtras(texto: string | null, charsPorLinha: number): number {
   return Math.max(0, Math.ceil(texto.length / charsPorLinha) - 1);
 }
 
-function alturaDesenho(inst: DadosInstalacaoPDF): number {
-  // Observações ocupa a largura toda (~115 caracteres por linha a 7.5pt).
-  let desconto = linhasExtras(inst.observacoes, 115) * ALTURA_LINHA;
-  // Campos estreitos que também podem quebrar (larguras de 25% a 60%).
+function alturaDesenho(inst: DadosInstalacaoPDF, endereco: string): number {
+  // O que faz o formulário crescer: endereço longo que quebra linha,
+  // responsável longo, e cada produto além do primeiro.
+  let desconto = linhasExtras(endereco, 115) * ALTURA_LINHA;
   desconto += linhasExtras(inst.responsavel, 42) * ALTURA_LINHA;
-  desconto += linhasExtras(inst.horario, 42) * ALTURA_LINHA;
-  desconto +=
-    Math.max(
-      linhasExtras(inst.calha, 26),
-      linhasExtras(inst.tipoEscada, 26),
-      linhasExtras(inst.condEstacionamento, 26)
-    ) * ALTURA_LINHA;
-  // Cada produto além do primeiro come ~20pt.
   desconto += Math.max(0, inst.itens.length - 1) * 20;
   return Math.min(ALTURA_BASE, Math.max(150, ALTURA_BASE - desconto));
 }

@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { instalacaoItens, orcamentoInstalacao, orcamentos } from "@/db/schema";
+import {
+  atendimentos,
+  fases,
+  instalacaoItens,
+  orcamentoInstalacao,
+  orcamentos,
+} from "@/db/schema";
 import { usuarioAtual } from "@/lib/auth";
 
 // Mesma regra do resto do orçamento: vendedor só mexe no que é dele; gestor em tudo.
@@ -44,11 +50,9 @@ const itemSchema = z.object({
 const schema = z.object({
   orcamentoId: z.coerce.number().int().positive(),
   responsavel: z.string().trim().optional(),
-  observacoes: z.string().trim().optional(),
   calha: z.string().trim().optional(),
   tipoEscada: z.string().trim().optional(),
   condEstacionamento: z.string().trim().optional(),
-  horario: z.string().trim().optional(),
   prevEntrega: z.string().trim().optional(),
   dataEntrega: z.string().trim().optional(),
   itens: z.array(itemSchema),
@@ -71,11 +75,9 @@ export async function salvarInstalacao(
   const parsed = schema.safeParse({
     orcamentoId: formData.get("orcamentoId"),
     responsavel: formData.get("responsavel"),
-    observacoes: formData.get("observacoes"),
     calha: formData.get("calha"),
     tipoEscada: formData.get("tipoEscada"),
     condEstacionamento: formData.get("condEstacionamento"),
-    horario: formData.get("horario"),
     prevEntrega: formData.get("prevEntrega"),
     dataEntrega: formData.get("dataEntrega"),
     itens,
@@ -85,16 +87,23 @@ export async function salvarInstalacao(
 
   const orc = await orcamentoPermitido(d.orcamentoId);
   if (!orc) return { erro: "Sem permissão para este orçamento" };
-  if (orc.status !== "aprovado")
-    return { erro: "A ficha de instalação só vale para orçamento aprovado" };
+  // A ficha existe a partir da fase de negócio fechado (mesma regra da tela).
+  const at = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, orc.atendimentoId),
+  });
+  const faseAtual = at
+    ? await db.query.fases.findFirst({ where: eq(fases.id, at.faseId) })
+    : null;
+  if (!faseAtual?.liberaInstalacao)
+    return {
+      erro: "A ficha só fica disponível depois que o orçamento é aprovado.",
+    };
 
   const valores = {
     responsavel: d.responsavel || null,
-    observacoes: d.observacoes || null,
     calha: d.calha || null,
     tipoEscada: d.tipoEscada || null,
     condEstacionamento: d.condEstacionamento || null,
-    horario: d.horario || null,
     prevEntrega: parseData(d.prevEntrega),
     dataEntrega: parseData(d.dataEntrega),
     atualizadoEm: new Date(),
@@ -136,6 +145,9 @@ export async function salvarInstalacao(
     }));
   if (linhas.length) await db.insert(instalacaoItens).values(linhas);
 
+  // a ficha vive em /orcamentos/[id]/ficha — sem revalidar ESTE caminho, a
+  // tela voltava com os campos vazios logo depois de salvar.
+  revalidatePath(`/orcamentos/${d.orcamentoId}/ficha`);
   revalidatePath(`/orcamentos/${d.orcamentoId}`);
   return { ok: true };
 }

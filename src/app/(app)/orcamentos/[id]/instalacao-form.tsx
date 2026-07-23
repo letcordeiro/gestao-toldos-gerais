@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { salvarInstalacao, type InstalacaoState } from "./instalacao-actions";
 
 export type LinhaInstalacao = {
@@ -21,11 +20,9 @@ export type LinhaInstalacao = {
 
 export type DadosInstalacao = {
   responsavel: string;
-  observacoes: string;
   calha: string;
   tipoEscada: string;
   condEstacionamento: string;
-  horario: string;
   prevEntrega: string; // aaaa-mm-dd
   dataEntrega: string; // aaaa-mm-dd
 };
@@ -50,6 +47,48 @@ const COLUNAS: { chave: keyof LinhaInstalacao; label: string; ph: string }[] = [
   { chave: "vies", label: "Viés / modelo / cor", ph: "-" },
 ];
 
+const CLASSE_SELECT =
+  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
+/** Campo de escolha simples — usado onde a resposta é fechada. */
+function Escolha({
+  id,
+  name,
+  label,
+  valor,
+  onChange,
+  opcoes,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  valor: string;
+  onChange: (v: string) => void;
+  opcoes: string[];
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {/* Controlado de propósito: com defaultValue, o campo voltava a "—" na
+          tela depois de salvar, dando a impressão de que nada foi gravado. */}
+      <select
+        id={id}
+        name={name}
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        className={CLASSE_SELECT}
+      >
+        <option value="">—</option>
+        {opcoes.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export function InstalacaoForm({
   orcamentoId,
   dados,
@@ -66,6 +105,9 @@ export function InstalacaoForm({
   const [linhas, setLinhas] = useState<LinhaInstalacao[]>(
     linhasIniciais.length ? linhasIniciais : [{ ...LINHA_VAZIA }]
   );
+  const [calha, setCalha] = useState(dados.calha);
+  const [tipoEscada, setTipoEscada] = useState(dados.tipoEscada);
+  const [estac, setEstac] = useState(dados.condEstacionamento);
 
   useEffect(() => {
     if (state.ok) toast.success("Ficha de instalação salva");
@@ -78,12 +120,11 @@ export function InstalacaoForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form id="form-ficha" action={formAction} className="space-y-4">
       <input type="hidden" name="orcamentoId" value={orcamentoId} />
       <input type="hidden" name="itens" value={JSON.stringify(linhas)} />
 
-      {/* Dados da obra */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1.5">
           <Label htmlFor="responsavel">Responsável no local</Label>
           <Input
@@ -93,38 +134,30 @@ export function InstalacaoForm({
             placeholder="quem recebe a equipe"
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="horario">Horário</Label>
-          <Input
-            id="horario"
-            name="horario"
-            defaultValue={dados.horario}
-            placeholder="ex.: 8h às 17h"
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="calha">Calha</Label>
-          <Input id="calha" name="calha" defaultValue={dados.calha} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="tipoEscada">Tipo de escada</Label>
-          <Input
-            id="tipoEscada"
-            name="tipoEscada"
-            defaultValue={dados.tipoEscada}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="condEstacionamento">Cond. estacionamento</Label>
-          <Input
-            id="condEstacionamento"
-            name="condEstacionamento"
-            defaultValue={dados.condEstacionamento}
-          />
-        </div>
+        <Escolha
+          id="calha"
+          name="calha"
+          label="Calha"
+          valor={calha}
+          onChange={setCalha}
+          opcoes={["Sim", "Não"]}
+        />
+        <Escolha
+          id="tipoEscada"
+          name="tipoEscada"
+          label="Tipo de escada"
+          valor={tipoEscada}
+          onChange={setTipoEscada}
+          opcoes={["Escada alta", "Escada baixa"]}
+        />
+        <Escolha
+          id="condEstacionamento"
+          name="condEstacionamento"
+          label="Estacionamento"
+          valor={estac}
+          onChange={setEstac}
+          opcoes={["Sim", "Não"]}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -146,17 +179,6 @@ export function InstalacaoForm({
             defaultValue={dados.dataEntrega}
           />
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          name="observacoes"
-          rows={2}
-          defaultValue={dados.observacoes}
-          placeholder="informações para a equipe de instalação"
-        />
       </div>
 
       {/* Linhas de produto */}

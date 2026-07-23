@@ -19,6 +19,7 @@ import {
   vendedores,
 } from "@/db/schema";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
+import { enderecoCompleto } from "@/lib/endereco";
 import { contentTypeFoto, lerFoto } from "@/lib/uploads";
 import {
   PropostaPDF,
@@ -99,11 +100,9 @@ export async function gerarProposta(
     instalacao = {
       clienteEmail: linha.cliente.email,
       responsavel: ficha?.responsavel ?? null,
-      observacoes: ficha?.observacoes ?? null,
       calha: ficha?.calha ?? null,
       tipoEscada: ficha?.tipoEscada ?? null,
       condEstacionamento: ficha?.condEstacionamento ?? null,
-      horario: ficha?.horario ?? null,
       dataPedido: format(linha.orc.criadoEm, "dd/MM/yyyy"),
       prevEntrega: dia(ficha?.prevEntrega),
       dataEntrega: dia(ficha?.dataEntrega),
@@ -160,6 +159,7 @@ export async function gerarProposta(
     fotos,
     instalacao,
     somenteInstalacao: Boolean(opts.somenteInstalacao),
+    enderecoCompleto: enderecoCompleto(linha.cliente),
   };
 
   const documento = createElement(PropostaPDF, {

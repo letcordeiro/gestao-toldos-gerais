@@ -249,6 +249,39 @@ try {
   sqlite
     .prepare("UPDATE fases SET libera_instalacao = 0 WHERE nome = 'Perdido'")
     .run();
+
+  // Alinha o que já existia: orçamento aprovado cujo atendimento ficou numa
+  // fase anterior passa para "Orçamento aprovado", para a ficha aparecer neles
+  // também. Não mexe em quem já está adiante no funil (Em produção etc.).
+  const faseAprovado = sqlite
+    .prepare("SELECT id FROM fases WHERE nome = 'Orçamento aprovado'")
+    .get();
+  if (faseAprovado) {
+    const pendentes = sqlite
+      .prepare(
+        `SELECT DISTINCT a.id, a.fase_id
+           FROM atendimentos a
+           JOIN orcamentos o ON o.atendimento_id = a.id
+           JOIN fases f ON f.id = a.fase_id
+          WHERE o.status = 'aprovado' AND f.libera_instalacao = 0`
+      )
+      .all();
+    const mover = sqlite.prepare(
+      "UPDATE atendimentos SET fase_id = ?, atualizado_em = unixepoch() WHERE id = ?"
+    );
+    const historiar = sqlite.prepare(
+      "INSERT INTO historico_fases (atendimento_id, fase_anterior_id, fase_nova_id) VALUES (?, ?, ?)"
+    );
+    for (const a of pendentes) {
+      mover.run(faseAprovado.id, a.id);
+      historiar.run(a.id, a.fase_id, faseAprovado.id);
+    }
+    if (pendentes.length > 0) {
+      console.log(
+        `✔ ${pendentes.length} atendimento(s) com orçamento aprovado movidos para "Orçamento aprovado"`
+      );
+    }
+  }
 } catch (e) {
   console.warn("• fases de instalação não aplicadas (não crítico):", e.message);
 }
