@@ -45,6 +45,9 @@ export const atendimentos = sqliteTable("atendimentos", {
   // Vendedor dono do atendimento (null = lead do pool, visível só a gestores)
   vendedorId: integer("vendedor_id"),
   observacoes: text("observacoes"),
+  // Quando o contato de pós-venda foi feito (null = ainda pendente). Some do
+  // aviso de pós-venda depois de marcado.
+  posVendaEm: integer("pos_venda_em", { mode: "timestamp" }),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

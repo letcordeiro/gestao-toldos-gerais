@@ -106,6 +106,13 @@
       "when": 1783599150000,
       "tag": "0014_fase_libera_instalacao",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1783599160000,
+      "tag": "0015_atendimento_pos_venda",
+      "breakpoints": true
     }
   ]
 }

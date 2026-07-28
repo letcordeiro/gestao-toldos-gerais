@@ -197,6 +197,33 @@ export async function mudarFase(
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
 }
 
+// Marca o contato de pós-venda como feito — some do aviso na tela.
+export async function marcarPosVendaFeita(atendimentoId: number) {
+  const usuario = await usuarioAtual();
+  if (!usuario) return;
+  const at = z.coerce.number().int().positive().parse(atendimentoId);
+
+  const atendimento = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, at),
+  });
+  if (!atendimento) return;
+  // Vendedor só mexe no que é dele; gestor em qualquer um.
+  if (
+    usuario.papel === "vendedor" &&
+    atendimento.vendedorId !== usuario.vendedorId
+  ) {
+    return;
+  }
+
+  await db
+    .update(atendimentos)
+    .set({ posVendaEm: new Date() })
+    .where(eq(atendimentos.id, at));
+
+  revalidatePath("/atendimentos");
+  revalidatePath(`/atendimentos/${at}`);
+}
+
 // Gestor (re)atribui o vendedor responsável por um atendimento.
 export async function atribuirVendedor(atendimentoId: number, vendedorId: number) {
   await exigirGestor();

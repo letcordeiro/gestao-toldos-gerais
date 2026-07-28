@@ -12,6 +12,8 @@ import {
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { linkWhatsApp } from "@/lib/whatsapp";
+import { DIAS_POS_VENDA, linkPosVenda } from "@/lib/pos-venda";
+import { marcarPosVendaFeita } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -149,8 +151,117 @@ export default async function AtendimentosPage({
     )
     .orderBy(asc(orcamentos.enviadoEm));
 
+  // Pós-venda: atendimentos concluídos há 7+ dias sem contato ainda.
+  // "concluído há X" = última entrada na fase "Concluído" no histórico.
+  const faseConcluido = await db.query.fases.findFirst({
+    where: eq(fases.nome, "Concluído"),
+  });
+  const cortePos = new Date(
+    Date.now() - DIAS_POS_VENDA * 24 * 60 * 60 * 1000
+  );
+  const posVenda = faseConcluido
+    ? await db
+        .select({
+          atendimentoId: atendimentos.id,
+          clienteNome: clientes.nome,
+          clienteTelefone: clientes.telefone,
+          vendedorNome: vendedores.nome,
+          concluidoEm: sql<number>`(
+            select max(hf.data) from historico_fases hf
+            where hf.atendimento_id = atendimentos.id
+              and hf.fase_nova_id = ${faseConcluido.id}
+          )`,
+        })
+        .from(atendimentos)
+        .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+        .leftJoin(vendedores, eq(atendimentos.vendedorId, vendedores.id))
+        .where(
+          and(
+            eq(atendimentos.faseId, faseConcluido.id),
+            sql`${atendimentos.posVendaEm} is null`,
+            escopoVendedor
+          )
+        )
+    : [];
+  // Só os que passaram dos 7 dias (o filtro de data é feito aqui porque a data
+  // de conclusão vem de uma subconsulta ao histórico).
+  const posVendaPendente = posVenda
+    .filter((p) => p.concluidoEm && p.concluidoEm * 1000 <= cortePos.getTime())
+    .map((p) => ({
+      ...p,
+      concluidoData: new Date((p.concluidoEm as number) * 1000),
+    }))
+    .sort((a, b) => a.concluidoData.getTime() - b.concluidoData.getTime());
+
   return (
     <div className="space-y-4">
+      {posVendaPendente.length > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-start gap-2">
+            <span className="text-lg leading-none">⭐</span>
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                {posVendaPendente.length === 1
+                  ? "1 cliente para o pós-venda"
+                  : `${posVendaPendente.length} clientes para o pós-venda`}
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  — concluído há {DIAS_POS_VENDA}+ dias. Peça a opinião e convide
+                  a avaliar no Google.
+                </span>
+              </p>
+              <ul className="space-y-1.5">
+                {posVendaPendente.map((p) => {
+                  const dias = differenceInCalendarDays(
+                    new Date(),
+                    p.concluidoData
+                  );
+                  return (
+                    <li
+                      key={p.atendimentoId}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+                    >
+                      <Link
+                        href={`/atendimentos/${p.atendimentoId}`}
+                        className="font-medium hover:underline"
+                      >
+                        {p.clienteNome}
+                      </Link>
+                      <span className="text-muted-foreground">
+                        · concluído há {dias} dias
+                        {usuario.papel !== "vendedor" && p.vendedorNome
+                          ? ` · ${p.vendedorNome}`
+                          : ""}
+                      </span>
+                      <a
+                        href={linkPosVenda(
+                          p.clienteTelefone,
+                          p.clienteNome,
+                          p.vendedorNome
+                        )}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                      >
+                        Enviar no WhatsApp ↗
+                      </a>
+                      <form action={marcarPosVendaFeita.bind(null, p.atendimentoId)}>
+                        <button
+                          type="submit"
+                          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        >
+                          já contatei
+                        </button>
+                      </form>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendencias.length > 0 && (
         <div className="rounded-lg border border-brand-orange/40 bg-brand-orange/10 p-4">
           <div className="flex items-start gap-2">
