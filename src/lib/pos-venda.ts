@@ -17,14 +17,14 @@ export function mensagemPosVenda(
   const primeiroNome = clienteNome.split(" ")[0];
   const assina = vendedorNome ? `${vendedorNome.split(" ")[0]}, da ` : "";
   return [
-    `Olá, ${primeiroNome}! Aqui é ${assina}Toldos Gerais. 😊`,
+    `Olá, ${primeiroNome}! Aqui é ${assina}Toldos Gerais.`,
     "",
     "Já faz alguns dias que concluímos a instalação e passamos para saber: está tudo certo com o seu toldo? O que você achou do nosso atendimento e do serviço?",
     "",
     "Sua opinião ajuda muito a gente a melhorar. E, se puder, deixa uma avaliação rápida no Google — leva menos de 1 minuto e faz toda a diferença pra nós:",
     EMPRESA.googleReview,
     "",
-    "Muito obrigado pela confiança! Qualquer coisa, é só chamar. 🙌",
+    "Muito obrigado pela confiança! Qualquer coisa, é só chamar.",
   ].join("\n");
 }
 
