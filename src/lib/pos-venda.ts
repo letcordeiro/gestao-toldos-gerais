@@ -2,7 +2,12 @@ import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
 
 // Dias após a conclusão para lembrar do contato de pós-venda.
-export const DIAS_POS_VENDA = 7;
+// Configurável por env POS_VENDA_DIAS (padrão 7) — permite ajustar a janela
+// sem mexer no código.
+export const DIAS_POS_VENDA = (() => {
+  const n = Number(process.env.POS_VENDA_DIAS);
+  return Number.isFinite(n) && n >= 0 ? n : 7;
+})();
 
 /** Mensagem de pós-venda: agradece, pede opinião e convida a avaliar no Google. */
 export function mensagemPosVenda(
