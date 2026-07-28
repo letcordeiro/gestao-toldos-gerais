@@ -12,9 +12,5 @@ export const EMPRESA = {
   emailSac: "sac@toldosgerais.com.br",
   instagram: "@toldosgerais",
   // Link de avaliação no Google usado na mensagem de pós-venda.
-  // TROCAR pelo link direto de review (g.page/r/... ou
-  // search.google.com/local/writereview?placeid=...). Enquanto não temos o
-  // exato, este abre a empresa no Maps, onde o cliente toca em "Avaliar".
-  googleReview:
-    "https://www.google.com/maps/search/?api=1&query=Toldos+Gerais+Belo+Horizonte",
+  googleReview: "https://share.google/sRi1Eq9sindozHg2Z",
 } as const;

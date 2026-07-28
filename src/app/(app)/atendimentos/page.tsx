@@ -193,10 +193,24 @@ export default async function AtendimentosPage({
     }))
     .sort((a, b) => a.concluidoData.getTime() - b.concluidoData.getTime());
 
+  // Cada aviso usa a cor da fase que representa, para diferenciar de relance.
+  // (hex + "1f" = ~12% de opacidade no fundo; "66" = ~40% na borda)
+  const corConcluido = todasFases.find((f) => f.nome === "Concluído")?.cor;
+  const corEnviado = todasFases.find(
+    (f) => f.nome === "Orçamento enviado"
+  )?.cor;
+  const tintaAviso = (cor?: string) =>
+    cor
+      ? { backgroundColor: `${cor}1f`, borderColor: `${cor}66` }
+      : undefined;
+
   return (
     <div className="space-y-4">
       {posVendaPendente.length > 0 && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+        <div
+          className="rounded-lg border p-4"
+          style={tintaAviso(corConcluido)}
+        >
           <div className="flex items-start gap-2">
             <span className="text-lg leading-none">⭐</span>
             <div className="flex-1 space-y-2">
@@ -263,7 +277,7 @@ export default async function AtendimentosPage({
       )}
 
       {pendencias.length > 0 && (
-        <div className="rounded-lg border border-brand-orange/40 bg-brand-orange/10 p-4">
+        <div className="rounded-lg border p-4" style={tintaAviso(corEnviado)}>
           <div className="flex items-start gap-2">
             <span className="text-lg leading-none">🔔</span>
             <div className="flex-1 space-y-2">
