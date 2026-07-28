@@ -138,6 +138,9 @@ export const orcamentos = sqliteTable("orcamentos", {
   // Momento em que o orçamento foi enviado ao cliente (status -> enviado).
   // Base para a cobrança de retorno após 15 dias.
   enviadoEm: integer("enviado_em", { mode: "timestamp" }),
+  // Último "já contatei" no aviso de cobrança. Silencia o aviso por mais um
+  // ciclo de 15 dias (se o orçamento continuar sem desfecho, volta a lembrar).
+  cobrancaContatoEm: integer("cobranca_contato_em", { mode: "timestamp" }),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

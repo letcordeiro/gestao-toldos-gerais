@@ -224,6 +224,28 @@ export async function marcarPosVendaFeita(atendimentoId: number) {
   revalidatePath(`/atendimentos/${at}`);
 }
 
+// Marca a cobrança de retorno como feita — silencia o aviso por mais um ciclo.
+export async function marcarCobrancaFeita(orcamentoId: number) {
+  const usuario = await usuarioAtual();
+  if (!usuario) return;
+  const id = z.coerce.number().int().positive().parse(orcamentoId);
+
+  const orc = await db.query.orcamentos.findFirst({
+    where: eq(orcamentos.id, id),
+  });
+  if (!orc) return;
+  if (usuario.papel === "vendedor" && orc.vendedorId !== usuario.vendedorId) {
+    return;
+  }
+
+  await db
+    .update(orcamentos)
+    .set({ cobrancaContatoEm: new Date() })
+    .where(eq(orcamentos.id, id));
+
+  revalidatePath("/atendimentos");
+}
+
 // Gestor (re)atribui o vendedor responsável por um atendimento.
 export async function atribuirVendedor(atendimentoId: number, vendedorId: number) {
   await exigirGestor();

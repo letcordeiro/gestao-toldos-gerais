@@ -13,7 +13,7 @@ import {
 import { exigirUsuario } from "@/lib/auth";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { DIAS_POS_VENDA, linkPosVenda } from "@/lib/pos-venda";
-import { marcarPosVendaFeita } from "./actions";
+import { marcarCobrancaFeita, marcarPosVendaFeita } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -131,6 +131,7 @@ export default async function AtendimentosPage({
       : undefined;
   const pendencias = await db
     .select({
+      id: orcamentos.id,
       atendimentoId: orcamentos.atendimentoId,
       numero: orcamentos.numero,
       enviadoEm: orcamentos.enviadoEm,
@@ -146,6 +147,11 @@ export default async function AtendimentosPage({
       and(
         eq(orcamentos.status, "enviado"),
         lte(orcamentos.enviadoEm, corte),
+        // "já contatei" silencia por mais um ciclo de 15 dias.
+        or(
+          sql`${orcamentos.cobrancaContatoEm} is null`,
+          lte(orcamentos.cobrancaContatoEm, corte)
+        ),
         escopoOrc
       )
     )
@@ -323,6 +329,14 @@ export default async function AtendimentosPage({
                       >
                         WhatsApp ↗
                       </a>
+                      <form action={marcarCobrancaFeita.bind(null, p.id)}>
+                        <button
+                          type="submit"
+                          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        >
+                          já contatei
+                        </button>
+                      </form>
                     </li>
                   );
                 })}

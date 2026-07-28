@@ -113,6 +113,13 @@
       "when": 1783599160000,
       "tag": "0015_atendimento_pos_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1783599170000,
+      "tag": "0016_orcamento_cobranca_contato",
+      "breakpoints": true
     }
   ]
 }
