@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { asc, like, or } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
 import { clientes } from "@/db/schema";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,14 +19,20 @@ import { ClienteDialog } from "./cliente-dialog";
 import { ExcluirClienteButton } from "./excluir-cliente-button";
 import { AtivoClienteSwitch } from "./ativo-switch";
 
+type Filtro = "ativos" | "inativos" | "todos";
+
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; filtro?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, filtro: filtroParam } = await searchParams;
+  const filtro: Filtro =
+    filtroParam === "inativos" || filtroParam === "todos"
+      ? filtroParam
+      : "ativos";
 
-  const linhas = await db
+  const todos = await db
     .select()
     .from(clientes)
     .where(
@@ -34,13 +42,49 @@ export default async function ClientesPage({
     )
     .orderBy(asc(clientes.nome));
 
+  const ativos = todos.filter((c) => c.ativo);
+  const inativos = todos.filter((c) => !c.ativo);
+  const linhas =
+    filtro === "ativos" ? ativos : filtro === "inativos" ? inativos : todos;
+
+  const abas: { chave: Filtro; rotulo: string; total: number }[] = [
+    { chave: "ativos", rotulo: "Ativos", total: ativos.length },
+    { chave: "inativos", rotulo: "Inativos", total: inativos.length },
+    { chave: "todos", rotulo: "Todos", total: todos.length },
+  ];
+  const hrefAba = (chave: Filtro) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (chave !== "ativos") params.set("filtro", chave);
+    const query = params.toString();
+    return query ? `/cadastros/clientes?${query}` : "/cadastros/clientes";
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
         <ClienteDialog trigger={<Button>Novo cliente</Button>} />
       </div>
-      <BuscaClientes q={q} />
+      <div className="flex flex-wrap items-center gap-3">
+        <BuscaClientes q={q} filtro={filtro} />
+        <div className="flex rounded-lg border bg-card p-1">
+          {abas.map((aba) => (
+            <Link
+              key={aba.chave}
+              href={hrefAba(aba.chave)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm transition-colors",
+                filtro === aba.chave
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              {aba.rotulo} ({aba.total})
+            </Link>
+          ))}
+        </div>
+      </div>
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -61,14 +105,24 @@ export default async function ClientesPage({
                   colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhum cliente encontrado.
+                  {filtro === "inativos"
+                    ? "Nenhum cliente inativo."
+                    : "Nenhum cliente encontrado."}
                 </TableCell>
               </TableRow>
             )}
             {linhas.map((cliente) => (
-              <TableRow key={cliente.id} className={cliente.ativo ? "" : "opacity-50"}>
+              <TableRow
+                key={cliente.id}
+                className={cliente.ativo ? "" : "bg-muted/40 opacity-60"}
+              >
                 <TableCell className="font-medium">
-                  {cliente.nome}
+                  <Link
+                    href={`/cadastros/clientes/${cliente.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {cliente.nome}
+                  </Link>
                   <span className="block text-xs font-normal text-muted-foreground sm:hidden">
                     {cliente.telefone}
                   </span>
@@ -93,6 +147,14 @@ export default async function ClientesPage({
                   <AtivoClienteSwitch id={cliente.id} ativo={cliente.ativo} />
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right">
+                  <Button
+                    nativeButton={false}
+                    variant="ghost"
+                    size="sm"
+                    render={<Link href={`/cadastros/clientes/${cliente.id}`} />}
+                  >
+                    Histórico
+                  </Button>
                   <ClienteDialog
                     cliente={cliente}
                     trigger={

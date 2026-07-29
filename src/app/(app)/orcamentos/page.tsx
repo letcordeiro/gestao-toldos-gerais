@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  fases,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -59,8 +60,17 @@ export default async function OrcamentosPage() {
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
-    .where(escopo)
+    // Cliente inativo e atendimento concluído saem daqui — ficam visíveis
+    // apenas no histórico do cliente (/cadastros/clientes/[id]).
+    .where(
+      and(
+        escopo,
+        eq(clientes.ativo, true),
+        ne(fases.nome, "Concluído")
+      )
+    )
     .orderBy(desc(orcamentos.criadoEm));
 
   return (
@@ -92,7 +102,9 @@ export default async function OrcamentosPage() {
                   colSpan={ehGestor ? 6 : 5}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhum orçamento ainda.
+                  Nenhum orçamento em andamento. Orçamentos de atendimentos
+                  concluídos e de clientes inativos ficam no histórico do
+                  cliente.
                 </TableCell>
               </TableRow>
             )}

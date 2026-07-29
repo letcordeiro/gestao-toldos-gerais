@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 
-export function BuscaClientes({ q }: { q?: string }) {
+export function BuscaClientes({
+  q,
+  filtro,
+}: {
+  q?: string;
+  filtro?: string;
+}) {
   const router = useRouter();
 
   return (
@@ -13,10 +19,13 @@ export function BuscaClientes({ q }: { q?: string }) {
       defaultValue={q ?? ""}
       onChange={(e) => {
         const valor = e.target.value.trim();
+        const params = new URLSearchParams();
+        if (valor) params.set("q", valor);
+        // mantém a aba (Ativos/Inativos/Todos) ao digitar na busca
+        if (filtro && filtro !== "ativos") params.set("filtro", filtro);
+        const query = params.toString();
         router.replace(
-          valor
-            ? `/cadastros/clientes?q=${encodeURIComponent(valor)}`
-            : "/cadastros/clientes"
+          query ? `/cadastros/clientes?${query}` : "/cadastros/clientes"
         );
       }}
     />
