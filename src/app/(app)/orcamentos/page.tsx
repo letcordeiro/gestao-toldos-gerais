@@ -11,6 +11,7 @@ import {
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +35,23 @@ const STATUS_BADGE: Record<
   recusado: { label: "Recusado", variant: "destructive" },
 };
 
-export default async function OrcamentosPage() {
+// Ordem de exibição dos cards e cor de identificação de cada status.
+const STATUS_CARDS: { chave: string; label: string; cor: string }[] = [
+  { chave: "rascunho", label: "Rascunho", cor: "#9CA3AF" },
+  { chave: "enviado", label: "Enviados", cor: "#D97706" },
+  { chave: "aprovado", label: "Aprovados", cor: "#004E36" },
+  { chave: "recusado", label: "Recusados", cor: "#DC2626" },
+];
+
+export default async function OrcamentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: statusParam } = await searchParams;
+  const statusFiltro =
+    statusParam && statusParam in STATUS_BADGE ? statusParam : undefined;
+
   const usuario = await exigirUsuario();
   const ehGestor = usuario.papel === "gestor";
   // Vendedor vê só os próprios orçamentos.
@@ -43,7 +60,7 @@ export default async function OrcamentosPage() {
       ? eq(orcamentos.vendedorId, usuario.vendedorId)
       : undefined;
 
-  const linhas = await db
+  const todos = await db
     .select({
       id: orcamentos.id,
       numero: orcamentos.numero,
@@ -73,6 +90,20 @@ export default async function OrcamentosPage() {
     )
     .orderBy(desc(orcamentos.criadoEm));
 
+  // Resumo por status (contagem + valor) calculado sobre a lista inteira,
+  // independente do filtro ativo.
+  const resumo = new Map<string, { n: number; valor: number }>();
+  for (const o of todos) {
+    const r = resumo.get(o.status) ?? { n: 0, valor: 0 };
+    r.n += 1;
+    r.valor += o.total ?? 0;
+    resumo.set(o.status, r);
+  }
+
+  const linhas = statusFiltro
+    ? todos.filter((o) => o.status === statusFiltro)
+    : todos;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -81,6 +112,52 @@ export default async function OrcamentosPage() {
           Novo orçamento
         </Button>
       </div>
+
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {STATUS_CARDS.map((card) => {
+          const r = resumo.get(card.chave) ?? { n: 0, valor: 0 };
+          const ativo = statusFiltro === card.chave;
+          return (
+            <Link
+              key={card.chave}
+              // Clicar no card ativo limpa o filtro.
+              href={ativo ? "/orcamentos" : `/orcamentos?status=${card.chave}`}
+              className={cn(
+                "rounded-lg border bg-card p-3 transition-colors hover:bg-secondary/50",
+                ativo && "border-primary ring-1 ring-primary"
+              )}
+            >
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span
+                  className="size-2 rounded-full"
+                  style={{ backgroundColor: card.cor }}
+                />
+                {card.label}
+              </div>
+              <div className="mt-1 text-xl font-semibold tabular-nums">
+                {r.n}
+              </div>
+              <div className="text-xs text-muted-foreground tabular-nums">
+                {r.n > 0 ? formatarCentavos(r.valor) : "—"}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {statusFiltro && (
+        <p className="text-sm text-muted-foreground">
+          Mostrando só{" "}
+          <span className="font-medium text-foreground">
+            {STATUS_BADGE[statusFiltro].label.toLowerCase()}
+          </span>{" "}
+          ({linhas.length}) ·{" "}
+          <Link href="/orcamentos" className="text-primary hover:underline">
+            limpar filtro
+          </Link>
+        </p>
+      )}
+
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -102,9 +179,11 @@ export default async function OrcamentosPage() {
                   colSpan={ehGestor ? 6 : 5}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhum orçamento em andamento. Orçamentos de atendimentos
-                  concluídos e de clientes inativos ficam no histórico do
-                  cliente.
+                  {statusFiltro
+                    ? `Nenhum orçamento ${STATUS_BADGE[
+                        statusFiltro
+                      ].label.toLowerCase()} em andamento.`
+                    : "Nenhum orçamento em andamento. Orçamentos de atendimentos concluídos e de clientes inativos ficam no histórico do cliente."}
                 </TableCell>
               </TableRow>
             )}
