@@ -193,6 +193,22 @@ export async function mudarFase(
     revalidatePath("/orcamentos");
   }
 
+  // Negócio perdido: orçamentos que aguardavam resposta viram recusados —
+  // somem do aviso de cobrança e entram na conta certa dos cards por status.
+  // Rascunho (nunca foi ao cliente) e aprovado (decisão tomada) ficam como estão.
+  if (faseNova?.nome === "Perdido") {
+    await db
+      .update(orcamentos)
+      .set({ status: "recusado" })
+      .where(
+        and(
+          eq(orcamentos.atendimentoId, parsed.atendimentoId),
+          eq(orcamentos.status, "enviado")
+        )
+      );
+    revalidatePath("/orcamentos");
+  }
+
   revalidatePath("/atendimentos");
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
 }

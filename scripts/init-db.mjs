@@ -286,5 +286,25 @@ try {
   console.warn("• fases de instalação não aplicadas (não crítico):", e.message);
 }
 
+// Atendimento em "Perdido" não deixa orçamento "enviado" para trás: vira
+// recusado (mesma regra da mudança de fase na tela). Idempotente por natureza.
+try {
+  const r = sqlite
+    .prepare(
+      `UPDATE orcamentos SET status = 'recusado'
+        WHERE status = 'enviado'
+          AND atendimento_id IN (
+            SELECT a.id FROM atendimentos a
+            JOIN fases f ON f.id = a.fase_id
+            WHERE f.nome = 'Perdido'
+          )`
+    )
+    .run();
+  if (r.changes > 0)
+    console.log(`✔ ${r.changes} orçamento(s) de atendimentos perdidos recusados`);
+} catch (e) {
+  console.warn("• recusa de orçamentos perdidos não aplicada (não crítico):", e.message);
+}
+
 sqlite.close();
 console.log(`✔ Banco pronto em ${dbPath}`);
