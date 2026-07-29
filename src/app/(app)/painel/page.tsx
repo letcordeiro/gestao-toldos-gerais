@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { and, asc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
+  clientes,
   fases,
   orcamentoItens,
   orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
+import { DIAS_COBRANCA } from "@/lib/cobranca";
 import { formatarCentavos } from "@/lib/format";
 import {
   Card,
@@ -18,7 +20,6 @@ import {
 } from "@/components/ui/card";
 import { TutorialInicial } from "./tutorial-inicial";
 
-const DIAS_COBRANCA = 15;
 const FASES_TERMINAIS = ["Concluído", "Perdido"];
 
 export default async function PainelPage() {
@@ -68,13 +69,25 @@ export default async function PainelPage() {
   const enviados = stat("enviado");
   const aprovados = stat("aprovado");
 
-  // A cobrar retorno: enviados há 15+ dias ainda sem desfecho
+  // A cobrar retorno: mesmos critérios do aviso na tela de Atendimentos
+  // (cliente ativo, "já contatei" silencia por um ciclo).
   const corte = new Date(Date.now() - DIAS_COBRANCA * 24 * 60 * 60 * 1000);
   const [{ nCobrar }] = await db
     .select({ nCobrar: sql<number>`count(*)` })
     .from(orcamentos)
+    .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
+    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
     .where(
-      and(eq(orcamentos.status, "enviado"), lte(orcamentos.enviadoEm, corte), escopoOrc)
+      and(
+        eq(clientes.ativo, true),
+        eq(orcamentos.status, "enviado"),
+        lte(orcamentos.enviadoEm, corte),
+        or(
+          sql`${orcamentos.cobrancaContatoEm} is null`,
+          lte(orcamentos.cobrancaContatoEm, corte)
+        ),
+        escopoOrc
+      )
     );
 
   // Desempenho por vendedor (só gestor)
@@ -109,7 +122,7 @@ export default async function PainelPage() {
     {
       label: "A cobrar retorno",
       valor: String(nCobrar),
-      sub: "15+ dias sem resposta",
+      sub: `${DIAS_COBRANCA}+ dias sem resposta`,
       href: "/atendimentos",
       alerta: nCobrar > 0,
     },

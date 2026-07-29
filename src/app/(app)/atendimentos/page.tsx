@@ -13,6 +13,7 @@ import {
 import { exigirUsuario } from "@/lib/auth";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { DIAS_POS_VENDA, linkPosVenda } from "@/lib/pos-venda";
+import { DIAS_COBRANCA } from "@/lib/cobranca";
 import { marcarCobrancaFeita, marcarPosVendaFeita } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +28,6 @@ import { FaseSelect } from "@/components/shared/fase-select";
 import { FiltrosFunil } from "./filtros";
 import { GerarLinkDialog } from "./gerar-link-dialog";
 import { NovoAtendimentoDialog } from "./novo-atendimento-dialog";
-
-const DIAS_COBRANCA = 15;
 
 function tempoNaFase(desde: Date): string {
   const dias = differenceInCalendarDays(new Date(), desde);
@@ -126,7 +125,7 @@ export default async function AtendimentosPage({
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
   const totalGeral = contagens.reduce((s, c) => s + c.total, 0);
 
-  // Cobrança de retorno: orçamentos enviados há 15+ dias ainda sem desfecho
+  // Cobrança de retorno: orçamentos enviados há DIAS_COBRANCA+ dias sem desfecho
   // (continuam "enviado", não viraram aprovado/recusado). Escopo por vendedor.
   const corte = new Date(Date.now() - DIAS_COBRANCA * 24 * 60 * 60 * 1000);
   const escopoOrc =
@@ -152,7 +151,7 @@ export default async function AtendimentosPage({
         eq(clientes.ativo, true),
         eq(orcamentos.status, "enviado"),
         lte(orcamentos.enviadoEm, corte),
-        // "já contatei" silencia por mais um ciclo de 15 dias.
+        // "já contatei" silencia por mais um ciclo de DIAS_COBRANCA dias.
         or(
           sql`${orcamentos.cobrancaContatoEm} is null`,
           lte(orcamentos.cobrancaContatoEm, corte)
