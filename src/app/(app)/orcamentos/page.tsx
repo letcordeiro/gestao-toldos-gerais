@@ -100,9 +100,11 @@ export default async function OrcamentosPage({
     resumo.set(o.status, r);
   }
 
+  // Visão padrão mostra só o que está em jogo: recusado sai da lista e fica
+  // atrás do card "Recusados" (contagem e valor continuam visíveis nele).
   const linhas = statusFiltro
     ? todos.filter((o) => o.status === statusFiltro)
-    : todos;
+    : todos.filter((o) => o.status !== "recusado");
 
   return (
     <div className="space-y-4">
