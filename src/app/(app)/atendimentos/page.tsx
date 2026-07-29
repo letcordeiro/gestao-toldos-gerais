@@ -76,6 +76,9 @@ export default async function AtendimentosPage({
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
 
   const filtros = [];
+  // Cliente inativo sai do funil — o histórico dele fica em
+  // /cadastros/clientes/[id].
+  filtros.push(eq(clientes.ativo, true));
   if (escopoVendedor) filtros.push(escopoVendedor);
   if (fase) filtros.push(eq(atendimentos.faseId, Number(fase)));
   if (q) {
@@ -117,7 +120,8 @@ export default async function AtendimentosPage({
       total: sql<number>`count(*)`,
     })
     .from(atendimentos)
-    .where(escopoVendedor)
+    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .where(and(eq(clientes.ativo, true), escopoVendedor))
     .groupBy(atendimentos.faseId);
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
   const totalGeral = contagens.reduce((s, c) => s + c.total, 0);
@@ -145,6 +149,7 @@ export default async function AtendimentosPage({
     .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
     .where(
       and(
+        eq(clientes.ativo, true),
         eq(orcamentos.status, "enviado"),
         lte(orcamentos.enviadoEm, corte),
         // "já contatei" silencia por mais um ciclo de 15 dias.
@@ -183,6 +188,7 @@ export default async function AtendimentosPage({
         .leftJoin(vendedores, eq(atendimentos.vendedorId, vendedores.id))
         .where(
           and(
+            eq(clientes.ativo, true),
             eq(atendimentos.faseId, faseConcluido.id),
             sql`${atendimentos.posVendaEm} is null`,
             escopoVendedor
