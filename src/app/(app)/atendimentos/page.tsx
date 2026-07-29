@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, lte, ne, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import {
@@ -74,12 +74,16 @@ export default async function AtendimentosPage({
     .filter((v) => v.linkToken && (ehGestor || v.id === usuario.vendedorId))
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
 
+  const fasePerdido = todasFases.find((f) => f.nome === "Perdido");
+
   const filtros = [];
   // Cliente inativo sai do funil — o histórico dele fica em
   // /cadastros/clientes/[id].
   filtros.push(eq(clientes.ativo, true));
   if (escopoVendedor) filtros.push(escopoVendedor);
   if (fase) filtros.push(eq(atendimentos.faseId, Number(fase)));
+  // Perdido não aparece na visão padrão — só clicando no chip "Perdido".
+  else if (fasePerdido) filtros.push(ne(atendimentos.faseId, fasePerdido.id));
   if (q) {
     filtros.push(
       or(like(clientes.nome, `%${q}%`), like(clientes.telefone, `%${q}%`))
@@ -123,7 +127,10 @@ export default async function AtendimentosPage({
     .where(and(eq(clientes.ativo, true), escopoVendedor))
     .groupBy(atendimentos.faseId);
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
-  const totalGeral = contagens.reduce((s, c) => s + c.total, 0);
+  // "Todos" conta o que a visão padrão mostra — sem os perdidos.
+  const totalGeral = contagens
+    .filter((c) => c.faseId !== fasePerdido?.id)
+    .reduce((s, c) => s + c.total, 0);
 
   // Cobrança de retorno: orçamentos enviados há DIAS_COBRANCA+ dias sem desfecho
   // (continuam "enviado", não viraram aprovado/recusado). Escopo por vendedor.
