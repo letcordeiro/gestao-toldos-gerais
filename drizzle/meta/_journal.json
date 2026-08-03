@@ -120,6 +120,13 @@
       "when": 1783599170000,
       "tag": "0016_orcamento_cobranca_contato",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1783599180000,
+      "tag": "0017_avisos",
+      "breakpoints": true
     }
   ]
 }

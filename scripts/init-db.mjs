@@ -286,6 +286,78 @@ try {
   console.warn("• fases de instalação não aplicadas (não crítico):", e.message);
 }
 
+// Avisos configuráveis: cria os dois padrão (cobrança de retorno e pós-venda)
+// se a tabela estiver vazia, e migra os "já contatei" antigos (colunas
+// cobranca_contato_em / pos_venda_em) para aviso_contatos. Idempotente.
+try {
+  const temAvisos = sqlite.prepare("SELECT count(*) AS c FROM avisos").get().c;
+  if (temAvisos === 0) {
+    const diasCobranca = Number(process.env.COBRANCA_DIAS) >= 0 ? Number(process.env.COBRANCA_DIAS) : 3;
+    const diasPosVenda = Number(process.env.POS_VENDA_DIAS) >= 0 ? Number(process.env.POS_VENDA_DIAS) : 7;
+    const insert = sqlite.prepare(
+      "INSERT INTO avisos (nome, gatilho, dias, mensagem, rearme_dias, ativo) VALUES (?, ?, ?, ?, ?, 1)"
+    );
+    insert.run(
+      "Cobrar retorno do orçamento",
+      "orcamento_sem_resposta",
+      diasCobranca,
+      "Olá, {cliente}! Passando para saber se conseguiu avaliar o orçamento {orcamento} da Toldos Gerais. Qualquer dúvida, estou à disposição.",
+      diasCobranca
+    );
+    insert.run(
+      "Pós-venda",
+      "atendimento_concluido",
+      diasPosVenda,
+      [
+        "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais.",
+        "",
+        "Já faz alguns dias que concluímos a instalação e passamos para saber: está tudo certo com o seu toldo? O que você achou do nosso atendimento e do serviço?",
+        "",
+        "Sua opinião ajuda muito a gente a melhorar. E, se puder, deixa uma avaliação rápida no Google — leva menos de 1 minuto e faz toda a diferença pra nós:",
+        "{avaliacao}",
+        "",
+        "Muito obrigado pela confiança! Qualquer coisa, é só chamar.",
+      ].join("\n"),
+      null
+    );
+    console.log("✔ avisos padrão criados (cobrança + pós-venda)");
+  }
+
+  // Migra dispensas antigas para o novo modelo (só onde ainda não existem).
+  const avisoCobranca = sqlite
+    .prepare("SELECT id FROM avisos WHERE gatilho = 'orcamento_sem_resposta' ORDER BY id LIMIT 1")
+    .get();
+  if (avisoCobranca) {
+    const r = sqlite
+      .prepare(
+        `INSERT INTO aviso_contatos (aviso_id, alvo_id, definitivo, contatado_em)
+         SELECT ?, o.id, 0, o.cobranca_contato_em FROM orcamentos o
+          WHERE o.cobranca_contato_em IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM aviso_contatos c WHERE c.aviso_id = ? AND c.alvo_id = o.id)`
+      )
+      .run(avisoCobranca.id, avisoCobranca.id);
+    if (r.changes > 0)
+      console.log(`✔ ${r.changes} contato(s) de cobrança migrados`);
+  }
+  const avisoPos = sqlite
+    .prepare("SELECT id FROM avisos WHERE gatilho = 'atendimento_concluido' ORDER BY id LIMIT 1")
+    .get();
+  if (avisoPos) {
+    const r = sqlite
+      .prepare(
+        `INSERT INTO aviso_contatos (aviso_id, alvo_id, definitivo, contatado_em)
+         SELECT ?, a.id, 1, a.pos_venda_em FROM atendimentos a
+          WHERE a.pos_venda_em IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM aviso_contatos c WHERE c.aviso_id = ? AND c.alvo_id = a.id)`
+      )
+      .run(avisoPos.id, avisoPos.id);
+    if (r.changes > 0)
+      console.log(`✔ ${r.changes} contato(s) de pós-venda migrados`);
+  }
+} catch (e) {
+  console.warn("• avisos não semeados (não crítico):", e.message);
+}
+
 // Atendimento em "Perdido" não deixa orçamento "enviado" para trás: vira
 // recusado (mesma regra da mudança de fase na tela). Idempotente por natureza.
 try {

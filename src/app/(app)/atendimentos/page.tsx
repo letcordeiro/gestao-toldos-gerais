@@ -1,20 +1,19 @@
 import Link from "next/link";
-import { and, asc, desc, eq, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import {
   atendimentos,
+  avisos,
   clientes,
   fases,
   historicoFases,
-  orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
-import { linkWhatsApp } from "@/lib/whatsapp";
-import { DIAS_POS_VENDA, linkPosVenda } from "@/lib/pos-venda";
-import { DIAS_COBRANCA } from "@/lib/cobranca";
-import { marcarCobrancaFeita, marcarPosVendaFeita } from "./actions";
+import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
+import type { Aviso, PendenciaAviso } from "@/lib/avisos";
+import { marcarContatoAviso } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -132,91 +131,34 @@ export default async function AtendimentosPage({
     .filter((c) => c.faseId !== fasePerdido?.id)
     .reduce((s, c) => s + c.total, 0);
 
-  // Cobrança de retorno: orçamentos enviados há DIAS_COBRANCA+ dias sem desfecho
-  // (continuam "enviado", não viraram aprovado/recusado). Escopo por vendedor.
-  const corte = new Date(Date.now() - DIAS_COBRANCA * 24 * 60 * 60 * 1000);
-  const escopoOrc =
+  // Avisos configuráveis (Cadastros → Avisos): pendências de cada aviso ativo.
+  const escopoAvisoVendedorId =
     usuario.papel === "vendedor" && usuario.vendedorId != null
-      ? eq(orcamentos.vendedorId, usuario.vendedorId)
-      : undefined;
-  const pendencias = await db
-    .select({
-      id: orcamentos.id,
-      atendimentoId: orcamentos.atendimentoId,
-      numero: orcamentos.numero,
-      enviadoEm: orcamentos.enviadoEm,
-      clienteNome: clientes.nome,
-      clienteTelefone: clientes.telefone,
-      vendedorNome: vendedores.nome,
-    })
-    .from(orcamentos)
-    .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
-    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
-    .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
-    .where(
-      and(
-        eq(clientes.ativo, true),
-        eq(orcamentos.status, "enviado"),
-        lte(orcamentos.enviadoEm, corte),
-        // "já contatei" silencia por mais um ciclo de DIAS_COBRANCA dias.
-        or(
-          sql`${orcamentos.cobrancaContatoEm} is null`,
-          lte(orcamentos.cobrancaContatoEm, corte)
-        ),
-        escopoOrc
-      )
-    )
-    .orderBy(asc(orcamentos.enviadoEm));
-
-  // Pós-venda: atendimentos concluídos há 7+ dias sem contato ainda.
-  // "concluído há X" = última entrada na fase "Concluído" no histórico.
-  const faseConcluido = await db.query.fases.findFirst({
-    where: eq(fases.nome, "Concluído"),
-  });
-  const cortePos = new Date(
-    Date.now() - DIAS_POS_VENDA * 24 * 60 * 60 * 1000
-  );
-  const posVenda = faseConcluido
-    ? await db
-        .select({
-          atendimentoId: atendimentos.id,
-          clienteNome: clientes.nome,
-          clienteTelefone: clientes.telefone,
-          vendedorNome: vendedores.nome,
-          concluidoEm: sql<number>`(
-            select max(hf.data) from historico_fases hf
-            where hf.atendimento_id = atendimentos.id
-              and hf.fase_nova_id = ${faseConcluido.id}
-          )`,
-        })
-        .from(atendimentos)
-        .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
-        .leftJoin(vendedores, eq(atendimentos.vendedorId, vendedores.id))
-        .where(
-          and(
-            eq(clientes.ativo, true),
-            eq(atendimentos.faseId, faseConcluido.id),
-            sql`${atendimentos.posVendaEm} is null`,
-            escopoVendedor
-          )
-        )
-    : [];
-  // Só os que passaram dos 7 dias (o filtro de data é feito aqui porque a data
-  // de conclusão vem de uma subconsulta ao histórico).
-  const posVendaPendente = posVenda
-    .filter((p) => p.concluidoEm && p.concluidoEm * 1000 <= cortePos.getTime())
-    .map((p) => ({
-      ...p,
-      concluidoData: new Date((p.concluidoEm as number) * 1000),
-    }))
-    .sort((a, b) => a.concluidoData.getTime() - b.concluidoData.getTime());
+      ? usuario.vendedorId
+      : null;
+  const avisosAtivos = await db
+    .select()
+    .from(avisos)
+    .where(eq(avisos.ativo, true))
+    .orderBy(asc(avisos.id));
+  const banners: { aviso: Aviso; pendencias: PendenciaAviso[] }[] = [];
+  for (const aviso of avisosAtivos) {
+    const pendencias = await pendenciasDoAviso(aviso, escopoAvisoVendedorId);
+    if (pendencias.length > 0) banners.push({ aviso, pendencias });
+  }
 
   // Cada aviso usa a cor da fase que representa, para diferenciar de relance.
   // (hex + "1f" = ~12% de opacidade no fundo; "66" = ~40% na borda)
-  const corConcluido = todasFases.find((f) => f.nome === "Concluído")?.cor;
-  const corEnviado = todasFases.find(
-    (f) => f.nome === "Orçamento enviado"
-  )?.cor;
+  const corPorGatilho: Record<Aviso["gatilho"], string | undefined> = {
+    orcamento_sem_resposta: todasFases.find(
+      (f) => f.nome === "Orçamento enviado"
+    )?.cor,
+    atendimento_concluido: todasFases.find((f) => f.nome === "Concluído")?.cor,
+  };
+  const ICONE: Record<Aviso["gatilho"], string> = {
+    orcamento_sem_resposta: "🔔",
+    atendimento_concluido: "⭐",
+  };
   const tintaAviso = (cor?: string) =>
     cor
       ? { backgroundColor: `${cor}1f`, borderColor: `${cor}66` }
@@ -224,98 +166,31 @@ export default async function AtendimentosPage({
 
   return (
     <div className="space-y-4">
-      {posVendaPendente.length > 0 && (
+      {banners.map(({ aviso, pendencias }) => (
         <div
+          key={aviso.id}
           className="rounded-lg border p-4"
-          style={tintaAviso(corConcluido)}
+          style={tintaAviso(corPorGatilho[aviso.gatilho])}
         >
           <div className="flex items-start gap-2">
-            <span className="text-lg leading-none">⭐</span>
+            <span className="text-lg leading-none">{ICONE[aviso.gatilho]}</span>
             <div className="flex-1 space-y-2">
               <p className="text-sm font-semibold text-foreground">
-                {posVendaPendente.length === 1
-                  ? "1 cliente para o pós-venda"
-                  : `${posVendaPendente.length} clientes para o pós-venda`}
+                {aviso.nome}
                 <span className="font-normal text-muted-foreground">
                   {" "}
-                  — concluído há {DIAS_POS_VENDA}+ dias. Peça a opinião e convide
-                  a avaliar no Google.
-                </span>
-              </p>
-              <ul className="space-y-1.5">
-                {posVendaPendente.map((p) => {
-                  const dias = differenceInCalendarDays(
-                    new Date(),
-                    p.concluidoData
-                  );
-                  return (
-                    <li
-                      key={p.atendimentoId}
-                      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-                    >
-                      <Link
-                        href={`/atendimentos/${p.atendimentoId}`}
-                        className="font-medium hover:underline"
-                      >
-                        {p.clienteNome}
-                      </Link>
-                      <span className="text-muted-foreground">
-                        · concluído há {dias} dias
-                        {usuario.papel !== "vendedor" && p.vendedorNome
-                          ? ` · ${p.vendedorNome}`
-                          : ""}
-                      </span>
-                      <a
-                        href={linkPosVenda(
-                          p.clienteTelefone,
-                          p.clienteNome,
-                          p.vendedorNome
-                        )}
-                        target="_blank"
-                        rel="noopener"
-                        className="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                      >
-                        Enviar no WhatsApp ↗
-                      </a>
-                      <form action={marcarPosVendaFeita.bind(null, p.atendimentoId)}>
-                        <button
-                          type="submit"
-                          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        >
-                          já contatei
-                        </button>
-                      </form>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {pendencias.length > 0 && (
-        <div className="rounded-lg border p-4" style={tintaAviso(corEnviado)}>
-          <div className="flex items-start gap-2">
-            <span className="text-lg leading-none">🔔</span>
-            <div className="flex-1 space-y-2">
-              <p className="text-sm font-semibold text-foreground">
-                {pendencias.length === 1
-                  ? "1 cliente para cobrar retorno"
-                  : `${pendencias.length} clientes para cobrar retorno`}
-                <span className="font-normal text-muted-foreground">
-                  {" "}
-                  — orçamento enviado há {DIAS_COBRANCA}+ dias sem resposta
+                  — {pendencias.length === 1
+                    ? "1 cliente"
+                    : `${pendencias.length} clientes`}{" "}
+                  · {GATILHO_LABEL[aviso.gatilho]} há {aviso.dias}+ dias
                 </span>
               </p>
               <ul className="space-y-1.5">
                 {pendencias.map((p) => {
-                  const dias = p.enviadoEm
-                    ? differenceInCalendarDays(new Date(), p.enviadoEm)
-                    : DIAS_COBRANCA;
+                  const dias = differenceInCalendarDays(new Date(), p.desde);
                   return (
                     <li
-                      key={p.atendimentoId + p.numero}
+                      key={p.alvoId}
                       className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
                     >
                       <Link
@@ -325,23 +200,28 @@ export default async function AtendimentosPage({
                         {p.clienteNome}
                       </Link>
                       <span className="text-muted-foreground">
-                        · orçamento {p.numero} · há {dias} dias
-                        {ehGestor && p.vendedorNome
-                          ? ` · ${p.vendedorNome}`
+                        {p.orcamentoNumero
+                          ? `· orçamento ${p.orcamentoNumero} `
                           : ""}
+                        · há {dias} dias
+                        {ehGestor && p.vendedorNome ? ` · ${p.vendedorNome}` : ""}
                       </span>
                       <a
-                        href={linkWhatsApp(
-                          p.clienteTelefone,
-                          `Olá, ${p.clienteNome.split(" ")[0]}! Passando para saber se conseguiu avaliar o orçamento ${p.numero} da Toldos Gerais. Qualquer dúvida, estou à disposição.`
-                        )}
+                        href={p.linkWhatsApp}
                         target="_blank"
                         rel="noopener"
                         className="font-medium text-primary hover:underline"
                       >
                         WhatsApp ↗
                       </a>
-                      <form action={marcarCobrancaFeita.bind(null, p.id)}>
+                      <form
+                        action={marcarContatoAviso.bind(
+                          null,
+                          aviso.id,
+                          p.alvoId,
+                          false
+                        )}
+                      >
                         <button
                           type="submit"
                           className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
@@ -349,6 +229,23 @@ export default async function AtendimentosPage({
                           já contatei
                         </button>
                       </form>
+                      {aviso.rearmeDias != null && (
+                        <form
+                          action={marcarContatoAviso.bind(
+                            null,
+                            aviso.id,
+                            p.alvoId,
+                            true
+                          )}
+                        >
+                          <button
+                            type="submit"
+                            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                          >
+                            não avisar mais
+                          </button>
+                        </form>
+                      )}
                     </li>
                   );
                 })}
@@ -356,18 +253,27 @@ export default async function AtendimentosPage({
             </div>
           </div>
         </div>
-      )}
+      ))}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
         <div className="flex flex-wrap gap-2">
           {ehGestor && (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href="/cadastros/fases" />}
-            >
-              Fases
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/cadastros/avisos" />}
+              >
+                Avisos
+              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/cadastros/fases" />}
+              >
+                Fases
+              </Button>
+            </>
           )}
           <GerarLinkDialog links={linksCadastro} />
           <NovoAtendimentoDialog

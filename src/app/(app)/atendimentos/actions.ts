@@ -7,6 +7,8 @@ import { z } from "zod";
 import { db } from "@/db";
 import {
   atendimentos,
+  avisoContatos,
+  avisos,
   clientes,
   fases,
   historicoFases,
@@ -213,51 +215,41 @@ export async function mudarFase(
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
 }
 
-// Marca o contato de pós-venda como feito — some do aviso na tela.
-export async function marcarPosVendaFeita(atendimentoId: number) {
+// "Já contatei" / "não avisar mais" de um aviso configurável.
+// definitivo=true silencia aquele alvo para sempre, mesmo com re-arme.
+export async function marcarContatoAviso(
+  avisoId: number,
+  alvoId: number,
+  definitivo: boolean
+) {
   const usuario = await usuarioAtual();
   if (!usuario) return;
-  const at = z.coerce.number().int().positive().parse(atendimentoId);
+  const avId = z.coerce.number().int().positive().parse(avisoId);
+  const alvo = z.coerce.number().int().positive().parse(alvoId);
 
-  const atendimento = await db.query.atendimentos.findFirst({
-    where: eq(atendimentos.id, at),
-  });
-  if (!atendimento) return;
-  // Vendedor só mexe no que é dele; gestor em qualquer um.
-  if (
-    usuario.papel === "vendedor" &&
-    atendimento.vendedorId !== usuario.vendedorId
-  ) {
-    return;
+  const aviso = await db.query.avisos.findFirst({ where: eq(avisos.id, avId) });
+  if (!aviso) return;
+
+  // Vendedor só dispensa o que é dele; gestor qualquer um.
+  if (usuario.papel === "vendedor") {
+    if (aviso.gatilho === "orcamento_sem_resposta") {
+      const orc = await db.query.orcamentos.findFirst({
+        where: eq(orcamentos.id, alvo),
+      });
+      if (!orc || orc.vendedorId !== usuario.vendedorId) return;
+    } else {
+      const atendimento = await db.query.atendimentos.findFirst({
+        where: eq(atendimentos.id, alvo),
+      });
+      if (!atendimento || atendimento.vendedorId !== usuario.vendedorId) return;
+    }
   }
 
-  await db
-    .update(atendimentos)
-    .set({ posVendaEm: new Date() })
-    .where(eq(atendimentos.id, at));
-
-  revalidatePath("/atendimentos");
-  revalidatePath(`/atendimentos/${at}`);
-}
-
-// Marca a cobrança de retorno como feita — silencia o aviso por mais um ciclo.
-export async function marcarCobrancaFeita(orcamentoId: number) {
-  const usuario = await usuarioAtual();
-  if (!usuario) return;
-  const id = z.coerce.number().int().positive().parse(orcamentoId);
-
-  const orc = await db.query.orcamentos.findFirst({
-    where: eq(orcamentos.id, id),
+  await db.insert(avisoContatos).values({
+    avisoId: avId,
+    alvoId: alvo,
+    definitivo: Boolean(definitivo),
   });
-  if (!orc) return;
-  if (usuario.papel === "vendedor" && orc.vendedorId !== usuario.vendedorId) {
-    return;
-  }
-
-  await db
-    .update(orcamentos)
-    .set({ cobrancaContatoEm: new Date() })
-    .where(eq(orcamentos.id, id));
 
   revalidatePath("/atendimentos");
 }

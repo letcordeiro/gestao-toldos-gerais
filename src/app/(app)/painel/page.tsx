@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { and, asc, eq, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
-  clientes,
+  avisos,
   fases,
   orcamentoItens,
   orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
-import { DIAS_COBRANCA } from "@/lib/cobranca";
+import { pendenciasDoAviso } from "@/lib/avisos";
 import { formatarCentavos } from "@/lib/format";
 import {
   Card,
@@ -69,26 +69,23 @@ export default async function PainelPage() {
   const enviados = stat("enviado");
   const aprovados = stat("aprovado");
 
-  // A cobrar retorno: mesmos critérios do aviso na tela de Atendimentos
-  // (cliente ativo, "já contatei" silencia por um ciclo).
-  const corte = new Date(Date.now() - DIAS_COBRANCA * 24 * 60 * 60 * 1000);
-  const [{ nCobrar }] = await db
-    .select({ nCobrar: sql<number>`count(*)` })
-    .from(orcamentos)
-    .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
-    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
-    .where(
-      and(
-        eq(clientes.ativo, true),
-        eq(orcamentos.status, "enviado"),
-        lte(orcamentos.enviadoEm, corte),
-        or(
-          sql`${orcamentos.cobrancaContatoEm} is null`,
-          lte(orcamentos.cobrancaContatoEm, corte)
-        ),
-        escopoOrc
-      )
-    );
+  // A cobrar retorno: mesmos critérios do aviso configurável na tela de
+  // Atendimentos (Cadastros → Avisos). Usa o primeiro aviso ativo desse tipo.
+  const avisoCobranca = await db.query.avisos.findFirst({
+    where: and(
+      eq(avisos.gatilho, "orcamento_sem_resposta"),
+      eq(avisos.ativo, true)
+    ),
+    orderBy: asc(avisos.id),
+  });
+  const nCobrar = avisoCobranca
+    ? (
+        await pendenciasDoAviso(
+          avisoCobranca,
+          !ehGestor && usuario.vendedorId != null ? usuario.vendedorId : null
+        )
+      ).length
+    : 0;
 
   // Desempenho por vendedor (só gestor)
   const porVendedor = ehGestor
@@ -122,7 +119,9 @@ export default async function PainelPage() {
     {
       label: "A cobrar retorno",
       valor: String(nCobrar),
-      sub: `${DIAS_COBRANCA}+ dias sem resposta`,
+      sub: avisoCobranca
+        ? `${avisoCobranca.dias}+ dias sem resposta`
+        : "aviso desativado",
       href: "/atendimentos",
       alerta: nCobrar > 0,
     },

@@ -249,3 +249,37 @@ export const usuarios = sqliteTable("usuarios", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Avisos configuráveis (notificações de WhatsApp na tela de Atendimentos).
+// gatilho define de onde vem a pendência:
+//   orcamento_sem_resposta — orçamento "enviado" há `dias`+ sem desfecho (alvo = orçamento)
+//   atendimento_concluido  — atendimento em "Concluído" há `dias`+ (alvo = atendimento)
+// rearme_dias: null = "já contatei" dispensa de vez; N = volta a avisar após N dias.
+export const avisos = sqliteTable("avisos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  gatilho: text("gatilho", {
+    enum: ["orcamento_sem_resposta", "atendimento_concluido"],
+  }).notNull(),
+  dias: integer("dias").notNull(),
+  mensagem: text("mensagem").notNull(),
+  rearmeDias: integer("rearme_dias"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Registro de "já contatei" por aviso × alvo. definitivo = "não avisar mais"
+// (vale mesmo quando o aviso re-arma).
+export const avisoContatos = sqliteTable("aviso_contatos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  avisoId: integer("aviso_id")
+    .notNull()
+    .references(() => avisos.id, { onDelete: "cascade" }),
+  alvoId: integer("alvo_id").notNull(),
+  definitivo: integer("definitivo", { mode: "boolean" }).notNull().default(false),
+  contatadoEm: integer("contatado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
