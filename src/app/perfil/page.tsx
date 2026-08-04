@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -14,6 +15,9 @@ import {
 } from "@/components/ui/card";
 import { PerfilForm } from "./perfil-form";
 import { SegurancaForm } from "./seguranca-form";
+
+export const metadata = { title: "Meu perfil" };
+
 
 async function sair() {
   "use server";
@@ -36,6 +40,14 @@ export default async function PerfilPage() {
   return (
     <main className="flex min-h-screen items-start justify-center bg-background p-4 pt-10">
       <div className="w-full max-w-lg space-y-4">
+        {!primeiraVez && (
+          <Link
+            href="/atendimentos"
+            className="inline-block text-sm text-muted-foreground hover:underline"
+          >
+            ← Voltar para o sistema
+          </Link>
+        )}
         <Card>
           <CardHeader className="items-center text-center">
             <Image

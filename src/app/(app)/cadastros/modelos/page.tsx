@@ -17,6 +17,9 @@ import { ModeloDialog } from "./modelo-dialog";
 import { VerModeloDialog } from "./ver-modelo-dialog";
 import { ExcluirModeloButton } from "./excluir-modelo-button";
 
+export const metadata = { title: "Modelos de toldo" };
+
+
 export default async function ModelosPage() {
   const usuario = await exigirUsuario();
   const ehGestor = usuario.papel === "gestor";

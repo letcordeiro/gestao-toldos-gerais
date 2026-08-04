@@ -14,6 +14,9 @@ import {
 import { vendedorDaSessao } from "@/lib/auth";
 import { OrcamentoForm } from "@/components/shared/orcamento-form";
 
+export const metadata = { title: "Novo orçamento" };
+
+
 export default async function NovoOrcamentoPage({
   searchParams,
 }: {

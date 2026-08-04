@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/card";
 import { TutorialInicial } from "./tutorial-inicial";
 
+export const metadata = { title: "Painel" };
+
+
 const FASES_TERMINAIS = ["Concluído", "Perdido"];
 
 export default async function PainelPage() {

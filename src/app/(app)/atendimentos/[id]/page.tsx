@@ -28,6 +28,9 @@ import { exigirUsuario } from "@/lib/auth";
 import { ObservacoesForm } from "./observacoes-form";
 import { AtribuirVendedor } from "./atribuir-vendedor";
 
+export const metadata = { title: "Atendimento" };
+
+
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
   enviado: "Enviado",

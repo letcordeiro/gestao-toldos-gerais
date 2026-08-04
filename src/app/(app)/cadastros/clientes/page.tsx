@@ -19,6 +19,9 @@ import { ClienteDialog } from "./cliente-dialog";
 import { ExcluirClienteButton } from "./excluir-cliente-button";
 import { AtivoClienteSwitch } from "./ativo-switch";
 
+export const metadata = { title: "Clientes" };
+
+
 type Filtro = "ativos" | "inativos" | "todos";
 
 export default async function ClientesPage({

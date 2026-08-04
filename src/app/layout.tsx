@@ -9,7 +9,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Gestão Toldos Gerais",
+  // Cada tela define seu título; o template mantém a marca no fim.
+  title: {
+    default: "Gestão Toldos Gerais",
+    template: "%s · Toldos Gerais",
+  },
   description:
     "Sistema interno de orçamentos e funil de atendimento da Toldos Gerais",
   // Nome e comportamento ao adicionar à tela de início do celular.

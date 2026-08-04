@@ -30,6 +30,9 @@ import {
 } from "@/components/shared/orcamento-form";
 import { FotosOrcamento } from "../fotos-orcamento";
 
+export const metadata = { title: "Editar orçamento" };
+
+
 export default async function EditarOrcamentoPage({
   params,
 }: {

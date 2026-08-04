@@ -28,6 +28,9 @@ import { FiltrosFunil } from "./filtros";
 import { GerarLinkDialog } from "./gerar-link-dialog";
 import { NovoAtendimentoDialog } from "./novo-atendimento-dialog";
 
+export const metadata = { title: "Atendimentos" };
+
+
 function tempoNaFase(desde: Date): string {
   const dias = differenceInCalendarDays(new Date(), desde);
   if (dias <= 0) return "hoje";

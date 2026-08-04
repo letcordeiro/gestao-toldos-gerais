@@ -25,6 +25,9 @@ import {
 import { formatarCentavos } from "@/lib/format";
 import { LinhaClicavel } from "./linha-clicavel";
 
+export const metadata = { title: "Orçamentos" };
+
+
 const STATUS_BADGE: Record<
   string,
   { label: string; variant: "secondary" | "default" | "destructive" | "outline" }

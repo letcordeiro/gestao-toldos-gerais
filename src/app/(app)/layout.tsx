@@ -16,6 +16,7 @@ async function sair() {
 // soGestor: itens de administração escondidos do vendedor.
 // curto: rótulo compacto usado no menu inferior (mobile), pra caber em qualquer tela.
 const NAV = [
+  { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },

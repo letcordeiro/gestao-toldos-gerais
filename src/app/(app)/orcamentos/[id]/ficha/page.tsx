@@ -26,6 +26,9 @@ import {
 } from "../instalacao-form";
 import { AcoesFicha } from "./acoes-ficha";
 
+export const metadata = { title: "Ficha de instalação" };
+
+
 export default async function FichaInstalacaoPage({
   params,
 }: {
@@ -53,7 +56,27 @@ export default async function FichaInstalacaoPage({
   if (usuario.papel === "vendedor" && linha.orc.vendedorId !== usuario.vendedorId) {
     notFound();
   }
-  if (!linha.faseLibera) notFound();
+  // Ficha ainda não liberada: explica a regra em vez de dar um 404 seco.
+  if (!linha.faseLibera) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
+        <h1 className="text-xl font-semibold tracking-tight">
+          Ficha de instalação ainda não liberada
+        </h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          A ficha do orçamento {linha.orc.numero} fica disponível quando o
+          atendimento chega em <strong>Orçamento aprovado</strong> (ou fase
+          seguinte). Hoje ele está em <strong>{linha.faseNome}</strong>.
+        </p>
+        <Link
+          href={`/orcamentos/${orcamentoId}`}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Voltar para o orçamento
+        </Link>
+      </div>
+    );
+  }
 
   const ficha = await db.query.orcamentoInstalacao.findFirst({
     where: eq(orcamentoInstalacao.orcamentoId, orcamentoId),

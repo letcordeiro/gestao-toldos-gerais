@@ -14,6 +14,9 @@ import {
 import { FaseDialog } from "./fase-dialog";
 import { ExcluirFaseButton } from "./excluir-fase-button";
 
+export const metadata = { title: "Fases do funil" };
+
+
 export default async function FasesPage() {
   await exigirGestor();
   const linhas = await db

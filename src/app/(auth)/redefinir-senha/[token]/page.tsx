@@ -11,6 +11,9 @@ import {
 import { tokenValido } from "./actions";
 import { FormRedefinir } from "./form-redefinir";
 
+export const metadata = { title: "Redefinir senha" };
+
+
 export default async function RedefinirSenhaPage({
   params,
 }: {

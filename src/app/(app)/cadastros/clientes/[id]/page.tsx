@@ -23,6 +23,9 @@ import {
 import { formatarCentavos } from "@/lib/format";
 import { LinhaClicavel } from "../../../orcamentos/linha-clicavel";
 
+export const metadata = { title: "Histórico do cliente" };
+
+
 const STATUS_BADGE: Record<
   string,
   { label: string; variant: "secondary" | "default" | "destructive" | "outline" }

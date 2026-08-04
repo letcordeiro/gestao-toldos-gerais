@@ -16,6 +16,9 @@ import { AtivoVendedorSwitch } from "./ativo-switch";
 import { VendedorDialog } from "./vendedor-dialog";
 import { LinkCadastroVendedor } from "./link-cadastro-vendedor";
 
+export const metadata = { title: "Vendedores" };
+
+
 export default async function VendedoresPage() {
   await exigirGestor();
   const linhas = await db

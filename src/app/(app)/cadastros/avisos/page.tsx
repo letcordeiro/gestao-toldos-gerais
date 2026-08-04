@@ -17,6 +17,9 @@ import { AvisoDialog } from "./aviso-dialog";
 import { AtivoAvisoSwitch } from "./ativo-switch";
 import { ExcluirAvisoButton } from "./excluir-aviso-button";
 
+export const metadata = { title: "Avisos" };
+
+
 export default async function AvisosPage() {
   await exigirGestor();
 

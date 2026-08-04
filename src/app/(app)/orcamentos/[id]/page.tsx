@@ -34,6 +34,9 @@ import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
 import { ExcluirOrcamentoButton } from "./excluir-orcamento-button";
 
+export const metadata = { title: "Orçamento" };
+
+
 function linkWhatsApp(
   telefone: string,
   nome: string,
