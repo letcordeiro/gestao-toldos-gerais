@@ -99,18 +99,6 @@ const styles = StyleSheet.create({
     color: "#6b6b6b",
     textAlign: "center",
   },
-  // Marca d'água de MINUTA (rascunho): grande, clara, atrás do texto.
-  minuta: {
-    position: "absolute",
-    top: 320,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 92,
-    fontFamily: "Helvetica-Bold",
-    color: "#004e36",
-    opacity: 0.08,
-  },
   aditivoTitulo: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
@@ -121,7 +109,7 @@ const styles = StyleSheet.create({
 
 export type DadosContratoPDF = DadosContrato & {
   logoDataUri: string;
-  /** true = rascunho, sai com marca d'água MINUTA e sem número definitivo. */
+  /** true = rascunho: ainda sem número definitivo no cabeçalho. */
   minuta: boolean;
 };
 
@@ -193,12 +181,6 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
       author={EMPRESA.razaoSocial}
     >
       <Page size="A4" style={styles.page}>
-        {dados.minuta ? (
-          <Text style={styles.minuta} fixed>
-            MINUTA
-          </Text>
-        ) : null}
-
         <View style={styles.cabecalho}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={dados.logoDataUri} style={styles.logo} />

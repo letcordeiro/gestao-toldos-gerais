@@ -5,6 +5,7 @@ import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { carregarDadosContrato } from "@/lib/gerar-contrato";
 import { ContratoPreview } from "@/components/shared/contrato-preview";
+import { ImprimirContrato } from "./imprimir-contrato";
 
 export const metadata = { title: "Contrato" };
 
@@ -39,7 +40,7 @@ export default async function ContratoPublicoPage({
 
   return (
     <main className="min-h-screen bg-muted/30 pb-10">
-      <div className="sticky top-0 z-10 border-b bg-card">
+      <div className="sticky top-0 z-10 border-b bg-card print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
           <Image
             src="/logo.png"
@@ -48,21 +49,26 @@ export default async function ContratoPublicoPage({
             height={43}
             priority
           />
-          <a
-            href={`${pdfUrl}?download=1`}
-            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Baixar PDF
-          </a>
+          <div className="flex gap-2">
+            <ImprimirContrato />
+            {/* download no <a>: baixa o arquivo em vez de abrir o visualizador */}
+            <a
+              href={`${pdfUrl}?download=1`}
+              download
+              className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Baixar PDF
+            </a>
+          </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-5">
         <div className="rounded-lg border bg-card p-4 sm:p-6">
-          <ContratoPreview dados={carregado.dados} minuta={carregado.minuta} />
+          <ContratoPreview dados={carregado.dados} />
         </div>
 
-        <div className="mt-4 rounded-lg border bg-card p-4 text-center text-sm">
+        <div className="mt-4 rounded-lg border bg-card p-4 text-center text-sm print:hidden">
           <p className="text-muted-foreground">
             Dúvidas sobre o contrato? Fale com a gente.
           </p>

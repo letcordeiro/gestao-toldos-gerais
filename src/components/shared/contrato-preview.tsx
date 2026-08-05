@@ -11,14 +11,11 @@ import {
 /**
  * Prévia do contrato em HTML. Usa EXATAMENTE as mesmas cláusulas do PDF
  * (montarClausulas) — nenhuma frase é escrita duas vezes.
+ *
+ * Rascunho não tem marca visual no documento: o que o identifica é a ausência
+ * do número no cabeçalho (o número só é atribuído na emissão).
  */
-export function ContratoPreview({
-  dados,
-  minuta,
-}: {
-  dados: DadosContrato;
-  minuta: boolean;
-}) {
+export function ContratoPreview({ dados }: { dados: DadosContrato }) {
   const clausulas = montarClausulas(dados);
   const partes = qualificacaoPartes(dados, {
     razaoSocial: EMPRESA.razaoSocial,
@@ -29,17 +26,6 @@ export function ContratoPreview({
 
   return (
     <article className="relative space-y-4 text-[13px] leading-relaxed text-foreground">
-      {minuta && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 flex items-start justify-center pt-32"
-        >
-          <span className="rotate-[-18deg] text-6xl font-bold text-primary/10">
-            MINUTA
-          </span>
-        </div>
-      )}
-
       <header className="border-b pb-3">
         <h2 className="text-sm font-semibold tracking-tight text-primary">
           CONTRATO DE FORNECIMENTO E INSTALAÇÃO

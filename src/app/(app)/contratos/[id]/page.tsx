@@ -360,22 +360,13 @@ export default async function ContratoPage({
                 nativeButton={false}
                 variant="outline"
                 size="sm"
-                render={
-                  <Link
-                    href={`/contratos/${contrato.id}/pdf`}
-                    target="_blank"
-                    rel="noopener"
-                  />
-                }
+                render={<Link href={`/contratos/${contrato.id}/imprimir`} />}
               >
-                Abrir PDF
+                Imprimir
               </Button>
             </CardHeader>
             <CardContent className="max-h-[70vh] overflow-y-auto">
-              <ContratoPreview
-                dados={carregado.dados}
-                minuta={carregado.minuta}
-              />
+              <ContratoPreview dados={carregado.dados} />
             </CardContent>
           </Card>
         </div>

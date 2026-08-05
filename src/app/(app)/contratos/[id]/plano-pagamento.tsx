@@ -96,8 +96,16 @@ export function PlanoPagamento({
   };
 
   const salvar = () => {
+    // Normaliza o que ficou "vazio" enquanto digitava (0 em parcelas, null em dias).
+    const normalizadas = linhas.map((l) => ({
+      ...l,
+      numeroParcelas: l.numeroParcelas < 1 ? 1 : l.numeroParcelas,
+      diasApos:
+        l.gatilho === "dias_apos_instalacao" ? (l.diasApos ?? 0) : l.diasApos,
+    }));
+    setLinhas(normalizadas);
     startTransition(async () => {
-      const r = await salvarPlanoPagamento(contratoId, linhas);
+      const r = await salvarPlanoPagamento(contratoId, normalizadas);
       if (r.erro) toast.error(r.erro);
       else toast.success("Plano de pagamento salvo");
     });
@@ -260,10 +268,17 @@ export function PlanoPagamento({
                   max={48}
                   inputMode="numeric"
                   disabled={!editavel}
-                  value={linha.numeroParcelas}
-                  onChange={(e) =>
-                    alterar(i, "numeroParcelas", Number(e.target.value) || 1)
-                  }
+                  // 0 = campo vazio enquanto digita. Sem isso, apagar voltava
+                  // para "1" e o próximo dígito grudava nele ("16").
+                  value={linha.numeroParcelas === 0 ? "" : linha.numeroParcelas}
+                  onChange={(e) => {
+                    const texto = e.target.value;
+                    alterar(i, "numeroParcelas", texto === "" ? 0 : Number(texto));
+                  }}
+                  // Ao sair do campo, vazio vira 1 (mínimo válido).
+                  onBlur={() => {
+                    if (linha.numeroParcelas < 1) alterar(i, "numeroParcelas", 1);
+                  }}
                 />
               </div>
             </div>
@@ -298,10 +313,15 @@ export function PlanoPagamento({
                     min={0}
                     inputMode="numeric"
                     disabled={!editavel}
-                    value={linha.diasApos ?? 0}
-                    onChange={(e) =>
-                      alterar(i, "diasApos", Number(e.target.value) || 0)
-                    }
+                    // null = vazio enquanto digita (mesmo motivo das parcelas).
+                    value={linha.diasApos ?? ""}
+                    onChange={(e) => {
+                      const texto = e.target.value;
+                      alterar(i, "diasApos", texto === "" ? null : Number(texto));
+                    }}
+                    onBlur={() => {
+                      if (linha.diasApos == null) alterar(i, "diasApos", 0);
+                    }}
                   />
                 </div>
               )}

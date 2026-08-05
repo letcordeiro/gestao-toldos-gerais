@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -193,11 +194,21 @@ export function AcoesContrato({
         <Button
           nativeButton={false}
           variant="outline"
+          render={<Link href={`/contratos/${contratoId}/imprimir`} />}
+        >
+          <Printer className="size-4" /> Imprimir
+        </Button>
+
+        {/* download no próprio <a>: baixa o arquivo em vez de abrir o
+            visualizador de PDF do navegador */}
+        <Button
+          nativeButton={false}
+          variant="outline"
           render={
-            <Link href={`/contratos/${contratoId}/pdf?download=1`} target="_blank" />
+            <a href={`/contratos/${contratoId}/pdf?download=1`} download />
           }
         >
-          Baixar PDF
+          <Download className="size-4" /> Baixar PDF
         </Button>
 
         {linkPublico && (
