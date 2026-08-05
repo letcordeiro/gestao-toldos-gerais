@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Contact,
+  FileSignature,
   FileText,
   Home,
   ListChecks,
@@ -23,6 +24,7 @@ const ICONS: Record<string, LucideIcon> = {
   painel: Home,
   atendimentos: ListChecks,
   orcamentos: FileText,
+  contratos: FileSignature,
   clientes: Contact,
   modelos: Package,
   vendedores: Users,

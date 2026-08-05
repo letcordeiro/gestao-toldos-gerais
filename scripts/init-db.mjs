@@ -378,5 +378,18 @@ try {
   console.warn("• recusa de orçamentos perdidos não aplicada (não crítico):", e.message);
 }
 
+// Contratos de exemplo — só quando a tabela está vazia e SEED_CONTRATOS=1.
+// Fica atrás de env porque produção já tem dados reais e não quer exemplo.
+try {
+  if (process.env.SEED_CONTRATOS === "1") {
+    const { semearContratos } = await import("./seed-contratos.mjs");
+    const r = semearContratos(sqlite);
+    if (r.criados > 0) console.log(`✔ ${r.criados} contrato(s) de exemplo`);
+    else console.log(`• contratos de exemplo pulados (${r.motivo})`);
+  }
+} catch (e) {
+  console.warn("• seed de contratos não aplicado (não crítico):", e.message);
+}
+
 sqlite.close();
 console.log(`✔ Banco pronto em ${dbPath}`);

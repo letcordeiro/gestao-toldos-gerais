@@ -12,6 +12,8 @@ const clienteSchema = z.object({
   nome: z.string().trim().min(1, "Informe o nome"),
   telefone: z.string().trim().min(1, "Informe o telefone"),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
+  // CPF/CNPJ — opcional no cadastro, obrigatório só na emissão de contrato.
+  documento: z.string().trim().max(30).optional(),
   cep: z
     .string()
     .trim()
@@ -36,6 +38,7 @@ export async function salvarCliente(
     nome: formData.get("nome"),
     telefone: formData.get("telefone"),
     email: formData.get("email") || undefined,
+    documento: formData.get("documento") || undefined,
     cep: formData.get("cep") ?? "",
     endereco: formData.get("endereco") ?? "",
     numero: formData.get("numero") ?? "",
@@ -53,6 +56,7 @@ export async function salvarCliente(
     nome: dados.nome,
     telefone: dados.telefone,
     email: dados.email || null,
+    documento: dados.documento || null,
     endereco: dados.endereco || null,
     numero: dados.numero || null,
     complemento: dados.complemento || null,

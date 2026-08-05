@@ -44,3 +44,4 @@ data/
 
 # entregáveis gerados (apresentações etc.) — não vão para o deploy
 \[C\] *
+.test-build/

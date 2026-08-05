@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "outDir": ".test-build",
+    "rootDir": "src",
+    "types": ["node"]
+  },
+  "include": ["src/lib/valor-extenso.ts", "src/lib/contratos.ts"],
+  "files": [
+    "src/lib/valor-extenso.test.ts",
+    "src/lib/contratos.test.ts",
+    "src/lib/contrato-clausulas.ts",
+    "src/lib/contrato-clausulas.test.ts"
+  ]
+}

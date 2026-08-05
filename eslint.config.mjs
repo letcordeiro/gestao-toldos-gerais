@@ -17,6 +17,8 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      // saída da compilação dos testes (JS CommonJS gerado pelo tsc)
+      ".test-build/**",
       "next-env.d.ts",
     ],
   },

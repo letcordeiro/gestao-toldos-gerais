@@ -172,5 +172,21 @@ Paleta extraída da logo oficial (`public/logo.png` ✅):
   - `Dockerfile` multi-stage standalone, `scripts/init-db.mjs` roda migrations + seed no boot (idempotente), `db/index.ts` abre SQLite lazy (proxy).
 - ✅ **Autodeploy on push LIGADO**: webhook do GitHub (`Settings → Webhooks`) aponta para a Webhook URL do Dokploy (aba Deployments), evento `push`, content-type JSON. Todo `git push` na `main` publica sozinho (Docker reaproveita cache quando o código não muda). SSH key local `~/.ssh/id_ed25519_toldos` (registrada no GitHub como "Mac Toldos") autoriza o push.
 
+## Módulo de contratos (2026-08-05)
+
+Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na tela do orçamento, mesma regra da ficha de instalação: só quando o atendimento está em fase que libera instalação).
+
+- **Tabelas** (migration `0018_contratos`): `contratos`, `contrato_itens`, `contrato_pagamentos`, `contrato_aditivos`, `contrato_eventos`. Nomes em português, seguindo o resto do schema. `clientes.documento` (CPF/CNPJ) foi acrescentado — **obrigatório para emitir**.
+- **Ciclo**: `rascunho` (edição livre, PDF com marca d'água MINUTA, sem número) → `emitido` (congela snapshot, ganha `CT-AAAA-NNNN`, edição bloqueada) → `assinado` (só aditivo depois) → `aditivado`. `cancelado` exige motivo; se já estava assinado, calcula e grava a retenção.
+- **Nova versão** (antes de assinar): clona com `versao+1` + `contratoPaiId`, cancela a anterior com motivo "substituído pela versão N"; o PDF traz o aviso no cabeçalho.
+- **Plano de pagamento** é a peça central: linhas com tipo/valor/meio/parcelas/gatilho. A **soma tem que bater exatamente** com `valorTotal` — totalizador sempre visível e emissão bloqueada quando não bate. 6 presets (à vista, entrada+saldo, entrada+cartão, parcelado, entrada+mensais, personalizado).
+- **Fonte única do texto**: `src/lib/contrato-clausulas.ts` (`montarClausulas`) alimenta a prévia HTML e o PDF — nenhuma cláusula escrita duas vezes. Valor por extenso em `src/lib/valor-extenso.ts`.
+- **Regras puras** (numeração, validação, presets, pendências, divergência, transições) em `src/lib/contratos.ts`, sem banco — é o que os testes cobrem.
+- **Divergência**: se o orçamento mudar depois da emissão, a tela avisa comparando com o snapshot. Nunca sincroniza sozinho.
+- **Link público**: `/contrato/{token}` (HTML + PDF), no padrão de `/proposta/{token}`. Rota liberada no middleware.
+- **Testes**: `npm test` (38 unitários + ciclo completo em SQLite real). **Exige Node 20** (mesma major do Dockerfile; `better-sqlite3` é binário nativo). `npm run test:unit` roda só os unitários.
+- **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
+
+
 Para zerar o banco local: `rm -rf data/toldos.db* && npm run db:push && npm run db:seed`
 Boot em produção cria/semeia o banco sozinho via `scripts/init-db.mjs`.

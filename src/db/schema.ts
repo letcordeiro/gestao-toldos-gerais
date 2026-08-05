@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const clientes = sqliteTable("clientes", {
@@ -12,6 +12,8 @@ export const clientes = sqliteTable("clientes", {
   bairro: text("bairro"),
   cidade: text("cidade"),
   cep: text("cep"),
+  // CPF ou CNPJ — obrigatório para emitir contrato (qualificação das partes).
+  documento: text("documento"),
   origem: text("origem", { enum: ["interno", "auto_cadastro"] })
     .notNull()
     .default("interno"),
@@ -280,6 +282,162 @@ export const avisoContatos = sqliteTable("aviso_contatos", {
   alvoId: integer("alvo_id").notNull(),
   definitivo: integer("definitivo", { mode: "boolean" }).notNull().default(false),
   contatadoEm: integer("contatado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ---------------------------------------------------------------------------
+// CONTRATOS
+// Gerados sob demanda a partir de um orçamento aprovado. Os nomes das tabelas
+// seguem a convenção em português do resto do schema.
+// ---------------------------------------------------------------------------
+
+export const contratos = sqliteTable("contratos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // "CT-2026-0001" — sequencial por ano. Só ganha número ao ser EMITIDO;
+  // rascunho fica null (o PDF sai como MINUTA).
+  numero: text("numero").unique(),
+  versao: integer("versao").notNull().default(1),
+  // Quando é nova versão de um contrato anterior (que vira cancelado).
+  contratoPaiId: integer("contrato_pai_id"),
+  clienteId: integer("cliente_id")
+    .notNull()
+    .references(() => clientes.id),
+  orcamentoId: integer("orcamento_id")
+    .notNull()
+    .references(() => orcamentos.id),
+  status: text("status", {
+    enum: ["rascunho", "emitido", "assinado", "aditivado", "cancelado"],
+  })
+    .notNull()
+    .default("rascunho"),
+  // JSON com cliente + orçamento congelados no momento da emissão. É o que vale
+  // no documento: alterar o orçamento depois não muda o contrato.
+  snapshot: text("snapshot"),
+  valorTotal: integer("valor_total").notNull().default(0), // centavos
+  escopo: text("escopo", {
+    enum: ["fabricacao", "remocao_fabricacao", "manutencao", "troca_lona"],
+  })
+    .notNull()
+    .default("fabricacao"),
+  localInstalacao: text("local_instalacao").notNull().default(""),
+  observacoesTecnicas: text("observacoes_tecnicas"),
+  prazoDiasUteis: integer("prazo_dias_uteis").notNull().default(30),
+  garantiaMeses: integer("garantia_meses").notNull().default(12),
+  retencaoPercent: integer("retencao_percent").notNull().default(30),
+  multaPercent: real("multa_percent").notNull().default(2),
+  jurosMesPercent: real("juros_mes_percent").notNull().default(1),
+  // Cláusulas opcionais — desligar renumera as demais automaticamente.
+  flagMedidas: integer("flag_medidas", { mode: "boolean" }).notNull().default(true),
+  flagClima: integer("flag_clima", { mode: "boolean" }).notNull().default(true),
+  flagEnergia: integer("flag_energia", { mode: "boolean" }).notNull().default(true),
+  flagSobMedida: integer("flag_sob_medida", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  representante: text("representante").notNull().default("João Pedro Avelar"),
+  cidadeEmissao: text("cidade_emissao").notNull().default("Belo Horizonte"),
+  dataEmissao: integer("data_emissao", { mode: "timestamp" }),
+  dataAssinatura: integer("data_assinatura", { mode: "timestamp" }),
+  motivoCancelamento: text("motivo_cancelamento"),
+  // Valor retido no cancelamento (retencaoPercent sobre o total), em centavos.
+  valorRetido: integer("valor_retido"),
+  // Token do link público (/contrato/{token}), no padrão da proposta.
+  publicToken: text("public_token").unique(),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  atualizadoEm: integer("atualizado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Snapshot dos produtos: cópia, não referência viva ao orçamento.
+export const contratoItens = sqliteTable("contrato_itens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contratoId: integer("contrato_id")
+    .notNull()
+    .references(() => contratos.id, { onDelete: "cascade" }),
+  ordem: integer("ordem").notNull().default(0),
+  modelo: text("modelo").notNull(),
+  cor: text("cor"),
+  medidasM2: text("medidas_m2"),
+  descricaoExtra: text("descricao_extra"),
+});
+
+// Plano de pagamento: cada linha é uma etapa. A soma tem que bater com
+// contratos.valorTotal — a emissão é bloqueada quando não bate.
+export const contratoPagamentos = sqliteTable("contrato_pagamentos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contratoId: integer("contrato_id")
+    .notNull()
+    .references(() => contratos.id, { onDelete: "cascade" }),
+  ordem: integer("ordem").notNull().default(0),
+  rotulo: text("rotulo").notNull(),
+  tipo: text("tipo", { enum: ["sinal", "parcela", "saldo"] }).notNull(),
+  valor: integer("valor").notNull(), // centavos
+  meio: text("meio", {
+    enum: [
+      "pix",
+      "cartao_credito",
+      "cartao_debito",
+      "transferencia",
+      "boleto",
+      "dinheiro",
+    ],
+  }).notNull(),
+  numeroParcelas: integer("numero_parcelas").notNull().default(1),
+  gatilho: text("gatilho", {
+    enum: [
+      "assinatura",
+      "inicio_fabricacao",
+      "entrega_material",
+      "conclusao_instalacao",
+      "dias_apos_instalacao",
+      "data_fixa",
+    ],
+  }).notNull(),
+  diasApos: integer("dias_apos"),
+  dataVencimento: integer("data_vencimento", { mode: "timestamp" }),
+});
+
+// Aditivos: mudanças DEPOIS da assinatura. Cumulativos e numerados por contrato.
+export const contratoAditivos = sqliteTable("contrato_aditivos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contratoId: integer("contrato_id")
+    .notNull()
+    .references(() => contratos.id, { onDelete: "cascade" }),
+  numero: integer("numero").notNull(), // sequencial dentro do contrato
+  objeto: text("objeto").notNull(),
+  deltaValor: integer("delta_valor").notNull().default(0), // centavos, pode ser negativo
+  novoPrazoDiasUteis: integer("novo_prazo_dias_uteis"),
+  dataAssinatura: integer("data_assinatura", { mode: "timestamp" }),
+  snapshot: text("snapshot"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Auditoria: toda transição de status grava evento. Nada de edição silenciosa.
+export const contratoEventos = sqliteTable("contrato_eventos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contratoId: integer("contrato_id")
+    .notNull()
+    .references(() => contratos.id, { onDelete: "cascade" }),
+  tipo: text("tipo", {
+    enum: [
+      "criado",
+      "editado",
+      "emitido",
+      "assinado",
+      "versionado",
+      "aditivado",
+      "cancelado",
+    ],
+  }).notNull(),
+  descricao: text("descricao").notNull(),
+  usuario: text("usuario"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });

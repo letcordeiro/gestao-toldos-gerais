@@ -19,6 +19,7 @@ const NAV = [
   { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
+  { href: "/contratos", label: "Contratos", curto: "Contr.", icon: "contratos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
   { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
   { href: "/cadastros/vendedores", label: "Vendedores", curto: "Vend.", icon: "vendedores", soGestor: true },

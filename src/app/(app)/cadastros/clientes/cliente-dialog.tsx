@@ -26,6 +26,7 @@ type Cliente = {
   bairro: string | null;
   cidade: string | null;
   cep: string | null;
+  documento: string | null;
 };
 
 export function ClienteDialog({
@@ -72,6 +73,16 @@ export function ClienteDialog({
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail</Label>
             <Input id="email" name="email" defaultValue={cliente?.email ?? ""} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="documento">CPF / CNPJ</Label>
+            <Input
+              id="documento"
+              name="documento"
+              inputMode="numeric"
+              placeholder="Necessário para gerar contrato"
+              defaultValue={cliente?.documento ?? ""}
+            />
           </div>
           <CamposEndereco
             obrigatorio

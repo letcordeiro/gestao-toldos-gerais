@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClipboardList, FileText } from "lucide-react";
-import { asc, eq } from "drizzle-orm";
+import { ClipboardList, FileSignature, FileText } from "lucide-react";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  contratos,
   fases,
   modelosToldo,
   orcamentoFotos,
@@ -30,6 +31,7 @@ import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
 import { duplicarOrcamento } from "../actions";
+import { gerarContratoDoOrcamento } from "../../contratos/actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
 import { ExcluirOrcamentoButton } from "./excluir-orcamento-button";
@@ -126,6 +128,15 @@ export default async function OrcamentoPage({
   const linkProposta =
     orc.publicToken && base ? `${base}/proposta/${orc.publicToken}` : null;
 
+  // Contrato vivo deste orçamento (se já foi gerado, o botão leva até ele).
+  const contratoExistente = await db.query.contratos.findFirst({
+    where: and(
+      eq(contratos.orcamentoId, orc.id),
+      ne(contratos.status, "cancelado")
+    ),
+    orderBy: desc(contratos.versao),
+  });
+
   const modeloTexto = orcamento.modeloNome
     ? orc.formato
       ? `${orcamento.modeloNome} — Formato: ${rotuloFormato(orc.formato)}`
@@ -196,6 +207,24 @@ export default async function OrcamentoPage({
               <ClipboardList className="size-4" /> Ficha de Instalação
             </Button>
           )}
+          {/* Contrato é opcional (nem todo cliente pede) e só faz sentido com o
+              negócio fechado — mesma regra da ficha de instalação. */}
+          {fichaLiberada &&
+            (contratoExistente ? (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={`/contratos/${contratoExistente.id}`} />}
+              >
+                <FileSignature className="size-4" /> Ver contrato
+              </Button>
+            ) : (
+              <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
+                <Button type="submit" variant="outline">
+                  <FileSignature className="size-4" /> Gerar contrato
+                </Button>
+              </form>
+            ))}
           {linkProposta && (
             <Button
               variant="outline"
