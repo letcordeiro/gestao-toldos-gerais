@@ -168,7 +168,7 @@ test("qualificacaoPartes: CPF/CNPJ do contratante entra no texto", () => {
   const q = qualificacaoPartes(dados(), {
     razaoSocial: "Toldos Gerais Ltda",
     cnpj: "02.873.343/0001-96",
-    endereco: "Av. Waldir Soeiro Emrich, 4.645 A",
+    endereco: "Rua Carmelita Prates da Silva, 501",
   });
   assert.match(q.contratada, /CNPJ sob o nº 02\.873\.343\/0001-96/);
   assert.match(q.contratada, /João Pedro Avelar/);

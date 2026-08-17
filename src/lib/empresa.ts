@@ -4,8 +4,8 @@ export const EMPRESA = {
   cnpj: "02.873.343/0001-96",
   site: "www.toldosgerais.com.br",
   endereco:
-    "Av. Waldir Soeiro Emrich, 4.645 A – Diamante – CEP 30660-560 – Belo Horizonte/MG",
-  telefoneFixo: "(31) 3385-4552",
+    "Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG",
+  telefoneFixo: "(31) 3646-1145",
   whatsapp: "(31) 99614-6810",
   whatsappNumero: "5531996146810", // formato wa.me
   emailVendas: "vendas@toldosgerais.com.br",

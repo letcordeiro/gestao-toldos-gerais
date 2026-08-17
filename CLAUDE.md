@@ -106,7 +106,7 @@ Replicar fielmente o modelo atual da empresa. Seções, nesta ordem:
 10. VALOR DO ORÇAMENTO — itens com linha pontilhada até o valor; suportar valor único ou faixa (R$ X – R$ Y) e subtítulos livres (ex. "valores referente à troca de lona")
 11. FORMA DE PAGAMENTO
 12. PRAZO DE ENTREGA
-13. Rodapé: Toldos Gerais Ltda — www.toldosgerais.com.br / vendas@toldosgerais.com.br — Av. Waldir Soeiro Emrich, 4645 A – Diamante – Belo Horizonte/MG – (31) 3385-4552
+13. Rodapé: Toldos Gerais Ltda — www.toldosgerais.com.br / vendas@toldosgerais.com.br — Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG – (31) 3646-1145
 
 Botão "Enviar no WhatsApp": link `wa.me/55{telefone}` com mensagem padrão.
 
@@ -115,8 +115,8 @@ Botão "Enviar no WhatsApp": link `wa.me/55{telefone}` com mensagem padrão.
 Centralizados em `src/lib/empresa.ts`:
 
 - Toldos Gerais Ltda — www.toldosgerais.com.br
-- Fábrica: Av. Waldir Soeiro Emrich, 4.645 A – Diamante – CEP 30660-560 – Belo Horizonte/MG
-- Fixo (31) 3385-4552 · WhatsApp (31) 99614-6810
+- Endereço: Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG
+- Fixo (31) 3646-1145 · WhatsApp (31) 99614-6810
 - vendas@toldosgerais.com.br · sac@toldosgerais.com.br
 - Instagram @toldosgerais
 
@@ -177,7 +177,7 @@ Paleta extraída da logo oficial (`public/logo.png` ✅):
 Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na tela do orçamento, mesma regra da ficha de instalação: só quando o atendimento está em fase que libera instalação).
 
 - **Tabelas** (migration `0018_contratos`): `contratos`, `contrato_itens`, `contrato_pagamentos`, `contrato_aditivos`, `contrato_eventos`. Nomes em português, seguindo o resto do schema. `clientes.documento` (CPF/CNPJ) foi acrescentado — **obrigatório para emitir**.
-- **Ciclo**: `rascunho` (edição livre, PDF com marca d'água MINUTA, sem número) → `emitido` (congela snapshot, ganha `CT-AAAA-NNNN`, edição bloqueada) → `assinado` (só aditivo depois) → `aditivado`. `cancelado` exige motivo; se já estava assinado, calcula e grava a retenção.
+- **Ciclo**: `rascunho` (edição livre, ainda sem número — é isso que identifica a minuta) → `emitido` (congela snapshot, ganha `CT-AAAA-NNNN`, edição bloqueada) → `assinado` (só aditivo depois) → `aditivado`. `cancelado` exige motivo; se já estava assinado, calcula e grava a retenção.
 - **Nova versão** (antes de assinar): clona com `versao+1` + `contratoPaiId`, cancela a anterior com motivo "substituído pela versão N"; o PDF traz o aviso no cabeçalho.
 - **Plano de pagamento** é a peça central: linhas com tipo/valor/meio/parcelas/gatilho. A **soma tem que bater exatamente** com `valorTotal` — totalizador sempre visível e emissão bloqueada quando não bate. 6 presets (à vista, entrada+saldo, entrada+cartão, parcelado, entrada+mensais, personalizado).
 - **Fonte única do texto**: `src/lib/contrato-clausulas.ts` (`montarClausulas`) alimenta a prévia HTML e o PDF — nenhuma cláusula escrita duas vezes. Valor por extenso em `src/lib/valor-extenso.ts`.
