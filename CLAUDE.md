@@ -106,7 +106,7 @@ Replicar fielmente o modelo atual da empresa. Seções, nesta ordem:
 10. VALOR DO ORÇAMENTO — itens com linha pontilhada até o valor; suportar valor único ou faixa (R$ X – R$ Y) e subtítulos livres (ex. "valores referente à troca de lona")
 11. FORMA DE PAGAMENTO
 12. PRAZO DE ENTREGA
-13. Rodapé: Toldos Gerais Ltda — www.toldosgerais.com.br / vendas@toldosgerais.com.br — Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG – (31) 3646-1145
+13. Rodapé: Toldos Gerais Ltda — www.toldosgerais.com.br / vendas@toldosgerais.com.br — Rua Carmelita Prates da Silva, 501 – Salgado Filho – CEP 30550-110 – Belo Horizonte/MG – (31) 3646-1145
 
 Botão "Enviar no WhatsApp": link `wa.me/55{telefone}` com mensagem padrão.
 
@@ -115,7 +115,7 @@ Botão "Enviar no WhatsApp": link `wa.me/55{telefone}` com mensagem padrão.
 Centralizados em `src/lib/empresa.ts`:
 
 - Toldos Gerais Ltda — www.toldosgerais.com.br
-- Endereço: Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG
+- Endereço: Rua Carmelita Prates da Silva, 501 – Salgado Filho – CEP 30550-110 – Belo Horizonte/MG
 - Fixo (31) 3646-1145 · WhatsApp (31) 99614-6810
 - vendas@toldosgerais.com.br · sac@toldosgerais.com.br
 - Instagram @toldosgerais

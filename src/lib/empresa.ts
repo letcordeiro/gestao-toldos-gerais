@@ -4,7 +4,7 @@ export const EMPRESA = {
   cnpj: "02.873.343/0001-96",
   site: "www.toldosgerais.com.br",
   endereco:
-    "Rua Carmelita Prates da Silva, 501 – Salgado Filho – Belo Horizonte/MG",
+    "Rua Carmelita Prates da Silva, 501 – Salgado Filho – CEP 30550-110 – Belo Horizonte/MG",
   telefoneFixo: "(31) 3646-1145",
   whatsapp: "(31) 99614-6810",
   whatsappNumero: "5531996146810", // formato wa.me
