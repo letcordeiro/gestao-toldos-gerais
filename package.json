@@ -10,9 +10,10 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env.local src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "test": "npm run test:unit && npm run test:ciclo",
+    "test": "npm run test:unit && npm run test:ciclo && npm run test:backfill",
     "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/lib/*.test.js",
-    "test:ciclo": "node scripts/teste-ciclo-contrato.mjs"
+    "test:ciclo": "node scripts/teste-ciclo-contrato.mjs",
+    "test:backfill": "node scripts/teste-backfill-subtitulos.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

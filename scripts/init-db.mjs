@@ -391,5 +391,19 @@ try {
   console.warn("• seed de contratos não aplicado (não crítico):", e.message);
 }
 
+// Sobe para o topo os subtítulos que são observação geral do orçamento
+// (ver scripts/backfill-subtitulos.mjs para a regra e o que NÃO é tocado).
+try {
+  const { subirObservacoes } = await import("./backfill-subtitulos.mjs");
+  const movidos = subirObservacoes(sqlite);
+  if (movidos.length > 0) {
+    console.log(`✔ ${movidos.length} observação(ões) movidas para o topo do orçamento`);
+    for (const m of movidos)
+      console.log(`   · orçamento ${m.orcamentoId}: "${m.descricao.slice(0, 60)}"`);
+  }
+} catch (e) {
+  console.warn("• subtítulos não reordenados (não crítico):", e.message);
+}
+
 sqlite.close();
 console.log(`✔ Banco pronto em ${dbPath}`);
