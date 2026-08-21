@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,6 +69,12 @@ export type OrcamentoInicial = {
   prazoEntrega: string;
   itens: Item[];
 };
+
+// Subtítulos não entram na contagem: "Item 1, Item 2" continua seguido mesmo
+// com um subtítulo no meio da lista.
+function numeroDoItem(itens: Item[], indice: number): number {
+  return itens.slice(0, indice + 1).filter((it) => !it.subtitulo).length;
+}
 
 const ITEM_VAZIO: Item = {
   descricao: "",
@@ -158,6 +165,18 @@ export function OrcamentoForm({
     setItens((atual) =>
       atual.map((item, i) => (i === indice ? { ...item, ...mudanca } : item))
     );
+  }
+
+  // Troca a linha de lugar. A ordem daqui é a ordem que sai na proposta e no
+  // PDF — é o que permite deixar um subtítulo logo abaixo do título da seção.
+  function moverItem(indice: number, direcao: -1 | 1) {
+    const destino = indice + direcao;
+    setItens((atual) => {
+      if (destino < 0 || destino >= atual.length) return atual;
+      const copia = [...atual];
+      [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+      return copia;
+    });
   }
 
   return (
@@ -380,7 +399,9 @@ export function OrcamentoForm({
             >
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">
-                  {item.subtitulo ? "Subtítulo" : `Item ${i + 1}`}
+                  {item.subtitulo
+                    ? "Subtítulo"
+                    : `Item ${numeroDoItem(itens, i)}`}
                 </Label>
                 <Input
                   value={item.descricao}
@@ -428,17 +449,43 @@ export function OrcamentoForm({
                   </div>
                 </>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-destructive"
-                onClick={() =>
-                  setItens((atual) => atual.filter((_, j) => j !== i))
-                }
-              >
-                Remover
-              </Button>
+              <div className="flex items-center gap-0.5">
+                {/* Ordem das linhas: é assim que um subtítulo vai parar logo
+                    abaixo do título "Valor do orçamento" ou entre grupos. */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Subir"
+                  title="Subir"
+                  disabled={i === 0}
+                  onClick={() => moverItem(i, -1)}
+                >
+                  <ArrowUp className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Descer"
+                  title="Descer"
+                  disabled={i === itens.length - 1}
+                  onClick={() => moverItem(i, 1)}
+                >
+                  <ArrowDown className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() =>
+                    setItens((atual) => atual.filter((_, j) => j !== i))
+                  }
+                >
+                  Remover
+                </Button>
+              </div>
             </div>
           ))}
           <div className="flex gap-2 pt-1">
@@ -454,10 +501,14 @@ export function OrcamentoForm({
               type="button"
               variant="outline"
               size="sm"
+              // Entra no TOPO: o uso comum é uma observação que vale para
+              // todos os itens ("medidas consideradas: 3,20 × 1,50"), que deve
+              // sair logo abaixo do título "Valor do orçamento". Para usar como
+              // separador entre grupos, é só descer com as setas.
               onClick={() =>
                 setItens((atual) => [
-                  ...atual,
                   { ...ITEM_VAZIO, subtitulo: true },
+                  ...atual,
                 ])
               }
             >
