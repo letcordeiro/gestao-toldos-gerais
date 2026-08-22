@@ -17,6 +17,9 @@ function getDb(): DB {
     const sqlite = new Database(dbPath);
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("foreign_keys = ON");
+    // Espera o lock em vez de estourar erro quando há escrita concorrente
+    // (acontece no deploy sem queda, com dois containers no ar por segundos).
+    sqlite.pragma("busy_timeout = 15000");
     instancia = drizzle(sqlite, { schema });
   }
   return instancia;

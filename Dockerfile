@@ -7,7 +7,11 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm ci
+# Cache do npm entre builds (BuildKit): qualquer mexida no package.json invalida
+# esta camada, mas com o cache os pacotes não são baixados de novo — o build cai
+# de ~4min para ~1min. Sem isso, mudar um script de teste custava reinstalar
+# tudo e recompilar o better-sqlite3, saturando a CPU da VPS.
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 
 # ---- builder: build standalone do Next ----
 FROM node:20-slim AS builder

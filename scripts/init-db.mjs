@@ -18,6 +18,10 @@ fs.mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
+// Deploy sem queda: por alguns segundos o container antigo ainda atende
+// enquanto o novo sobe e aplica as migrations. Sem busy_timeout o SQLite
+// falharia na hora com "database is locked"; assim ele espera a vez.
+sqlite.pragma("busy_timeout = 15000");
 
 // 1) Migrations (cria/atualiza tabelas; controla o que já foi aplicado)
 const db = drizzle(sqlite);
