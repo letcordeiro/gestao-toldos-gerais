@@ -101,7 +101,7 @@ export function ItensContrato({
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Remover item"
-                  className="text-destructive"
+                  className="size-10 text-destructive sm:size-7"
                   onClick={() =>
                     setItens((atual) => atual.filter((_, idx) => idx !== i))
                   }

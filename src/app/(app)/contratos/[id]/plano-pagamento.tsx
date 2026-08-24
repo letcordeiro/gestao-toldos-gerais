@@ -190,6 +190,7 @@ export function PlanoPagamento({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className="size-10 sm:size-7"
                     aria-label="Subir linha"
                     disabled={i === 0}
                     onClick={() => mover(i, -1)}
@@ -200,6 +201,7 @@ export function PlanoPagamento({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className="size-10 sm:size-7"
                     aria-label="Descer linha"
                     disabled={i === linhas.length - 1}
                     onClick={() => mover(i, 1)}
@@ -211,7 +213,7 @@ export function PlanoPagamento({
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Remover linha"
-                    className="text-destructive"
+                    className="size-10 text-destructive sm:size-7"
                     onClick={() => remover(i)}
                   >
                     <Trash2 className="size-4" />

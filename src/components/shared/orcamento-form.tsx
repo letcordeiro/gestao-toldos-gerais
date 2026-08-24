@@ -456,7 +456,9 @@ export function OrcamentoForm({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Subir"
+                  // 40px no toque: com 28px o dedo erra a seta no celular.
+                  className="size-10 sm:size-7"
+                  aria-label="Subir item"
                   title="Subir"
                   disabled={i === 0}
                   onClick={() => moverItem(i, -1)}
@@ -467,7 +469,8 @@ export function OrcamentoForm({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Descer"
+                  className="size-10 sm:size-7"
+                  aria-label="Descer item"
                   title="Descer"
                   disabled={i === itens.length - 1}
                   onClick={() => moverItem(i, 1)}

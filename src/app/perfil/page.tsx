@@ -58,7 +58,10 @@ export default async function PerfilPage() {
               priority
               className="mx-auto mb-2"
             />
-            <CardTitle>Seus dados de vendedor</CardTitle>
+            <CardTitle>
+              {/* h1 de verdade: era a única tela do sistema sem título principal */}
+              <h1 className="text-inherit">Seus dados de vendedor</h1>
+            </CardTitle>
             <CardDescription>
               {primeiraVez
                 ? "Complete seu cadastro para começar a usar o sistema."

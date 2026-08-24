@@ -109,6 +109,7 @@ export function FaseSelect({
       >
         {/* O gatilho fica na cor definida para a fase selecionada. */}
         <SelectTrigger
+          aria-label="Status do atendimento"
           className="w-[200px] font-medium"
           style={
             cor

@@ -190,3 +190,23 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
 
 Para zerar o banco local: `rm -rf data/toldos.db* && npm run db:push && npm run db:seed`
 Boot em produção cria/semeia o banco sozinho via `scripts/init-db.mjs`.
+
+---
+
+## Ficha do sistema (movida do CLAUDE.md da raiz em 21/08/2026)
+
+- **O quê:** Sistema interno de orçamentos e funil de atendimento da Toldos Gerais
+  (toldos e coberturas — BH).
+- **Stack:** Next.js 15 + **SQLite/Drizzle** (não é Postgres) + shadcn/ui, PDF com `@react-pdf/renderer`.
+- **Banco em uso:** `data/toldos.db` (definido em `.env.local` → `DATABASE_PATH` e em `drizzle.config.ts`).
+- **Dev local:** porta 3008. Login de dev: `leticia@toldosgerais.com.br`.
+- **Repositório:** `letcordeiro/gestao-toldos-gerais`.
+- **Status:** Setup concluído (schema, seed, auth, logo, paleta). Próximo: telas do funil,
+  CRUDs, orçamento + PDF, auto-cadastro.
+- **Avisos de WhatsApp** viraram cadastro em `/cadastros/avisos`; todo item tem
+  "já contatei" + "não avisar mais".
+- **Site institucional** (WordPress + WPForms) documentado em `docs/site-wordpress/`.
+
+### Cópias antigas do banco
+`data/toldos 2.db` … `toldos 7.db` (e seus `-shm`/`-wal`) foram movidos para
+`../_triagem/duplicatas/toldos-db-antigos/`. O banco vivo continua sendo `data/toldos.db`.
