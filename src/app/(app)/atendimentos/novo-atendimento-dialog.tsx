@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputTelefone } from "@/components/shared/input-telefone";
+import { CamposEndereco } from "@/components/shared/campos-endereco";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +40,7 @@ export function NovoAtendimentoDialog({
   vendedores: VendedorOpcao[];
   ehGestor: boolean;
 }) {
+  const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [modo, setModo] = useState<"novo" | "existente">("novo");
   const [clienteId, setClienteId] = useState<string>("");
@@ -45,6 +48,14 @@ export function NovoAtendimentoDialog({
     NovoAtendimentoState,
     FormData
   >(criarAtendimento, {});
+
+  // Criou: fecha o diálogo e abre o atendimento. Antes a action redirecionava
+  // sozinha e o diálogo ficava por cima com o botão preso em "Criando…".
+  useEffect(() => {
+    if (!state.criadoId) return;
+    setAberto(false);
+    router.push(`/atendimentos/${state.criadoId}`);
+  }, [state.criadoId, router]);
 
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
@@ -72,20 +83,13 @@ export function NovoAtendimentoDialog({
                 <Label htmlFor="telefone">Telefone *</Label>
                 <InputTelefone id="telefone" name="telefone" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" name="email" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cidade">Cidade</Label>
-                  <Input id="cidade" name="cidade" />
-                </div>
-              </div>
               <div className="space-y-1.5">
-                <Label htmlFor="endereco">Endereço</Label>
-                <Input id="endereco" name="endereco" />
+                <Label htmlFor="email">E-mail</Label>
+                <Input id="email" name="email" />
               </div>
+              {/* CEP busca o endereço sozinho (ViaCEP) e preenche rua, bairro
+                  e cidade — mesmo componente do cadastro de clientes. */}
+              <CamposEndereco />
             </TabsContent>
             <TabsContent value="existente" className="mt-4">
               <div className="space-y-1.5">

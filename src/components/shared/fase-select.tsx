@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -40,8 +42,11 @@ export function FaseSelect({
   faseId: number;
   fases: Fase[];
 }) {
-  const [pending, startTransition] = useTransition();
-  const [carregando, setCarregando] = useState(false);
+  const router = useRouter();
+  // Estado próprio em vez de useTransition: com try/finally o seletor SEMPRE
+  // destrava, mesmo se a gravação falhar. Era essa a queixa — ficava travado
+  // e só recarregando a página voltava ao normal.
+  const [salvando, setSalvando] = useState(false);
   const [pergunta, setPergunta] = useState<{
     faseId: number;
     opcoes: OrcamentoOpcao[];
@@ -51,8 +56,17 @@ export function FaseSelect({
   const faseAtual = fases.find((f) => f.id === faseId);
   const cor = faseAtual?.cor;
 
-  function aplicar(novaFaseId: number, orcamentoIds?: number[]) {
-    startTransition(() => mudarFase(atendimentoId, novaFaseId, orcamentoIds));
+  async function aplicar(novaFaseId: number, orcamentoIds?: number[]) {
+    setSalvando(true);
+    try {
+      await mudarFase(atendimentoId, novaFaseId, orcamentoIds);
+      // Atualiza a tela sem depender de recarregar na mão.
+      router.refresh();
+    } catch {
+      toast.error("Não deu para mudar a fase. Tente de novo.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   async function escolher(valor: string | null) {
@@ -60,25 +74,26 @@ export function FaseSelect({
     const novaFaseId = Number(valor);
     const fase = fases.find((f) => f.id === novaFaseId);
 
-    // Fase que fecha negócio: se houver mais de um orçamento aguardando,
-    // perguntamos qual foi o aprovado em vez de aprovar todos por conta própria.
-    if (fase?.liberaInstalacao) {
-      setCarregando(true);
-      try {
-        const opcoes = await orcamentosParaAprovar(atendimentoId);
+    setSalvando(true);
+    try {
+      // Fase que fecha negócio: se houver mais de um orçamento aguardando,
+      // perguntamos qual foi o aprovado em vez de decidir por conta própria.
+      if (fase?.liberaInstalacao) {
+        const opcoes = await orcamentosParaAprovar(atendimentoId).catch(
+          () => [] as OrcamentoOpcao[]
+        );
         if (opcoes.length > 1) {
-          setPergunta({
-            faseId: novaFaseId,
-            opcoes,
-            escolhidos: [],
-          });
+          setPergunta({ faseId: novaFaseId, opcoes, escolhidos: [] });
           return;
         }
-      } finally {
-        setCarregando(false);
       }
+      await mudarFase(atendimentoId, novaFaseId);
+      router.refresh();
+    } catch {
+      toast.error("Não deu para mudar a fase. Tente de novo.");
+    } finally {
+      setSalvando(false);
     }
-    aplicar(novaFaseId);
   }
 
   function alternar(id: number) {
@@ -103,7 +118,7 @@ export function FaseSelect({
     <>
       <Select
         value={String(faseId)}
-        disabled={pending || carregando}
+        disabled={salvando}
         items={fases.map((f) => ({ value: String(f.id), label: f.nome }))}
         onValueChange={escolher}
       >

@@ -13,7 +13,7 @@ import {
 import { exigirUsuario } from "@/lib/auth";
 import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
 import type { Aviso, PendenciaAviso } from "@/lib/avisos";
-import { marcarContatoAviso } from "./actions";
+import { BotaoContatoAviso } from "./botao-contato-aviso";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -217,37 +217,21 @@ export default async function AtendimentosPage({
                       >
                         WhatsApp ↗
                       </a>
-                      <form
-                        action={marcarContatoAviso.bind(
-                          null,
-                          aviso.id,
-                          p.alvoId,
-                          false
-                        )}
+                      <BotaoContatoAviso
+                        avisoId={aviso.id}
+                        alvoId={p.alvoId}
+                        definitivo={false}
                       >
-                        <button
-                          type="submit"
-                          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                        >
-                          já contatei
-                        </button>
-                      </form>
+                        já contatei
+                      </BotaoContatoAviso>
                       {aviso.rearmeDias != null && (
-                        <form
-                          action={marcarContatoAviso.bind(
-                            null,
-                            aviso.id,
-                            p.alvoId,
-                            true
-                          )}
+                        <BotaoContatoAviso
+                          avisoId={aviso.id}
+                          alvoId={p.alvoId}
+                          definitivo
                         >
-                          <button
-                            type="submit"
-                            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                          >
-                            não avisar mais
-                          </button>
-                        </form>
+                          não avisar mais
+                        </BotaoContatoAviso>
                       )}
                     </li>
                   );

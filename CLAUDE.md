@@ -188,6 +188,31 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
 
+## Armadilha: `loading.tsx` × Server Actions (25/08/2026)
+
+**Não colocar `loading.tsx` no grupo `(app)`.** Um `loading.tsx` cobrindo o
+grupo inteiro cria um Suspense boundary em todas as rotas — e quando uma Server
+Action chama `revalidatePath` da rota que está aberta, o resultado da action
+nunca volta para o cliente. Sintomas (todos reproduzidos e confirmados):
+
+- "Criar atendimento" ficava em **"Criando…"** para sempre, com o diálogo aberto
+  por cima da tela nova (só saía clicando fora);
+- mudar a **fase** no detalhe do atendimento travava o seletor e a tela não
+  refletia a fase nova (o banco gravava certo);
+- **"já contatei"** gravava mas o item não sumia da lista sem recarregar.
+
+Foi adicionado na auditoria de usabilidade de 04/08 (para dar feedback entre
+telas) e removido em 25/08. Se um dia voltar a fazer falta, use `loading.tsx`
+por rota específica que não sofra revalidação por action, nunca no grupo todo.
+
+Blindagens que ficaram (valem por si):
+- mutação no cliente usa `try/finally` com estado próprio, então o botão
+  **sempre** destrava, mesmo com erro (e mostra aviso em vez de travar);
+- depois de gravar, `router.refresh()` garante a tela atualizada;
+- `criarAtendimento` devolve o id em vez de chamar `redirect()` — com
+  `useActionState` o redirect deixava o botão preso.
+
+
 Para zerar o banco local: `rm -rf data/toldos.db* && npm run db:push && npm run db:seed`
 Boot em produção cria/semeia o banco sozinho via `scripts/init-db.mjs`.
 

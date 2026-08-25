@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
@@ -24,7 +23,11 @@ const novoAtendimentoSchema = z
     nome: z.string().trim().optional(),
     telefone: z.string().trim().optional(),
     email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
+    cep: z.string().trim().optional(),
     endereco: z.string().trim().optional(),
+    numero: z.string().trim().optional(),
+    complemento: z.string().trim().optional(),
+    bairro: z.string().trim().optional(),
     cidade: z.string().trim().optional(),
     observacoes: z.string().trim().optional(),
   })
@@ -32,7 +35,11 @@ const novoAtendimentoSchema = z
     message: "Escolha um cliente ou informe nome e telefone",
   });
 
-export type NovoAtendimentoState = { erro?: string };
+export type NovoAtendimentoState = {
+  erro?: string;
+  /** id do atendimento criado — a tela fecha o diálogo e navega. */
+  criadoId?: number;
+};
 
 export async function criarAtendimento(
   _prev: NovoAtendimentoState,
@@ -47,7 +54,11 @@ export async function criarAtendimento(
     nome: formData.get("nome") || undefined,
     telefone: formData.get("telefone") || undefined,
     email: formData.get("email") || undefined,
+    cep: formData.get("cep") || undefined,
     endereco: formData.get("endereco") || undefined,
+    numero: formData.get("numero") || undefined,
+    complemento: formData.get("complemento") || undefined,
+    bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
     observacoes: formData.get("observacoes") || undefined,
   });
@@ -77,7 +88,11 @@ export async function criarAtendimento(
         nome: dados.nome!,
         telefone: dados.telefone!,
         email: dados.email || null,
+        cep: dados.cep || null,
         endereco: dados.endereco || null,
+        numero: dados.numero || null,
+        complemento: dados.complemento || null,
+        bairro: dados.bairro || null,
         cidade: dados.cidade || null,
         origem: "interno",
       })
@@ -102,7 +117,9 @@ export async function criarAtendimento(
   });
 
   revalidatePath("/atendimentos");
-  redirect(`/atendimentos/${novo.id}`);
+  // Sem redirect() aqui: com useActionState ele deixava o botão travado em
+  // "Criando…" e o diálogo aberto na frente da tela nova.
+  return { criadoId: novo.id };
 }
 
 const mudarFaseSchema = z.object({
