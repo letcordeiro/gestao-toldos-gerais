@@ -199,9 +199,10 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
   Alvorada)** — logo, qualificação da CONTRATADA (com nome fantasia, IE e
   "optante pelo Simples Nacional") e rodapé vêm de `EMPRESA_CONTRATO`. Vale para
   o PDF (`contrato-pdf.tsx`), a prévia HTML (`contrato-preview.tsx`) e a versão
-  de impressão (`/contratos/[id]/imprimir`). O **resto do sistema continua
-  Toldos Gerais** — inclusive a barra e o WhatsApp da página pública
-  `/contrato/[token]`, que é o canal de atendimento, não o emitente.
+  de impressão (`/contratos/[id]/imprimir`) — e também para a logo da barra da
+  página pública `/contrato/[token]`. O **WhatsApp dessa página continua o da
+  Toldos Gerais**: é o canal de atendimento do João, não o emitente. O resto do
+  sistema (proposta, ficha, login, avisos) segue Toldos Gerais.
 - **Conferir o PDF**: `node scripts/preview-contrato.mjs` monta um banco novo
   (`data/preview.db`) com um contrato emitido e imprime o token; depois basta
   subir o dev apontando `DATABASE_PATH` para ele e baixar

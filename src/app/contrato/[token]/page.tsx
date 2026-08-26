@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { eq } from "drizzle-orm";
 import { contratos } from "@/db/schema";
-import { EMPRESA } from "@/lib/empresa";
+import { EMPRESA, EMPRESA_CONTRATO } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { carregarDadosContrato } from "@/lib/gerar-contrato";
 import { ContratoPreview } from "@/components/shared/contrato-preview";
@@ -42,11 +42,14 @@ export default async function ContratoPublicoPage({
     <main className="min-h-screen bg-muted/30 pb-10">
       <div className="sticky top-0 z-10 border-b bg-card print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
+          {/* Logo do emitente do contrato (Alvorada). O WhatsApp abaixo
+              continua sendo o do atendimento da Toldos Gerais — é por lá que o
+              cliente fala com o João. */}
           <Image
-            src="/logo.png"
-            alt="Toldos Gerais"
+            src={`/${EMPRESA_CONTRATO.logoArquivo}`}
+            alt={EMPRESA_CONTRATO.nomeFantasia}
             width={80}
-            height={43}
+            height={47}
             priority
           />
           <div className="flex gap-2">
