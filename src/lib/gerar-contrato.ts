@@ -14,6 +14,7 @@ import {
   contratoPagamentos,
   contratos,
 } from "@/db/schema";
+import { EMPRESA_CONTRATO } from "@/lib/empresa";
 import { enderecoCompleto } from "@/lib/endereco";
 import type { DadosContrato } from "@/lib/contrato-clausulas";
 import type { LinhaPagamento } from "@/lib/contratos";
@@ -133,7 +134,11 @@ export async function gerarContrato(where: SQL): Promise<ContratoGerado | null> 
   const carregado = await carregarDadosContrato(where);
   if (!carregado) return null;
 
-  const logo = fs.readFileSync(path.join(process.cwd(), "public", "logo.png"));
+  // O contrato sai com a logo do emitente (Distribuidora Alvorada), não com a
+  // da Toldos Gerais — que continua na proposta e nas páginas públicas.
+  const logo = fs.readFileSync(
+    path.join(process.cwd(), "public", EMPRESA_CONTRATO.logoArquivo)
+  );
   const logoDataUri = `data:image/png;base64,${logo.toString("base64")}`;
 
   const dadosPDF: DadosContratoPDF = {

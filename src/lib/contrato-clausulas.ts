@@ -355,12 +355,27 @@ export function qualificacaoPartes(
     razaoSocial: string;
     cnpj: string;
     endereco: string;
+    /** Nome fantasia, quando a empresa opera com outro nome no mercado. */
+    nomeFantasia?: string;
+    /** Inscrição estadual — só entra na qualificação quando existe. */
+    inscricaoEstadual?: string;
+    /** Regime tributário (ex. optante pelo Simples Nacional), quando declarado. */
+    regimeTributario?: string;
   }
 ): { contratada: string; contratante: string } {
+  const fantasia = empresa.nomeFantasia
+    ? `, nome fantasia ${empresa.nomeFantasia}`
+    : "";
+  const ie = empresa.inscricaoEstadual
+    ? ` e na Inscrição Estadual sob o nº ${empresa.inscricaoEstadual}`
+    : "";
+  const regime = empresa.regimeTributario
+    ? `, ${empresa.regimeTributario.charAt(0).toLowerCase()}${empresa.regimeTributario.slice(1)}`
+    : "";
   return {
     contratada:
-      `${empresa.razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ` +
-      `${empresa.cnpj}, com sede em ${empresa.endereco}, neste ato representada por ` +
+      `${empresa.razaoSocial}${fantasia}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ` +
+      `${empresa.cnpj}${ie}, com sede em ${empresa.endereco}${regime}, neste ato representada por ` +
       `${dados.representante}, doravante denominada CONTRATADA;`,
     contratante:
       `${dados.contratante.nome}, inscrito(a) no CPF/CNPJ sob o nº ` +

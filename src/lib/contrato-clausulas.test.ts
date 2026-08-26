@@ -10,6 +10,7 @@ import {
   type DadosContrato,
 } from "./contrato-clausulas";
 import type { LinhaPagamento } from "./contratos";
+import { EMPRESA_CONTRATO } from "./empresa";
 
 const linha = (over: Partial<LinhaPagamento> = {}): LinhaPagamento => ({
   ordem: 0,
@@ -173,6 +174,35 @@ test("qualificacaoPartes: CPF/CNPJ do contratante entra no texto", () => {
   assert.match(q.contratada, /CNPJ sob o nº 02\.873\.343\/0001-96/);
   assert.match(q.contratada, /João Pedro Avelar/);
   assert.match(q.contratante, /CPF\/CNPJ sob o nº 123\.456\.789-00/);
+});
+
+test("qualificacaoPartes: emitente do contrato (Alvorada) entra completo", () => {
+  const q = qualificacaoPartes(dados(), {
+    razaoSocial: EMPRESA_CONTRATO.razaoSocial,
+    nomeFantasia: EMPRESA_CONTRATO.nomeFantasia,
+    cnpj: EMPRESA_CONTRATO.cnpj,
+    inscricaoEstadual: EMPRESA_CONTRATO.inscricaoEstadual,
+    endereco: EMPRESA_CONTRATO.endereco,
+    regimeTributario: EMPRESA_CONTRATO.regimeTributario,
+  });
+  assert.match(q.contratada, /^Comercial Mari Ltda, nome fantasia Distribuidora Alvorada,/);
+  assert.match(q.contratada, /CNPJ sob o nº 41\.415\.580\/0001-65/);
+  assert.match(q.contratada, /Inscrição Estadual sob o nº 0040120360063/);
+  assert.match(q.contratada, /Rua Estoril, 1724/);
+  assert.match(q.contratada, /, empresa optante pelo Simples Nacional, neste ato representada/);
+  // nada de Toldos Gerais sobrando no contrato
+  assert.equal(/Toldos Gerais/.test(q.contratada), false);
+});
+
+test("qualificacaoPartes: campos opcionais ausentes não deixam sobra no texto", () => {
+  const q = qualificacaoPartes(dados(), {
+    razaoSocial: "Empresa Simples Ltda",
+    cnpj: "00.000.000/0001-00",
+    endereco: "Rua Um, 1",
+  });
+  assert.equal(/nome fantasia/.test(q.contratada), false);
+  assert.equal(/Inscrição Estadual/.test(q.contratada), false);
+  assert.match(q.contratada, /Rua Um, 1, neste ato representada/);
 });
 
 test("avisoVersao: só a partir da versão 2", () => {

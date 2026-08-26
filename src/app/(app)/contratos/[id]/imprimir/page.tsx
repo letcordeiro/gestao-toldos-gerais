@@ -6,6 +6,7 @@ import { contratos, orcamentos } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { carregarDadosContrato } from "@/lib/gerar-contrato";
 import { ContratoPreview } from "@/components/shared/contrato-preview";
+import { EMPRESA_CONTRATO } from "@/lib/empresa";
 import { ImprimirAutomatico } from "../../../orcamentos/[id]/ficha/imprimir/imprimir-automatico";
 
 export const metadata = { title: "Imprimir contrato" };
@@ -47,9 +48,21 @@ export default async function ImprimirContratoPage({
 
       <div className="rounded-lg border bg-white p-6 print:rounded-none print:border-0 print:p-0">
         <div className="mb-4 flex items-center justify-between border-b pb-3">
-          <Image src="/logo.png" alt="Toldos Gerais" width={90} height={48} />
+          {/* Logo do emitente do contrato (Distribuidora Alvorada) — a da
+              Toldos Gerais continua na proposta e na ficha de instalação. */}
+          <Image
+            src={`/${EMPRESA_CONTRATO.logoArquivo}`}
+            alt={EMPRESA_CONTRATO.nomeFantasia}
+            width={90}
+            height={53}
+          />
         </div>
         <ContratoPreview dados={carregado.dados} />
+        <p className="mt-6 border-t pt-2 text-center text-[10px] text-muted-foreground">
+          {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia}) —{" "}
+          {EMPRESA_CONTRATO.email} · {EMPRESA_CONTRATO.telefoneFixo} ·{" "}
+          {EMPRESA_CONTRATO.endereco}
+        </p>
       </div>
 
       <style>{`

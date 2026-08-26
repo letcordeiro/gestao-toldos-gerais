@@ -1,4 +1,4 @@
-import { EMPRESA } from "@/lib/empresa";
+import { EMPRESA_CONTRATO } from "@/lib/empresa";
 import {
   avisoVersao,
   montarClausulas,
@@ -18,9 +18,12 @@ import {
 export function ContratoPreview({ dados }: { dados: DadosContrato }) {
   const clausulas = montarClausulas(dados);
   const partes = qualificacaoPartes(dados, {
-    razaoSocial: EMPRESA.razaoSocial,
-    cnpj: EMPRESA.cnpj,
-    endereco: EMPRESA.endereco,
+    razaoSocial: EMPRESA_CONTRATO.razaoSocial,
+    nomeFantasia: EMPRESA_CONTRATO.nomeFantasia,
+    cnpj: EMPRESA_CONTRATO.cnpj,
+    inscricaoEstadual: EMPRESA_CONTRATO.inscricaoEstadual,
+    endereco: EMPRESA_CONTRATO.endereco,
+    regimeTributario: EMPRESA_CONTRATO.regimeTributario,
   });
   const aviso = avisoVersao(dados.versao);
 
@@ -79,8 +82,12 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
 
       <div className="grid gap-6 pt-6 sm:grid-cols-2">
         <div className="border-t pt-1">
-          <p className="font-semibold">{EMPRESA.razaoSocial}</p>
-          <p className="text-xs text-muted-foreground">CNPJ {EMPRESA.cnpj}</p>
+          <p className="font-semibold">
+            {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia})
+          </p>
+          <p className="text-xs text-muted-foreground">
+            CNPJ {EMPRESA_CONTRATO.cnpj}
+          </p>
           <p className="text-xs text-muted-foreground">
             {dados.representante} — CONTRATADA
           </p>

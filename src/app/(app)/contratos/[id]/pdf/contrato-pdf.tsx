@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { EMPRESA } from "@/lib/empresa";
+import { EMPRESA_CONTRATO } from "@/lib/empresa";
 import {
   avisoVersao,
   montarClausulas,
@@ -146,8 +146,12 @@ function Assinaturas({ dados }: { dados: DadosContrato }) {
     <View style={styles.assinaturas} wrap={false}>
       <View style={styles.assinaturaBloco}>
         <View style={styles.linhaAssinatura} />
-        <Text style={styles.assinaturaNome}>{EMPRESA.razaoSocial}</Text>
-        <Text style={styles.assinaturaDetalhe}>CNPJ {EMPRESA.cnpj}</Text>
+        <Text style={styles.assinaturaNome}>
+          {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia})
+        </Text>
+        <Text style={styles.assinaturaDetalhe}>
+          CNPJ {EMPRESA_CONTRATO.cnpj}
+        </Text>
         <Text style={styles.assinaturaDetalhe}>
           {dados.representante} — CONTRATADA
         </Text>
@@ -166,9 +170,12 @@ function Assinaturas({ dados }: { dados: DadosContrato }) {
 
 export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
   const partes = qualificacaoPartes(dados, {
-    razaoSocial: EMPRESA.razaoSocial,
-    cnpj: EMPRESA.cnpj,
-    endereco: EMPRESA.endereco,
+    razaoSocial: EMPRESA_CONTRATO.razaoSocial,
+    nomeFantasia: EMPRESA_CONTRATO.nomeFantasia,
+    cnpj: EMPRESA_CONTRATO.cnpj,
+    inscricaoEstadual: EMPRESA_CONTRATO.inscricaoEstadual,
+    endereco: EMPRESA_CONTRATO.endereco,
+    regimeTributario: EMPRESA_CONTRATO.regimeTributario,
   });
   const aviso = avisoVersao(dados.versao);
   const titulo = dados.minuta
@@ -177,8 +184,8 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
 
   return (
     <Document
-      title={`Contrato ${dados.numero ?? "MINUTA"} — Toldos Gerais`}
-      author={EMPRESA.razaoSocial}
+      title={`Contrato ${dados.numero ?? "MINUTA"} — ${EMPRESA_CONTRATO.nomeFantasia}`}
+      author={EMPRESA_CONTRATO.razaoSocial}
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.cabecalho}>
@@ -212,8 +219,9 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
 
         <View style={styles.rodape} fixed>
           <Text>
-            {EMPRESA.razaoSocial} — {EMPRESA.site} · {EMPRESA.telefoneFixo} ·{" "}
-            {EMPRESA.endereco}
+            {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia}) —{" "}
+            {EMPRESA_CONTRATO.email} · {EMPRESA_CONTRATO.telefoneFixo} ·{" "}
+            {EMPRESA_CONTRATO.endereco}
           </Text>
         </View>
       </Page>
@@ -235,7 +243,7 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
             {dados.dataEmissaoExtenso
               ? `, firmado em ${dados.dataEmissaoExtenso}`
               : ""}
-            , celebrado entre {EMPRESA.razaoSocial} (CONTRATADA) e{" "}
+            , celebrado entre {EMPRESA_CONTRATO.razaoSocial} (CONTRATADA) e{" "}
             {dados.contratante.nome} (CONTRATANTE), que passa a integrá-lo para
             todos os efeitos.
           </Text>
@@ -287,7 +295,8 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
 
           <View style={styles.rodape} fixed>
             <Text>
-              {EMPRESA.razaoSocial} — {EMPRESA.site} · {EMPRESA.telefoneFixo}
+              {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia}) —{" "}
+              {EMPRESA_CONTRATO.email} · {EMPRESA_CONTRATO.telefoneFixo}
             </Text>
           </View>
         </Page>

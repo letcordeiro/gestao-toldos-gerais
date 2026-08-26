@@ -112,7 +112,17 @@ Botão "Enviar no WhatsApp": link `wa.me/55{telefone}` com mensagem padrão.
 
 ## Dados oficiais da empresa
 
-Centralizados em `src/lib/empresa.ts`:
+Centralizados em `src/lib/empresa.ts`, em **duas** constantes:
+
+- `EMPRESA` — Toldos Gerais Ltda. Vale para proposta/orçamento, ficha de
+  instalação, páginas públicas, login e avisos de WhatsApp.
+- `EMPRESA_CONTRATO` — **Comercial Mari Ltda (Distribuidora Alvorada)**, emitente
+  dos CONTRATOS desde 26/08/2026. CNPJ 41.415.580/0001-65 · IE 0040120360063 ·
+  Rua Estoril, 1724 – São Francisco – CEP 31255-190 – Belo Horizonte/MG ·
+  (31) 3441-3900 · distribuidorabhza@gmail.com · contato Mariana Curvelano ·
+  optante pelo Simples Nacional. Logo própria em `public/logo-alvorada.png`.
+
+`EMPRESA` (Toldos Gerais):
 
 - Toldos Gerais Ltda — www.toldosgerais.com.br
 - Endereço: Rua Carmelita Prates da Silva, 501 – Salgado Filho – CEP 30550-110 – Belo Horizonte/MG
@@ -185,6 +195,17 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
 - **Divergência**: se o orçamento mudar depois da emissão, a tela avisa comparando com o snapshot. Nunca sincroniza sozinho.
 - **Link público**: `/contrato/{token}` (HTML + PDF), no padrão de `/proposta/{token}`. Rota liberada no middleware.
 - **Testes**: `npm test` (38 unitários + ciclo completo em SQLite real). **Exige Node 20** (mesma major do Dockerfile; `better-sqlite3` é binário nativo). `npm run test:unit` roda só os unitários.
+- **Emitente**: o contrato sai no nome da **Comercial Mari Ltda (Distribuidora
+  Alvorada)** — logo, qualificação da CONTRATADA (com nome fantasia, IE e
+  "optante pelo Simples Nacional") e rodapé vêm de `EMPRESA_CONTRATO`. Vale para
+  o PDF (`contrato-pdf.tsx`), a prévia HTML (`contrato-preview.tsx`) e a versão
+  de impressão (`/contratos/[id]/imprimir`). O **resto do sistema continua
+  Toldos Gerais** — inclusive a barra e o WhatsApp da página pública
+  `/contrato/[token]`, que é o canal de atendimento, não o emitente.
+- **Conferir o PDF**: `node scripts/preview-contrato.mjs` monta um banco novo
+  (`data/preview.db`) com um contrato emitido e imprime o token; depois basta
+  subir o dev apontando `DATABASE_PATH` para ele e baixar
+  `/contrato/{token}/pdf`.
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
 
