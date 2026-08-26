@@ -25,46 +25,58 @@ for (const e of journal.entries) {
 }
 
 const ano = new Date().getFullYear();
+// Dados de exemplo: cliente fictício de propósito, para o contrato poder ser
+// mostrado a alguém sem expor dado real de cliente.
 sqlite.exec(`
-INSERT INTO clientes (id, nome, telefone, email, endereco, numero, bairro, cidade, cep, documento)
-  VALUES (1,'Maria Silva','(31)99999-0000','maria@exemplo.com','Rua A','10','Buritis','Belo Horizonte/MG','30575-100','123.456.789-00');
+INSERT INTO clientes (id, nome, telefone, email, endereco, numero, complemento, bairro, cidade, cep, documento)
+  VALUES (1,'Cliente Exemplo','(31) 90000-0000','cliente@exemplo.com','Rua Exemplo','100','apto 302','Buritis','Belo Horizonte/MG','30575-100','000.000.000-00');
 INSERT INTO fases (id, nome, ordem, cor, libera_instalacao) VALUES (1,'Orçamento aprovado',5,'#16A34A',1);
 INSERT INTO atendimentos (id, cliente_id, fase_id) VALUES (1,1,1);
 INSERT INTO orcamentos (id, numero, atendimento_id, status) VALUES (1,'${ano}-001',1,'aprovado');
 INSERT INTO orcamento_itens (orcamento_id, descricao, valor_min, ordem)
-  VALUES (1,'Toldo Retrátil Cortina 3,00 × 2,50',399000,0);
+  VALUES (1,'Toldo Retrátil Cortina 4,00 × 3,00 m',1280000,0);
 `);
 
-const token = "preview1";
-const VALOR = 399000;
+const token = "exemplo";
+const VALOR = 1280000; // R$ 12.800,00
 sqlite
   .prepare(
-    `INSERT INTO contratos (id, cliente_id, orcamento_id, status, numero, data_emissao, valor_total, local_instalacao, public_token, criado_por, snapshot)
-     VALUES (1,1,1,'emitido',?,unixepoch(),?,'Área da piscina',?, 'preview', ?)`
+    `INSERT INTO contratos (id, cliente_id, orcamento_id, status, numero, data_emissao, valor_total, escopo,
+                            local_instalacao, observacoes_tecnicas, prazo_dias_uteis, garantia_meses, public_token, criado_por, snapshot)
+     VALUES (1,1,1,'emitido',?,unixepoch(),?,'fabricacao',
+             'Área gourmet nos fundos da residência',
+             'Estrutura em alumínio branco, lona acrílica cor bege. Acionamento motorizado com controle remoto.',
+             25, 12, ?, 'exemplo', ?)`
   )
   .run(
     `CT-${ano}-0001`,
     VALOR,
     token,
-    JSON.stringify({ cliente: { nome: "Maria Silva" } })
+    JSON.stringify({ cliente: { nome: "Cliente Exemplo" } })
   );
 sqlite
   .prepare(
-    `INSERT INTO contrato_itens (contrato_id, ordem, modelo, cor, medidas_m2)
-     VALUES (1,0,'Toldo Retrátil Cortina','bege','3,00 × 2,50 m')`
+    `INSERT INTO contrato_itens (contrato_id, ordem, modelo, cor, medidas_m2, descricao_extra)
+     VALUES (1,0,'Toldo Retrátil Cortina','bege','4,00 × 3,00 m','motorizado, com controle remoto')`
+  )
+  .run();
+sqlite
+  .prepare(
+    `INSERT INTO contrato_itens (contrato_id, ordem, modelo, cor, medidas_m2, descricao_extra)
+     VALUES (1,1,'Sombreador lateral','bege','1,20 × 3,00 m',NULL)`
   )
   .run();
 sqlite
   .prepare(
     `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, meio, numero_parcelas, gatilho)
-     VALUES (1,0,'Sinal/entrada','sinal',?,'pix',1,'assinatura')`
+     VALUES (1,0,'Sinal/entrada','sinal',512000,'pix',1,'assinatura')`
   )
-  .run(VALOR / 2);
+  .run();
 sqlite
   .prepare(
     `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, meio, numero_parcelas, gatilho)
-     VALUES (1,1,'Saldo','saldo',?,'cartao_credito',6,'conclusao_instalacao')`
+     VALUES (1,1,'Saldo','saldo',768000,'cartao_credito',3,'conclusao_instalacao')`
   )
-  .run(VALOR / 2);
+  .run();
 
 console.log("banco:", dbPath, "token:", token);
