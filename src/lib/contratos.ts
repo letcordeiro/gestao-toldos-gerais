@@ -28,6 +28,7 @@ export type GatilhoPagamento =
   | "entrega_material"
   | "conclusao_instalacao"
   | "dias_apos_instalacao"
+  | "dias_apos_assinatura"
   | "data_fixa";
 
 export type TipoPagamento = "sinal" | "parcela" | "saldo";
@@ -80,6 +81,7 @@ export const GATILHO_LABEL: Record<GatilhoPagamento, string> = {
   entrega_material: "na entrega do material",
   conclusao_instalacao: "na conclusão da instalação",
   dias_apos_instalacao: "dias após a instalação",
+  dias_apos_assinatura: "dias após a assinatura",
   data_fixa: "em data fixa",
 };
 

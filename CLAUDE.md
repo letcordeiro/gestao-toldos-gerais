@@ -207,6 +207,21 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
   (`data/preview.db`) com um contrato emitido e imprime o token; depois basta
   subir o dev apontando `DATABASE_PATH` para ele e baixar
   `/contrato/{token}/pdf`.
+- **Contratante pessoa jurídica** (migration `0019_contratante_pj`): quando o
+  documento do cliente tem 14 dígitos, a qualificação muda de "residente e
+  domiciliado" para "pessoa jurídica de direito privado, com sede em … neste ato
+  representada por …". O campo `representanteContratante` só aparece no
+  formulário nesse caso; sem ele o contrato imprime uma linha para preencher à
+  mão. Regra em `ehPessoaJuridica` (contrato-clausulas.ts).
+- **Observações técnicas em vários parágrafos**: cada linha do campo vira um
+  parágrafo próprio na Cláusula Primeira (descritivos longos de perfil, calha,
+  acabamento). Uma linha só continua inline, como antes.
+- **Vencimentos escalonados**: gatilho `dias_apos_assinatura` + `numeroParcelas`
+  maior que 1 escreve "com vencimentos em 30, 60 e 90 dias contados da
+  assinatura" em vez de "em até 30 dias". Vale também para
+  `dias_apos_instalacao`.
+- **Ainda não existe**: contrato com duas opções de preço (A/B) — para isso o
+  caminho é o orçamento, e o contrato nasce depois que o cliente escolhe.
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
 

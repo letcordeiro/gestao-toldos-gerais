@@ -16,6 +16,7 @@ import { urlBase } from "@/lib/url";
 import { formatarCentavos } from "@/lib/format";
 import { enderecoCompleto } from "@/lib/endereco";
 import { carregarDadosContrato } from "@/lib/gerar-contrato";
+import { ehPessoaJuridica } from "@/lib/contrato-clausulas";
 import {
   compararComOrigem,
   podeFazer,
@@ -262,6 +263,8 @@ export default async function ContratoPage({
                   flagEnergia: contrato.flagEnergia,
                   flagSobMedida: contrato.flagSobMedida,
                   representante: contrato.representante,
+                  representanteContratante: contrato.representanteContratante,
+                  clienteEhEmpresa: ehPessoaJuridica(cliente.documento),
                   cidadeEmissao: contrato.cidadeEmissao,
                 }}
               />

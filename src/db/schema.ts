@@ -335,6 +335,9 @@ export const contratos = sqliteTable("contratos", {
     .notNull()
     .default(true),
   representante: text("representante").notNull().default("João Pedro Avelar"),
+  // Quem assina pelo CONTRATANTE quando ele é empresa (CNPJ). Pessoa física
+  // assina por si e não usa este campo.
+  representanteContratante: text("representante_contratante"),
   cidadeEmissao: text("cidade_emissao").notNull().default("Belo Horizonte"),
   dataEmissao: integer("data_emissao", { mode: "timestamp" }),
   dataAssinatura: integer("data_assinatura", { mode: "timestamp" }),
@@ -394,6 +397,7 @@ export const contratoPagamentos = sqliteTable("contrato_pagamentos", {
       "entrega_material",
       "conclusao_instalacao",
       "dias_apos_instalacao",
+      "dias_apos_assinatura",
       "data_fixa",
     ],
   }).notNull(),

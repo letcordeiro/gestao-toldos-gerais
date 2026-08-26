@@ -255,6 +255,7 @@ const dadosSchema = z.object({
   flagEnergia: z.coerce.boolean(),
   flagSobMedida: z.coerce.boolean(),
   representante: z.string().trim().min(1).max(120),
+  representanteContratante: z.string().trim().max(120),
   cidadeEmissao: z.string().trim().min(1).max(120),
 });
 
@@ -280,6 +281,7 @@ export async function salvarDadosContrato(
     flagEnergia: formData.get("flagEnergia") === "on",
     flagSobMedida: formData.get("flagSobMedida") === "on",
     representante: formData.get("representante"),
+    representanteContratante: formData.get("representanteContratante") ?? "",
     cidadeEmissao: formData.get("cidadeEmissao"),
   });
   if (!parsed.success) return { erro: parsed.error.issues[0].message };
@@ -310,6 +312,7 @@ export async function salvarDadosContrato(
       flagEnergia: d.flagEnergia,
       flagSobMedida: d.flagSobMedida,
       representante: d.representante,
+      representanteContratante: d.representanteContratante || null,
       cidadeEmissao: d.cidadeEmissao,
       atualizadoEm: new Date(),
     })
@@ -615,6 +618,7 @@ export async function criarNovaVersao(
       flagEnergia: antigo.flagEnergia,
       flagSobMedida: antigo.flagSobMedida,
       representante: antigo.representante,
+      representanteContratante: antigo.representanteContratante,
       cidadeEmissao: antigo.cidadeEmissao,
       publicToken: nanoid(12),
       criadoPor: nomeUsuario(acesso.usuario),

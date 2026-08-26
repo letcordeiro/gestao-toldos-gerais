@@ -77,6 +77,8 @@ export type DadosContrato = {
     endereco: string | null;
     telefone: string;
     email: string | null;
+    /** Quem assina pela empresa contratante (só usado quando é CNPJ). */
+    representante?: string | null;
   };
   itens: Array<{
     modelo: string;
@@ -113,6 +115,10 @@ function frasePorGatilho(
       return `em até ${diasApos ?? 0} (${
         diasApos != null ? valorPorExtensoSimples(diasApos) : "zero"
       }) dias após a conclusão da instalação`;
+    case "dias_apos_assinatura":
+      return `em até ${diasApos ?? 0} (${
+        diasApos != null ? valorPorExtensoSimples(diasApos) : "zero"
+      }) dias da assinatura deste instrumento`;
     case "data_fixa":
       return dataVencimento
         ? `com vencimento em ${formatarDataBR(dataVencimento)}`
@@ -131,19 +137,49 @@ function formatarDataBR(iso: string): string {
   return `${d}/${m}/${a}`;
 }
 
+/**
+ * Vencimentos escalonados: 3 parcelas a cada 30 dias viram "30, 60 e 90 dias".
+ * É como a cobrança em boleto é escrita na prática — dizer só "em até 30 dias"
+ * para três parcelas estaria errado.
+ */
+function listaDeVencimentos(parcelas: number, intervalo: number): string {
+  const dias = Array.from({ length: parcelas }, (_, i) => intervalo * (i + 1));
+  const ultimo = dias.pop();
+  return `${dias.join(", ")} e ${ultimo}`;
+}
+
 /** Uma linha do plano de pagamento vira uma frase legível do contrato. */
 export function frasePagamento(linha: LinhaPagamento): string {
   const partes = [`${linha.rotulo}: ${moedaComExtenso(linha.valor)}`];
+  const escalonado =
+    linha.numeroParcelas > 1 &&
+    linha.diasApos != null &&
+    linha.diasApos > 0 &&
+    (linha.gatilho === "dias_apos_assinatura" ||
+      linha.gatilho === "dias_apos_instalacao");
+
   if (linha.numeroParcelas > 1) {
-    partes.push(
-      `em ${linha.numeroParcelas}x no ${MEIO_LABEL[linha.meio]}`
-    );
+    partes.push(`em ${linha.numeroParcelas}x no ${MEIO_LABEL[linha.meio]}`);
   } else {
     partes.push(`por meio de ${MEIO_LABEL[linha.meio]}`);
   }
-  partes.push(
-    frasePorGatilho(linha.gatilho, linha.diasApos, linha.dataVencimento)
-  );
+
+  if (escalonado) {
+    const referencia =
+      linha.gatilho === "dias_apos_assinatura"
+        ? "da assinatura deste instrumento"
+        : "da conclusão da instalação";
+    partes.push(
+      `com vencimentos em ${listaDeVencimentos(
+        linha.numeroParcelas,
+        linha.diasApos!
+      )} dias contados ${referencia}`
+    );
+  } else {
+    partes.push(
+      frasePorGatilho(linha.gatilho, linha.diasApos, linha.dataVencimento)
+    );
+  }
   return `${partes.join(", ")}.`;
 }
 
@@ -184,10 +220,17 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
     ],
     itens: listaItens,
   };
-  if (dados.observacoesTecnicas?.trim()) {
-    objeto.paragrafos.push(
-      `Observações técnicas: ${dados.observacoesTecnicas.trim()}`
-    );
+  // Observações técnicas costumam ser um descritivo longo (perfis, calhas,
+  // acabamento…). Cada linha vira um parágrafo próprio, senão o texto inteiro
+  // sai espremido numa linha só.
+  const linhas = (dados.observacoesTecnicas ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (linhas.length === 1) {
+    objeto.paragrafos.push(`Observações técnicas: ${linhas[0]}`);
+  } else if (linhas.length > 1) {
+    objeto.paragrafos.push("Observações técnicas:", ...linhas);
   }
   if (dados.flagSobMedida) {
     objeto.paragrafoUnico =
@@ -377,14 +420,41 @@ export function qualificacaoPartes(
       `${empresa.razaoSocial}${fantasia}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ` +
       `${empresa.cnpj}${ie}, com sede em ${empresa.endereco}${regime}, neste ato representada por ` +
       `${dados.representante}, doravante denominada CONTRATADA;`,
-    contratante:
-      `${dados.contratante.nome}, inscrito(a) no CPF/CNPJ sob o nº ` +
-      `${dados.contratante.documento ?? "____________________"}, residente e domiciliado(a) em ` +
-      `${dados.contratante.endereco ?? "____________________"}` +
-      `${dados.contratante.telefone ? `, telefone ${dados.contratante.telefone}` : ""}` +
-      `${dados.contratante.email ? `, e-mail ${dados.contratante.email}` : ""}, ` +
-      `doravante denominado(a) CONTRATANTE.`,
+    contratante: qualificacaoContratante(dados),
   };
+}
+
+/** CNPJ tem 14 dígitos; CPF, 11. Sem documento, trata como pessoa física. */
+export function ehPessoaJuridica(documento: string | null | undefined): boolean {
+  return (documento ?? "").replace(/\D/g, "").length === 14;
+}
+
+/**
+ * Qualificação do CONTRATANTE. Empresa e pessoa física não se qualificam do
+ * mesmo jeito: um hotel não é "residente e domiciliado", tem sede e assina por
+ * um representante. O texto acompanha o tipo do documento.
+ */
+function qualificacaoContratante(dados: DadosContrato): string {
+  const c = dados.contratante;
+  const documento = c.documento ?? "____________________";
+  const endereco = c.endereco ?? "____________________";
+  const contatos =
+    `${c.telefone ? `, telefone ${c.telefone}` : ""}` +
+    `${c.email ? `, e-mail ${c.email}` : ""}`;
+
+  if (ehPessoaJuridica(c.documento)) {
+    const representante = c.representante?.trim() || "____________________";
+    return (
+      `${c.nome}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ` +
+      `${documento}, com sede em ${endereco}${contatos}, neste ato representada por ` +
+      `${representante}, doravante denominada CONTRATANTE.`
+    );
+  }
+
+  return (
+    `${c.nome}, inscrito(a) no CPF sob o nº ${documento}, residente e ` +
+    `domiciliado(a) em ${endereco}${contatos}, doravante denominado(a) CONTRATANTE.`
+  );
 }
 
 /** Cabeçalho de versionamento — só aparece a partir da versão 2. */

@@ -30,6 +30,8 @@ export type DadosForm = {
   flagEnergia: boolean;
   flagSobMedida: boolean;
   representante: string;
+  representanteContratante: string | null;
+  clienteEhEmpresa: boolean;
   cidadeEmissao: string;
 };
 
@@ -245,6 +247,21 @@ export function ContratoForm({
             defaultValue={inicial.representante}
           />
         </div>
+        {/* Empresa contratante assina por alguém; pessoa física assina por si. */}
+        {inicial.clienteEhEmpresa && (
+          <div className="space-y-1.5">
+            <Label htmlFor="representanteContratante">
+              Quem assina pelo cliente
+            </Label>
+            <Input
+              id="representanteContratante"
+              name="representanteContratante"
+              placeholder="nome de quem assina pela empresa"
+              disabled={!editavel}
+              defaultValue={inicial.representanteContratante ?? ""}
+            />
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="cidadeEmissao">Cidade de emissão</Label>
           <Input

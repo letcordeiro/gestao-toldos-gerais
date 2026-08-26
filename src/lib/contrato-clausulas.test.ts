@@ -173,7 +173,7 @@ test("qualificacaoPartes: CPF/CNPJ do contratante entra no texto", () => {
   });
   assert.match(q.contratada, /CNPJ sob o nº 02\.873\.343\/0001-96/);
   assert.match(q.contratada, /João Pedro Avelar/);
-  assert.match(q.contratante, /CPF\/CNPJ sob o nº 123\.456\.789-00/);
+  assert.match(q.contratante, /CPF sob o nº 123\.456\.789-00/);
 });
 
 test("qualificacaoPartes: emitente do contrato (Alvorada) entra completo", () => {
@@ -203,6 +203,91 @@ test("qualificacaoPartes: campos opcionais ausentes não deixam sobra no texto",
   assert.equal(/nome fantasia/.test(q.contratada), false);
   assert.equal(/Inscrição Estadual/.test(q.contratada), false);
   assert.match(q.contratada, /Rua Um, 1, neste ato representada/);
+});
+
+test("qualificacaoPartes: contratante com CNPJ é qualificado como empresa", () => {
+  const q = qualificacaoPartes(
+    dados({
+      contratante: {
+        nome: "DAYRELL HOTEL E CONVENÇÕES LTDA",
+        documento: "17.218.983/0001-30",
+        endereco: "Rua Espírito Santo, 901 – Centro – Belo Horizonte/MG",
+        telefone: "(31) 3248-1000",
+        email: "obras@dayrell.com.br",
+        representante: "Tatiana Oliveira",
+      },
+    }),
+    { razaoSocial: "X", cnpj: "0", endereco: "Y" }
+  );
+  assert.match(q.contratante, /pessoa jurídica de direito privado/);
+  assert.match(q.contratante, /CNPJ sob o nº 17\.218\.983\/0001-30/);
+  assert.match(q.contratante, /com sede em Rua Espírito Santo/);
+  assert.match(q.contratante, /neste ato representada por Tatiana Oliveira/);
+  assert.match(q.contratante, /denominada CONTRATANTE\.$/);
+  // empresa não é "residente e domiciliada"
+  assert.equal(/residente e domiciliad/.test(q.contratante), false);
+});
+
+test("qualificacaoPartes: empresa sem representante deixa linha para preencher", () => {
+  const q = qualificacaoPartes(
+    dados({
+      contratante: {
+        nome: "Empresa X Ltda",
+        documento: "17218983000130",
+        endereco: "Rua Um, 1",
+        telefone: "(31) 3000-0000",
+        email: null,
+      },
+    }),
+    { razaoSocial: "X", cnpj: "0", endereco: "Y" }
+  );
+  assert.match(q.contratante, /neste ato representada por ____________________/);
+});
+
+test("observações técnicas com várias linhas viram parágrafos", () => {
+  const c = montarClausulas(
+    dados({
+      observacoesTecnicas:
+        "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO\n\nEstrutura em perfis 50 x 50 mm.\nCalha metálica estrutural.",
+    })
+  );
+  const p = c[0].paragrafos;
+  assert.equal(p[1], "Observações técnicas:");
+  assert.equal(p[2], "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO");
+  assert.equal(p[3], "Estrutura em perfis 50 x 50 mm.");
+  assert.equal(p[4], "Calha metálica estrutural.");
+});
+
+test("observação técnica de uma linha só continua inline", () => {
+  const c = montarClausulas(dados({ observacoesTecnicas: "Lona bege." }));
+  assert.equal(c[0].paragrafos[1], "Observações técnicas: Lona bege.");
+});
+
+test("frasePagamento: parcelas por prazo listam os vencimentos", () => {
+  const f = frasePagamento(
+    linha({
+      rotulo: "Saldo",
+      tipo: "saldo",
+      valor: 8960000,
+      meio: "boleto",
+      numeroParcelas: 3,
+      gatilho: "dias_apos_assinatura",
+      diasApos: 30,
+    })
+  );
+  assert.match(f, /em 3x no boleto bancário/);
+  assert.match(
+    f,
+    /com vencimentos em 30, 60 e 90 dias contados da assinatura deste instrumento/
+  );
+});
+
+test("frasePagamento: parcela única por prazo continua no singular", () => {
+  const f = frasePagamento(
+    linha({ numeroParcelas: 1, gatilho: "dias_apos_assinatura", diasApos: 30 })
+  );
+  assert.match(f, /em até 30 \(trinta\) dias da assinatura deste instrumento/);
+  assert.equal(/vencimentos em/.test(f), false);
 });
 
 test("avisoVersao: só a partir da versão 2", () => {

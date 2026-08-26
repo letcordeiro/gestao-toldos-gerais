@@ -106,6 +106,7 @@ export async function carregarDadosContrato(
       endereco: enderecoCompleto(cliente) || null,
       telefone: cliente.telefone,
       email: cliente.email,
+      representante: contrato.representanteContratante,
     },
     itens: itens.map((i) => ({
       modelo: i.modelo,

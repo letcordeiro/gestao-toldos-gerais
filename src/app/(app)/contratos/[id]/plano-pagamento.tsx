@@ -29,6 +29,7 @@ const GATILHOS: { valor: GatilhoPagamento; rotulo: string }[] = [
   { valor: "entrega_material", rotulo: "Na entrega do material" },
   { valor: "conclusao_instalacao", rotulo: "Na conclusão da instalação" },
   { valor: "dias_apos_instalacao", rotulo: "Dias após a instalação" },
+  { valor: "dias_apos_assinatura", rotulo: "Dias após a assinatura" },
   { valor: "data_fixa", rotulo: "Data fixa" },
 ];
 
@@ -101,7 +102,10 @@ export function PlanoPagamento({
       ...l,
       numeroParcelas: l.numeroParcelas < 1 ? 1 : l.numeroParcelas,
       diasApos:
-        l.gatilho === "dias_apos_instalacao" ? (l.diasApos ?? 0) : l.diasApos,
+        l.gatilho === "dias_apos_instalacao" ||
+        l.gatilho === "dias_apos_assinatura"
+          ? (l.diasApos ?? 0)
+          : l.diasApos,
     }));
     setLinhas(normalizadas);
     startTransition(async () => {
@@ -304,10 +308,13 @@ export function PlanoPagamento({
                   ))}
                 </select>
               </div>
-              {linha.gatilho === "dias_apos_instalacao" && (
+              {(linha.gatilho === "dias_apos_instalacao" ||
+                linha.gatilho === "dias_apos_assinatura") && (
                 <div className="space-y-1">
                   <Label htmlFor={`dias-${i}`} className="text-xs">
-                    Dias após a instalação
+                    {linha.gatilho === "dias_apos_assinatura"
+                      ? "Dias após a assinatura"
+                      : "Dias após a instalação"}
                   </Label>
                   <Input
                     id={`dias-${i}`}
