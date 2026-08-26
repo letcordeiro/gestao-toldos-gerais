@@ -12,6 +12,7 @@ import {
   MEIO_LABEL,
   PRESETS,
   validarPlanoPagamento,
+  validarPlanoPercentual,
   type GatilhoPagamento,
   type LinhaPagamento,
   type MeioPagamento,
@@ -46,16 +47,22 @@ export function PlanoPagamento({
   valorTotal,
   linhasIniciais,
   editavel,
+  modoOpcoes = false,
 }: {
   contratoId: number;
   valorTotal: number;
   linhasIniciais: LinhaPagamento[];
   editavel: boolean;
+  /** Contrato com opções de preço: as linhas são percentuais e somam 100%. */
+  modoOpcoes?: boolean;
 }) {
   const [linhas, setLinhas] = useState<LinhaPagamento[]>(linhasIniciais);
   const [pending, startTransition] = useTransition();
 
-  const validacao = validarPlanoPagamento(linhas, valorTotal);
+  const validacaoValor = validarPlanoPagamento(linhas, valorTotal);
+  const validacaoPercent = validarPlanoPercentual(linhas);
+  const validacao = modoOpcoes ? validacaoPercent : validacaoValor;
+  const somaPercent = validacaoPercent.soma;
 
   const alterar = (i: number, campo: keyof LinhaPagamento, valor: unknown) => {
     setLinhas((atual) =>
@@ -80,7 +87,18 @@ export function PlanoPagamento({
         ordem: atual.length,
         rotulo: "Parcela",
         tipo: "parcela",
-        valor: Math.max(0, valorTotal - atual.reduce((s, l) => s + l.valor, 0)),
+        // A linha nova já nasce fechando o que falta — em reais ou em %.
+        valor: modoOpcoes
+          ? 0
+          : Math.max(0, valorTotal - atual.reduce((s, l) => s + l.valor, 0)),
+        percentual: modoOpcoes
+          ? Math.max(
+              0,
+              Math.round(
+                (100 - atual.reduce((s, l) => s + (l.percentual ?? 0), 0)) * 100
+              ) / 100
+            )
+          : null,
         meio: "pix",
         numeroParcelas: 1,
         gatilho: "assinatura",
@@ -123,8 +141,14 @@ export function PlanoPagamento({
         return;
       }
       // Reflete localmente sem esperar o reload do server component.
-      const { gerarPreset } = await import("@/lib/contratos");
-      setLinhas(gerarPreset(preset, valorTotal));
+      const { gerarPreset, gerarPresetPercentual } = await import(
+        "@/lib/contratos"
+      );
+      setLinhas(
+        modoOpcoes
+          ? gerarPresetPercentual(preset)
+          : gerarPreset(preset, valorTotal)
+      );
       toast.success("Preset aplicado");
     });
   };
@@ -171,22 +195,48 @@ export function PlanoPagamento({
               </div>
               <div className="space-y-1">
                 <Label htmlFor={`valor-${i}`} className="text-xs">
-                  Valor
+                  {modoOpcoes ? "% do valor" : "Valor"}
                 </Label>
-                <Input
-                  id={`valor-${i}`}
-                  inputMode="decimal"
-                  className="w-32 text-right tabular-nums"
-                  disabled={!editavel}
-                  value={(linha.valor / 100).toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                  onChange={(e) => {
-                    const mascarado = mascaraMoeda(e.target.value);
-                    alterar(i, "valor", parseParaCentavos(mascarado) ?? 0);
-                  }}
-                />
+                {modoOpcoes ? (
+                  <Input
+                    id={`valor-${i}`}
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    inputMode="decimal"
+                    className="w-32 text-right tabular-nums"
+                    disabled={!editavel}
+                    // vazio enquanto digita, como nas parcelas
+                    value={linha.percentual ?? ""}
+                    onChange={(e) => {
+                      const texto = e.target.value;
+                      alterar(
+                        i,
+                        "percentual",
+                        texto === "" ? null : Number(texto)
+                      );
+                    }}
+                    onBlur={() => {
+                      if (linha.percentual == null) alterar(i, "percentual", 0);
+                    }}
+                  />
+                ) : (
+                  <Input
+                    id={`valor-${i}`}
+                    inputMode="decimal"
+                    className="w-32 text-right tabular-nums"
+                    disabled={!editavel}
+                    value={(linha.valor / 100).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    onChange={(e) => {
+                      const mascarado = mascaraMoeda(e.target.value);
+                      alterar(i, "valor", parseParaCentavos(mascarado) ?? 0);
+                    }}
+                  />
+                )}
               </div>
               {editavel && (
                 <div className="flex items-end gap-1">
@@ -366,16 +416,24 @@ export function PlanoPagamento({
         role="status"
         aria-live="polite"
       >
-        <span>
-          Soma das linhas:{" "}
-          <strong className="tabular-nums">
-            {formatarCentavos(validacao.soma)}
-          </strong>{" "}
-          · Valor do contrato:{" "}
-          <strong className="tabular-nums">
-            {formatarCentavos(valorTotal)}
-          </strong>
-        </span>
+        {modoOpcoes ? (
+          <span>
+            Soma dos percentuais:{" "}
+            <strong className="tabular-nums">{somaPercent}%</strong> · precisa
+            fechar <strong className="tabular-nums">100%</strong>
+          </span>
+        ) : (
+          <span>
+            Soma das linhas:{" "}
+            <strong className="tabular-nums">
+              {formatarCentavos(validacaoValor.soma)}
+            </strong>{" "}
+            · Valor do contrato:{" "}
+            <strong className="tabular-nums">
+              {formatarCentavos(valorTotal)}
+            </strong>
+          </span>
+        )}
         <span
           className={cn(
             "font-semibold",
@@ -384,9 +442,13 @@ export function PlanoPagamento({
         >
           {validacao.ok
             ? "Confere"
-            : `${validacao.diferenca > 0 ? "Sobra" : "Falta"} ${formatarCentavos(
-                Math.abs(validacao.diferenca)
-              )}`}
+            : modoOpcoes
+              ? `${somaPercent > 100 ? "Sobra" : "Falta"} ${
+                  Math.round(Math.abs(100 - somaPercent) * 100) / 100
+                }%`
+              : `${
+                  validacaoValor.diferenca > 0 ? "Sobra" : "Falta"
+                } ${formatarCentavos(Math.abs(validacaoValor.diferenca))}`}
         </span>
       </div>
 

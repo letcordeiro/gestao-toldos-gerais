@@ -32,6 +32,8 @@ export type DadosForm = {
   representante: string;
   representanteContratante: string | null;
   clienteEhEmpresa: boolean;
+  /** Contrato com opções de preço: o valor fechado deixa de valer. */
+  modoOpcoes: boolean;
   cidadeEmissao: string;
 };
 
@@ -75,6 +77,12 @@ export function ContratoForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="valorTotalVisivel">Valor total do contrato</Label>
+          {inicial.modoOpcoes && (
+            <p className="text-xs text-amber-600">
+              Este contrato tem opções de preço — quem manda são elas, este
+              campo não entra no documento.
+            </p>
+          )}
           <Input
             id="valorTotalVisivel"
             inputMode="decimal"

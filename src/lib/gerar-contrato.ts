@@ -11,6 +11,7 @@ import {
   clientes,
   contratoAditivos,
   contratoItens,
+  contratoOpcoes,
   contratoPagamentos,
   contratos,
 } from "@/db/schema";
@@ -60,6 +61,12 @@ export async function carregarDadosContrato(
     .where(eq(contratoPagamentos.contratoId, contrato.id))
     .orderBy(asc(contratoPagamentos.ordem));
 
+  const opcoes = await db
+    .select()
+    .from(contratoOpcoes)
+    .where(eq(contratoOpcoes.contratoId, contrato.id))
+    .orderBy(asc(contratoOpcoes.ordem));
+
   const aditivos = await db
     .select()
     .from(contratoAditivos)
@@ -71,6 +78,7 @@ export async function carregarDadosContrato(
     rotulo: p.rotulo,
     tipo: p.tipo,
     valor: p.valor,
+    percentual: p.percentual,
     meio: p.meio,
     numeroParcelas: p.numeroParcelas,
     gatilho: p.gatilho,
@@ -108,6 +116,7 @@ export async function carregarDadosContrato(
       email: cliente.email,
       representante: contrato.representanteContratante,
     },
+    opcoes: opcoes.map((o) => ({ rotulo: o.rotulo, valor: o.valor })),
     itens: itens.map((i) => ({
       modelo: i.modelo,
       cor: i.cor,

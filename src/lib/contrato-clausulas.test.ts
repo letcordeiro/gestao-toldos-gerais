@@ -17,6 +17,7 @@ const linha = (over: Partial<LinhaPagamento> = {}): LinhaPagamento => ({
   rotulo: "Sinal/entrada",
   tipo: "sinal",
   valor: 199500,
+  percentual: null,
   meio: "pix",
   numeroParcelas: 1,
   gatilho: "assinatura",
@@ -288,6 +289,59 @@ test("frasePagamento: parcela única por prazo continua no singular", () => {
   );
   assert.match(f, /em até 30 \(trinta\) dias da assinatura deste instrumento/);
   assert.equal(/vencimentos em/.test(f), false);
+});
+
+test("cláusula de valor com opções lista os preços e o plano em percentual", () => {
+  const c = montarClausulas(
+    dados({
+      valorTotal: 0,
+      opcoes: [
+        { rotulo: "16,20 × 3,00 m", valor: 4841000 },
+        { rotulo: "16,20 × 4,55 m", valor: 8960000 },
+      ],
+      pagamentos: [
+        linha({ rotulo: "Sinal/entrada", tipo: "sinal", valor: 0, percentual: 50 }),
+        linha({
+          rotulo: "Saldo",
+          tipo: "saldo",
+          valor: 0,
+          percentual: 50,
+          meio: "boleto",
+          numeroParcelas: 3,
+          gatilho: "dias_apos_assinatura",
+          diasApos: 30,
+        }),
+      ],
+    })
+  );
+  const valor = c[1];
+  assert.match(valor.paragrafos[0], /corresponde à opção contratada/);
+  assert.equal(
+    valor.itens?.[0],
+    "Opção A — 16,20 × 3,00 m: R$ 48.410,00 (quarenta e oito mil quatrocentos e dez reais)."
+  );
+  assert.match(valor.itens?.[1] ?? "", /^Opção B — 16,20 × 4,55 m: R\$ 89\.600,00/);
+  // o plano vem DEPOIS da lista de opções, senão o % não tem sobre o que incidir
+  assert.match(valor.paragrafosFinais?.[0] ?? "", /indicada por escrito/);
+  assert.equal(valor.paragrafosFinais?.[1], "O pagamento será realizado da seguinte forma:");
+  assert.match(
+    valor.itensFinais?.[0] ?? "",
+    /^Sinal\/entrada: 50% \(cinquenta por cento\) do valor da opção contratada/
+  );
+  assert.match(
+    valor.itensFinais?.[1] ?? "",
+    /com vencimentos em 30, 60 e 90 dias contados da assinatura/
+  );
+  // sem valor fixo no parágrafo do sinal — o valor ainda não existe
+  assert.match(valor.paragrafoUnico ?? "", /sinal confirma o negócio/);
+  assert.equal(/R\$/.test(valor.paragrafoUnico ?? ""), false);
+});
+
+test("sem opções, a cláusula de valor continua como antes", () => {
+  const c = montarClausulas(dados());
+  assert.match(c[1].paragrafos[0], /O valor total do presente contrato é de R\$/);
+  assert.equal(c[1].paragrafosFinais, undefined);
+  assert.equal(c[1].itensFinais, undefined);
 });
 
 test("avisoVersao: só a partir da versão 2", () => {

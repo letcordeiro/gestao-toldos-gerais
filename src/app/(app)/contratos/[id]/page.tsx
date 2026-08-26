@@ -8,6 +8,7 @@ import {
   contratoAditivos,
   contratoEventos,
   contratoItens,
+  contratoOpcoes,
   contratos,
   orcamentos,
 } from "@/db/schema";
@@ -19,7 +20,9 @@ import { carregarDadosContrato } from "@/lib/gerar-contrato";
 import { ehPessoaJuridica } from "@/lib/contrato-clausulas";
 import {
   compararComOrigem,
+  lerSnapshot,
   podeFazer,
+  temOpcoes,
   STATUS_LABEL,
   type SnapshotContrato,
   type StatusContrato,
@@ -37,6 +40,7 @@ import { AcoesContrato } from "./acoes-contrato";
 import { ContratoForm } from "./contrato-form";
 import { DocumentoCliente } from "./documento-cliente";
 import { ItensContrato } from "./itens-contrato";
+import { OpcoesPreco } from "./opcoes-preco";
 import { PlanoPagamento } from "./plano-pagamento";
 
 export const metadata = { title: "Contrato" };
@@ -92,6 +96,13 @@ export default async function ContratoPage({
     .where(eq(contratoItens.contratoId, contratoId))
     .orderBy(asc(contratoItens.ordem));
 
+  const opcoes = await db
+    .select()
+    .from(contratoOpcoes)
+    .where(eq(contratoOpcoes.contratoId, contratoId))
+    .orderBy(asc(contratoOpcoes.ordem));
+  const modoOpcoes = temOpcoes(opcoes);
+
   const eventos = await db
     .select()
     .from(contratoEventos)
@@ -105,9 +116,7 @@ export default async function ContratoPage({
     .orderBy(asc(contratoAditivos.numero));
 
   // Divergência com o orçamento de origem — avisa, nunca sincroniza sozinho.
-  const snapshot: SnapshotContrato | null = contrato.snapshot
-    ? (JSON.parse(contrato.snapshot) as SnapshotContrato)
-    : null;
+  const snapshot = lerSnapshot(contrato.snapshot);
   const itensOrcamento = await db.query.orcamentoItens.findMany({
     where: (t, { eq: igual }) => igual(t.orcamentoId, contrato.orcamentoId),
   });
@@ -156,7 +165,12 @@ export default async function ContratoPage({
             >
               {orcamento.numero}
             </Link>{" "}
-            · {formatarCentavos(contrato.valorTotal)}
+            ·{" "}
+            {modoOpcoes
+              ? `${opcoes.length} opções: ${opcoes
+                  .map((o) => formatarCentavos(o.valor))
+                  .join(" ou ")}`
+              : formatarCentavos(contrato.valorTotal)}
           </p>
         </div>
       </div>
@@ -265,6 +279,7 @@ export default async function ContratoPage({
                   representante: contrato.representante,
                   representanteContratante: contrato.representanteContratante,
                   clienteEhEmpresa: ehPessoaJuridica(cliente.documento),
+                  modoOpcoes,
                   cidadeEmissao: contrato.cidadeEmissao,
                 }}
               />
@@ -291,6 +306,22 @@ export default async function ContratoPage({
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Opções de preço</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OpcoesPreco
+                contratoId={contrato.id}
+                editavel={editavel}
+                opcoesIniciais={opcoes.map((o) => ({
+                  rotulo: o.rotulo,
+                  valor: o.valor,
+                }))}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Plano de pagamento</CardTitle>
             </CardHeader>
             <CardContent>
@@ -298,6 +329,7 @@ export default async function ContratoPage({
                 contratoId={contrato.id}
                 valorTotal={contrato.valorTotal}
                 editavel={editavel}
+                modoOpcoes={modoOpcoes}
                 linhasIniciais={carregado.dados.pagamentos}
               />
             </CardContent>

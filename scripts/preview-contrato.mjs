@@ -40,7 +40,7 @@ INSERT INTO orcamento_itens (orcamento_id, descricao, valor_min, ordem)
 `);
 
 const token = "exemplo";
-const VALOR = 4841000; // R$ 48.410,00 (opção A)
+const VALOR = 0; // sem valor fechado: quem manda são as opções
 const OBS = [
   "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO",
   "Fornecimento e instalação de cobertura tipo pérgola, composta por estrutura em perfis de alumínio 50 x 50 mm, com terças distribuídas em espaçamentos aproximados de 1,05 m, acabamento anodizado na cor Bronze 1002.",
@@ -62,7 +62,16 @@ sqlite
     VALOR,
     OBS,
     token,
-    JSON.stringify({ cliente: { nome: "DAYRELL HOTEL E CONVENÇÕES LTDA" } })
+    JSON.stringify({
+      cliente: {
+        nome: "DAYRELL HOTEL E CONVENÇÕES LTDA",
+        documento: "17.218.983/0001-30",
+        endereco: "Rua Espírito Santo, 901",
+        telefone: "(31) 3248-1000",
+        email: "obras@dayrell.com.br",
+      },
+      orcamento: { numero: `${ano}-001`, status: "aprovado", valorTotal: 4841000 },
+    })
   );
 sqlite
   .prepare(
@@ -70,17 +79,28 @@ sqlite
      VALUES (1,0,'Cobertura tipo pérgola em alumínio','Bronze 1002','16,20 × 3,00 m','policarbonato alveolar 10 mm Ouro Refletivo')`
   )
   .run();
+// Duas opções de preço: sem valor fechado, o plano vira percentual.
 sqlite
   .prepare(
-    `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, meio, numero_parcelas, gatilho, dias_apos)
-     VALUES (1,0,'Sinal/entrada','sinal',?,'pix',1,'assinatura',NULL)`
+    `INSERT INTO contrato_opcoes (contrato_id, ordem, rotulo, valor) VALUES (1,0,'16,20 × 3,00 m',4841000)`
   )
-  .run(VALOR / 2);
+  .run();
 sqlite
   .prepare(
-    `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, meio, numero_parcelas, gatilho, dias_apos)
-     VALUES (1,1,'Saldo','saldo',?,'boleto',3,'dias_apos_assinatura',30)`
+    `INSERT INTO contrato_opcoes (contrato_id, ordem, rotulo, valor) VALUES (1,1,'16,20 × 4,55 m',8960000)`
   )
-  .run(VALOR / 2);
+  .run();
+sqlite
+  .prepare(
+    `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, percentual, meio, numero_parcelas, gatilho, dias_apos)
+     VALUES (1,0,'Sinal/entrada','sinal',0,50,'pix',1,'assinatura',NULL)`
+  )
+  .run();
+sqlite
+  .prepare(
+    `INSERT INTO contrato_pagamentos (contrato_id, ordem, rotulo, tipo, valor, percentual, meio, numero_parcelas, gatilho, dias_apos)
+     VALUES (1,1,'Saldo','saldo',0,50,'boleto',3,'dias_apos_assinatura',30)`
+  )
+  .run();
 
 console.log("banco:", dbPath, "token:", token);

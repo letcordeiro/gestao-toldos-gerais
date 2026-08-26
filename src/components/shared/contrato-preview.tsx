@@ -67,6 +67,18 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
               ))}
             </ol>
           )}
+          {c.paragrafosFinais?.map((p, j) => (
+            <p key={j} className="text-justify">
+              {p}
+            </p>
+          ))}
+          {c.itensFinais && c.itensFinais.length > 0 && (
+            <ol className="ml-4 list-[lower-alpha] space-y-0.5 text-justify">
+              {c.itensFinais.map((item, j) => (
+                <li key={j}>{item}</li>
+              ))}
+            </ol>
+          )}
           {c.paragrafoUnico && (
             <p className="text-justify italic text-muted-foreground">
               {c.paragrafoUnico}

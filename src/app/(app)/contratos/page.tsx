@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { and, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
-import { clientes, contratos, orcamentos } from "@/db/schema";
+import { clientes, contratoOpcoes, contratos, orcamentos } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { formatarCentavos } from "@/lib/format";
@@ -81,6 +81,27 @@ export default async function ContratosPage({
     .innerJoin(orcamentos, eq(contratos.orcamentoId, orcamentos.id))
     .where(filtros.length ? and(...filtros) : undefined)
     .orderBy(desc(contratos.criadoEm));
+
+  // Contrato com opções não tem valor fechado: a lista mostra a faixa.
+  // Busca todas de uma vez e agrupa aqui — sem subquery correlacionada.
+  const todasOpcoes = linhas.length
+    ? await db
+        .select()
+        .from(contratoOpcoes)
+        .where(
+          inArray(
+            contratoOpcoes.contratoId,
+            linhas.map((l) => l.id)
+          )
+        )
+        .orderBy(asc(contratoOpcoes.ordem))
+    : [];
+  const opcoesPorContrato = new Map<number, number[]>();
+  for (const o of todasOpcoes) {
+    const atual = opcoesPorContrato.get(o.contratoId) ?? [];
+    atual.push(o.valor);
+    opcoesPorContrato.set(o.contratoId, atual);
+  }
 
   return (
     <div className="space-y-4">
@@ -163,7 +184,17 @@ export default async function ContratosPage({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {formatarCentavos(linha.valorTotal)}
+                  {(() => {
+                    const vs = opcoesPorContrato.get(linha.id);
+                    if (!vs || vs.length === 0) {
+                      return formatarCentavos(linha.valorTotal);
+                    }
+                    const min = Math.min(...vs);
+                    const max = Math.max(...vs);
+                    return min === max
+                      ? formatarCentavos(min)
+                      : `${formatarCentavos(min)} – ${formatarCentavos(max)}`;
+                  })()}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground lg:table-cell">
                   {linha.orcamentoNumero}

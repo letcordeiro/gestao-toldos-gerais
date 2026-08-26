@@ -5,6 +5,7 @@
 import { valorPorExtenso } from "./valor-extenso";
 import {
   ESCOPO_LABEL,
+  letraOpcao,
   MEIO_LABEL,
   type EscopoContrato,
   type GatilhoPagamento,
@@ -87,6 +88,8 @@ export type DadosContrato = {
     descricaoExtra: string | null;
   }>;
   pagamentos: LinhaPagamento[];
+  /** Duas ou mais = contrato com opções de preço (pagamento em percentual). */
+  opcoes?: Array<{ rotulo: string; valor: number }>;
   aditivos?: Array<{
     numero: number;
     objeto: string;
@@ -148,9 +151,25 @@ function listaDeVencimentos(parcelas: number, intervalo: number): string {
   return `${dias.join(", ")} e ${ultimo}`;
 }
 
+/** "50% (cinquenta por cento)"; percentual quebrado sai só em número. */
+function percentualPorExtenso(p: number): string {
+  const texto = Number.isInteger(p)
+    ? `${p}% (${valorPorExtensoSimples(p)} por cento)`
+    : `${String(p).replace(".", ",")}%`;
+  return texto;
+}
+
 /** Uma linha do plano de pagamento vira uma frase legível do contrato. */
 export function frasePagamento(linha: LinhaPagamento): string {
-  const partes = [`${linha.rotulo}: ${moedaComExtenso(linha.valor)}`];
+  // Modo opções: o valor só existe depois que o cliente escolhe, então a
+  // linha fala em percentual do valor da opção contratada.
+  const abertura =
+    linha.percentual != null
+      ? `${linha.rotulo}: ${percentualPorExtenso(
+          linha.percentual
+        )} do valor da opção contratada`
+      : `${linha.rotulo}: ${moedaComExtenso(linha.valor)}`;
+  const partes = [abertura];
   const escalonado =
     linha.numeroParcelas > 1 &&
     linha.diasApos != null &&
@@ -188,6 +207,11 @@ export type Clausula = {
   paragrafos: string[];
   /** Itens em lista (a, b, c) dentro da cláusula. */
   itens?: string[];
+  /** Parágrafos que vêm DEPOIS da lista de itens. */
+  paragrafosFinais?: string[];
+  /** Segunda lista, no fim — usada pelo plano de pagamento quando a cláusula
+   *  já gastou a primeira lista com as opções de preço. */
+  itensFinais?: string[];
   /** Parágrafo único destacado ao final. */
   paragrafoUnico?: string;
 };
@@ -243,19 +267,55 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
 
   // 2 — DO VALOR E DA FORMA DE PAGAMENTO
   // O valor cobre MATERIAIS + MÃO DE OBRA (correção em relação ao modelo antigo).
-  const pagamento: Clausula = {
-    titulo: "DO VALOR E DA FORMA DE PAGAMENTO",
-    paragrafos: [
-      `O valor total do presente contrato é de ${moedaComExtenso(
-        dados.valorTotal
-      )}, compreendendo o fornecimento dos materiais e a mão de obra de instalação.`,
+  const opcoes = dados.opcoes ?? [];
+  const modoOpcoes = opcoes.length > 0;
+
+  const pagamento: Clausula = modoOpcoes
+    ? {
+        titulo: "DO VALOR E DA FORMA DE PAGAMENTO",
+        paragrafos: [
+          "O valor total do presente contrato, compreendendo o fornecimento dos " +
+            "materiais e a mão de obra de instalação, corresponde à opção contratada " +
+            "pelo CONTRATANTE dentre as seguintes:",
+        ],
+        // As opções entram como lista (a, b, c…), como os itens do objeto.
+        itens: opcoes.map(
+          (o, i) =>
+            `Opção ${letraOpcao(i)} — ${o.rotulo}: ${moedaComExtenso(o.valor)}.`
+        ),
+      }
+    : {
+        titulo: "DO VALOR E DA FORMA DE PAGAMENTO",
+        paragrafos: [
+          `O valor total do presente contrato é de ${moedaComExtenso(
+            dados.valorTotal
+          )}, compreendendo o fornecimento dos materiais e a mão de obra de instalação.`,
+          "O pagamento será realizado da seguinte forma:",
+        ],
+        itens: dados.pagamentos.map(frasePagamento),
+      };
+
+  if (modoOpcoes) {
+    // Com opções, o plano vem depois da lista de preços — senão o leitor vê
+    // percentuais antes de saber sobre o quê incidem.
+    pagamento.paragrafosFinais = [
+      "A opção contratada será indicada por escrito pelo CONTRATANTE no ato da " +
+        "assinatura deste instrumento, passando o respectivo valor a ser o valor " +
+        "total do contrato para todos os efeitos.",
       "O pagamento será realizado da seguinte forma:",
-    ],
-    itens: dados.pagamentos.map(frasePagamento),
-  };
+    ];
+    pagamento.itensFinais = dados.pagamentos.map(frasePagamento);
+  }
+
   // "Sinal" só é mencionado quando existe de fato e é menor que o total.
   const sinal = dados.pagamentos.find((p) => p.tipo === "sinal");
-  if (sinal && sinal.valor < dados.valorTotal) {
+  if (modoOpcoes) {
+    if (sinal && (sinal.percentual ?? 0) < 100) {
+      pagamento.paragrafoUnico =
+        "Parágrafo único. O valor pago a título de sinal confirma o negócio e " +
+        "autoriza o início da fabricação, sendo abatido do valor total contratado.";
+    }
+  } else if (sinal && sinal.valor < dados.valorTotal) {
     pagamento.paragrafoUnico =
       `Parágrafo único. O valor pago a título de sinal, ${moedaComExtenso(
         sinal.valor

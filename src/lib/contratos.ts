@@ -38,12 +38,62 @@ export type LinhaPagamento = {
   rotulo: string;
   tipo: TipoPagamento;
   valor: number; // centavos
+  /** Modo opções: percentual do valor da opção contratada (soma tem que dar 100). */
+  percentual: number | null;
   meio: MeioPagamento;
   numeroParcelas: number;
   gatilho: GatilhoPagamento;
   diasApos: number | null;
   dataVencimento: string | null; // "yyyy-MM-dd"
 };
+
+/** Uma alternativa de preço do mesmo contrato. */
+export type OpcaoPreco = {
+  ordem: number;
+  rotulo: string;
+  valor: number; // centavos
+};
+
+/** "Opção A", "Opção B"… pela ordem. */
+export function letraOpcao(ordem: number): string {
+  return String.fromCharCode(65 + ordem);
+}
+
+/** Duas ou mais opções colocam o contrato em modo opções. */
+export function temOpcoes(opcoes: readonly OpcaoPreco[]): boolean {
+  return opcoes.length > 0;
+}
+
+export type ValidacaoPercentual = {
+  ok: boolean;
+  soma: number;
+  mensagem: string | null;
+};
+
+/**
+ * Modo opções: as linhas são percentuais e precisam somar 100.
+ * Arredonda em 2 casas antes de comparar — 33,33 + 33,33 + 33,34 fecha.
+ */
+export function validarPlanoPercentual(
+  linhas: readonly { percentual?: number | null }[]
+): ValidacaoPercentual {
+  const soma =
+    Math.round(linhas.reduce((s, l) => s + (l.percentual ?? 0), 0) * 100) / 100;
+  if (linhas.length === 0) {
+    return { ok: false, soma: 0, mensagem: "O plano de pagamento está vazio." };
+  }
+  if (soma === 100) return { ok: true, soma, mensagem: null };
+  return {
+    ok: false,
+    soma,
+    mensagem:
+      soma > 100
+        ? `Os percentuais somam ${soma}% — passam de 100%.`
+        : `Os percentuais somam ${soma}% — faltam ${
+            Math.round((100 - soma) * 100) / 100
+          }%.`,
+  };
+}
 
 export const ESCOPO_LABEL: Record<EscopoContrato, string> = {
   fabricacao: "Fabricação e instalação",
@@ -228,11 +278,47 @@ export type OpcoesPreset = {
 };
 
 /** Gera as linhas de um preset. `personalizado` devolve lista vazia. */
+/**
+ * Presets sempre nascem com valor fechado; o modo opções converte depois
+ * (gerarPresetPercentual). Por isso o miolo devolve linhas sem `percentual`.
+ */
 export function gerarPreset(
   preset: PresetPlano,
   valorTotal: number,
   opcoes: OpcoesPreset = {}
 ): LinhaPagamento[] {
+  return gerarPresetValores(preset, valorTotal, opcoes).map((l) => ({
+    ...l,
+    percentual: null,
+  }));
+}
+
+/** Mesmo preset, mas em percentual — para contrato com opções de preço. */
+export function gerarPresetPercentual(
+  preset: PresetPlano,
+  opcoes: OpcoesPreset = {}
+): LinhaPagamento[] {
+  // Base fictícia só para reaproveitar a divisão do preset; o que sai daqui é
+  // percentual, não dinheiro.
+  const BASE = 1_000_000;
+  const linhas = gerarPresetValores(preset, BASE, opcoes);
+  // Centésimos de ponto percentual, em inteiro. Arredondar cada linha por
+  // conta própria estoura 100% (3 × 16,67 = 50,01); o resto vai para a última.
+  const centesimos = linhas.map((l) => Math.floor((l.valor * 10000) / BASE));
+  const sobra = 10000 - centesimos.reduce((a, b) => a + b, 0);
+  if (centesimos.length > 0) centesimos[centesimos.length - 1] += sobra;
+  return linhas.map((l, i) => ({
+    ...l,
+    valor: 0,
+    percentual: centesimos[i] / 100,
+  }));
+}
+
+function gerarPresetValores(
+  preset: PresetPlano,
+  valorTotal: number,
+  opcoes: OpcoesPreset = {}
+): Omit<LinhaPagamento, "percentual">[] {
   const entradaPercent = opcoes.entradaPercent ?? 50;
   const dataBase = opcoes.dataBase ?? new Date().toISOString().slice(0, 10);
   const entrada = Math.round((valorTotal * entradaPercent) / 100);
@@ -324,7 +410,7 @@ export function gerarPreset(
     case "entrada_parcelas_mensais": {
       const n = opcoes.parcelas ?? 3;
       const valores = dividirCentavos(saldo, n);
-      const linhas: LinhaPagamento[] = [
+      const linhas: Omit<LinhaPagamento, "percentual">[] = [
         {
           ordem: 0,
           rotulo: "Sinal/entrada",
@@ -369,12 +455,19 @@ export type DadosPendencia = {
   localInstalacao: string;
   valorTotal: number;
   itens: readonly unknown[];
-  pagamentos: readonly Pick<LinhaPagamento, "valor">[];
+  pagamentos: readonly {
+    valor: number;
+    percentual?: number | null;
+  }[];
+  opcoes?: readonly OpcaoPreco[];
 };
 
 /** Lista o que falta para emitir. Vazio = pode emitir. */
 export function pendenciasParaEmitir(dados: DadosPendencia): string[] {
   const faltas: string[] = [];
+  const opcoes = dados.opcoes ?? [];
+  const modoOpcoes = temOpcoes(opcoes);
+
   if (!dados.clienteNome.trim()) faltas.push("Nome do cliente");
   if (!dados.clienteDocumento?.trim()) {
     faltas.push(
@@ -383,8 +476,27 @@ export function pendenciasParaEmitir(dados: DadosPendencia): string[] {
   }
   if (!dados.clienteEndereco?.trim()) faltas.push("Endereço do cliente");
   if (!dados.localInstalacao.trim()) faltas.push("Local da instalação");
-  if (dados.valorTotal <= 0) faltas.push("Valor total do contrato");
   if (dados.itens.length === 0) faltas.push("Ao menos um item no contrato");
+
+  if (modoOpcoes) {
+    // Uma opção só não é opção: ou vira valor fechado, ou ganha companhia.
+    if (opcoes.length < 2) {
+      faltas.push(
+        "Opções de preço: com uma opção só, use o valor total fechado"
+      );
+    }
+    opcoes.forEach((o, i) => {
+      if (!o.rotulo.trim()) {
+        faltas.push(`Opção ${letraOpcao(i)}: falta a descrição`);
+      }
+      if (o.valor <= 0) faltas.push(`Opção ${letraOpcao(i)}: falta o valor`);
+    });
+    const plano = validarPlanoPercentual(dados.pagamentos);
+    if (!plano.ok) faltas.push(`Plano de pagamento: ${plano.mensagem}`);
+    return faltas;
+  }
+
+  if (dados.valorTotal <= 0) faltas.push("Valor total do contrato");
   const plano = validarPlanoPagamento(dados.pagamentos, dados.valorTotal);
   if (!plano.ok) {
     faltas.push(`Plano de pagamento: ${plano.mensagem}`);
@@ -410,6 +522,22 @@ export type SnapshotContrato = {
     valorTotal: number;
   };
 };
+
+/**
+ * Lê o snapshot gravado na emissão. Snapshot corrompido ou de formato antigo
+ * vira `null` (= sem comparação) em vez de derrubar a tela do contrato.
+ */
+export function lerSnapshot(bruto: string | null): SnapshotContrato | null {
+  if (!bruto) return null;
+  try {
+    const s = JSON.parse(bruto) as Partial<SnapshotContrato>;
+    if (!s?.cliente || !s?.orcamento) return null;
+    if (typeof s.orcamento.valorTotal !== "number") return null;
+    return s as SnapshotContrato;
+  } catch {
+    return null;
+  }
+}
 
 export type Divergencia = { campo: string; noContrato: string; hoje: string };
 

@@ -220,8 +220,24 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
   maior que 1 escreve "com vencimentos em 30, 60 e 90 dias contados da
   assinatura" em vez de "em até 30 dias". Vale também para
   `dias_apos_instalacao`.
-- **Ainda não existe**: contrato com duas opções de preço (A/B) — para isso o
-  caminho é o orçamento, e o contrato nasce depois que o cliente escolhe.
+- **Opções de preço** (migration `0020_contrato_opcoes`): tabela
+  `contrato_opcoes` + coluna `contrato_pagamentos.percentual`. Duas ou mais
+  opções colocam o contrato em **modo opções**: `valorTotal` deixa de valer, a
+  Cláusula Segunda lista "Opção A / Opção B" com os valores e o plano de
+  pagamento passa a ser **em percentual, somando 100%** (a validação de reais é
+  trocada pela de percentual, inclusive nas pendências de emissão). O documento
+  ganha um parágrafo dizendo que a opção contratada é indicada por escrito na
+  assinatura. Lista vazia devolve o contrato ao valor fechado. Modo inferido de
+  `temOpcoes()` — não há coluna de modo.
+  - `gerarPresetPercentual` converte os presets para %, distribuindo a sobra do
+    arredondamento na última linha (3 × 16,67 estouraria 100%).
+  - `Clausula` ganhou `paragrafosFinais`/`itensFinais` para o plano poder vir
+    DEPOIS da lista de opções — sem isso o leitor via percentual antes de saber
+    sobre o que incide.
+  - Lista de contratos mostra a faixa ("R$ 48.410,00 – R$ 89.600,00").
+- **Snapshot defensivo**: `lerSnapshot()` devolve `null` para snapshot corrompido
+  ou de formato antigo. Antes, `JSON.parse` direto derrubava a tela inteira do
+  contrato com um snapshot parcial.
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
 

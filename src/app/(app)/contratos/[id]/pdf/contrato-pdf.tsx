@@ -132,6 +132,16 @@ function Clausulas({ dados }: { dados: DadosContrato }) {
               {String.fromCharCode(97 + j)}) {item}
             </Text>
           ))}
+          {c.paragrafosFinais?.map((p, j) => (
+            <Text key={j} style={styles.paragrafo}>
+              {p}
+            </Text>
+          ))}
+          {c.itensFinais?.map((item, j) => (
+            <Text key={j} style={styles.item}>
+              {String.fromCharCode(97 + j)}) {item}
+            </Text>
+          ))}
           {c.paragrafoUnico ? (
             <Text style={styles.paragrafoUnico}>{c.paragrafoUnico}</Text>
           ) : null}

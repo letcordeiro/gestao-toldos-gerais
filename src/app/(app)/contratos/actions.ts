@@ -12,6 +12,7 @@ import {
   contratoAditivos,
   contratoEventos,
   contratoItens,
+  contratoOpcoes,
   contratoPagamentos,
   contratos,
   modelosToldo,
@@ -23,6 +24,8 @@ import { enderecoCompleto } from "@/lib/endereco";
 import {
   calcularRetencao,
   gerarPreset,
+  gerarPresetPercentual,
+  temOpcoes,
   pendenciasParaEmitir,
   podeFazer,
   proximoNumeroAditivo,
@@ -210,6 +213,7 @@ export async function gerarContratoDoOrcamento(orcamentoId: number) {
         rotulo: l.rotulo,
         tipo: l.tipo,
         valor: l.valor,
+        percentual: l.percentual ?? null,
         meio: l.meio,
         numeroParcelas: l.numeroParcelas,
         gatilho: l.gatilho,
@@ -336,6 +340,51 @@ const itemSchema = z.object({
   descricaoExtra: z.string().trim().optional(),
 });
 
+const opcaoSchema = z.object({
+  rotulo: z.string().trim().max(200),
+  valor: z.coerce.number().int().min(0),
+});
+
+/**
+ * Opções de preço do contrato. Duas ou mais colocam o contrato em modo opções
+ * (plano de pagamento em percentual); lista vazia volta ao valor fechado.
+ */
+export async function salvarOpcoesContrato(
+  contratoId: number,
+  opcoes: unknown
+): Promise<{ erro?: string }> {
+  const id = z.coerce.number().int().positive().parse(contratoId);
+  const acesso = await exigirAcesso(id);
+  if (!acesso) return { erro: "Contrato não encontrado" };
+  if (!podeFazer(acesso.contrato.status as StatusContrato, "editar")) {
+    return { erro: "Contrato já emitido não pode ser editado." };
+  }
+  const parsed = z.array(opcaoSchema).safeParse(opcoes);
+  if (!parsed.success) return { erro: "Opções inválidas" };
+
+  await db.delete(contratoOpcoes).where(eq(contratoOpcoes.contratoId, id));
+  if (parsed.data.length > 0) {
+    await db.insert(contratoOpcoes).values(
+      parsed.data.map((o, idx) => ({
+        contratoId: id,
+        ordem: idx,
+        rotulo: o.rotulo,
+        valor: o.valor,
+      }))
+    );
+  }
+  await registrarEvento(
+    id,
+    "editado",
+    parsed.data.length > 0
+      ? `Opções de preço atualizadas (${parsed.data.length})`
+      : "Opções de preço removidas — contrato voltou ao valor fechado",
+    nomeUsuario(acesso.usuario)
+  );
+  revalidatePath(`/contratos/${id}`);
+  return {};
+}
+
 export async function salvarItensContrato(
   contratoId: number,
   itens: unknown
@@ -377,6 +426,7 @@ const pagamentoSchema = z.object({
   rotulo: z.string().trim().min(1),
   tipo: z.enum(["sinal", "parcela", "saldo"]),
   valor: z.coerce.number().int().min(0),
+  percentual: z.coerce.number().min(0).max(100).nullable().optional(),
   meio: z.enum([
     "pix",
     "cartao_credito",
@@ -392,6 +442,7 @@ const pagamentoSchema = z.object({
     "entrega_material",
     "conclusao_instalacao",
     "dias_apos_instalacao",
+    "dias_apos_assinatura",
     "data_fixa",
   ]),
   diasApos: z.coerce.number().int().min(0).max(365).nullable().optional(),
@@ -452,7 +503,13 @@ export async function aplicarPresetPlano(
   if (!podeFazer(acesso.contrato.status as StatusContrato, "editar")) {
     return { erro: "Contrato já emitido não pode ser editado." };
   }
-  const linhas = gerarPreset(preset, acesso.contrato.valorTotal, opcoes);
+  const opcoesPreco = await db
+    .select()
+    .from(contratoOpcoes)
+    .where(eq(contratoOpcoes.contratoId, id));
+  const linhas = temOpcoes(opcoesPreco)
+    ? gerarPresetPercentual(preset, opcoes)
+    : gerarPreset(preset, acesso.contrato.valorTotal, opcoes);
   return salvarPlanoPagamento(id, linhas);
 }
 
@@ -487,10 +544,18 @@ async function dadosParaPendencias(contratoId: number) {
     .from(contratoItens)
     .where(eq(contratoItens.contratoId, contratoId));
   const pagamentos = await db
-    .select({ valor: contratoPagamentos.valor })
+    .select({
+      valor: contratoPagamentos.valor,
+      percentual: contratoPagamentos.percentual,
+    })
     .from(contratoPagamentos)
     .where(eq(contratoPagamentos.contratoId, contratoId));
-  return { contrato, cliente, itens, pagamentos };
+  const opcoes = await db
+    .select()
+    .from(contratoOpcoes)
+    .where(eq(contratoOpcoes.contratoId, contratoId))
+    .orderBy(asc(contratoOpcoes.ordem));
+  return { contrato, cliente, itens, pagamentos, opcoes };
 }
 
 export async function emitirContrato(
@@ -514,6 +579,7 @@ export async function emitirContrato(
     valorTotal: dados.contrato.valorTotal,
     itens: dados.itens,
     pagamentos: dados.pagamentos,
+    opcoes: dados.opcoes,
   });
   if (faltas.length > 0) return { pendencias: faltas };
 
@@ -656,11 +722,27 @@ export async function criarNovaVersao(
         rotulo: p.rotulo,
         tipo: p.tipo,
         valor: p.valor,
+        percentual: p.percentual,
         meio: p.meio,
         numeroParcelas: p.numeroParcelas,
         gatilho: p.gatilho,
         diasApos: p.diasApos,
         dataVencimento: p.dataVencimento,
+      }))
+    );
+  }
+  const opcoesAntigas = await db
+    .select()
+    .from(contratoOpcoes)
+    .where(eq(contratoOpcoes.contratoId, id))
+    .orderBy(asc(contratoOpcoes.ordem));
+  if (opcoesAntigas.length > 0) {
+    await db.insert(contratoOpcoes).values(
+      opcoesAntigas.map((o) => ({
+        contratoId: novo.id,
+        ordem: o.ordem,
+        rotulo: o.rotulo,
+        valor: o.valor,
       }))
     );
   }

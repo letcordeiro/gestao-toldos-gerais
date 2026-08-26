@@ -379,6 +379,10 @@ export const contratoPagamentos = sqliteTable("contrato_pagamentos", {
   rotulo: text("rotulo").notNull(),
   tipo: text("tipo", { enum: ["sinal", "parcela", "saldo"] }).notNull(),
   valor: integer("valor").notNull(), // centavos
+  // Contrato com opções de preço não tem valor fechado: a linha vale um
+  // percentual do valor da opção que o cliente escolher. Nesse modo `valor`
+  // fica em 0 e quem manda é `percentual`.
+  percentual: real("percentual"),
   meio: text("meio", {
     enum: [
       "pix",
@@ -403,6 +407,21 @@ export const contratoPagamentos = sqliteTable("contrato_pagamentos", {
   }).notNull(),
   diasApos: integer("dias_apos"),
   dataVencimento: integer("data_vencimento", { mode: "timestamp" }),
+});
+
+// Opções de preço do MESMO contrato (ex.: mesma pérgola em 3,00 m ou 4,55 m).
+// Duas ou mais linhas colocam o contrato em "modo opções": o valor total deixa
+// de ser fechado e o plano de pagamento passa a ser em percentual. O cliente
+// indica por escrito qual contratou na hora de assinar.
+export const contratoOpcoes = sqliteTable("contrato_opcoes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contratoId: integer("contrato_id")
+    .notNull()
+    .references(() => contratos.id, { onDelete: "cascade" }),
+  ordem: integer("ordem").notNull().default(0),
+  // O que diferencia a opção — medidas, acabamento, o que for.
+  rotulo: text("rotulo").notNull(),
+  valor: integer("valor").notNull(), // centavos
 });
 
 // Aditivos: mudanças DEPOIS da assinatura. Cumulativos e numerados por contrato.
