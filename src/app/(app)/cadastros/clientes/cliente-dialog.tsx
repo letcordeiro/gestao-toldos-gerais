@@ -49,8 +49,9 @@ export function ClienteDialog({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg">
+        {/* Grudados: o formulário com endereço passa da altura da tela. */}
+        <DialogHeader className="sticky top-0 z-10 -mx-4 -mt-4 border-b bg-popover px-4 pb-2 pt-4">
           <DialogTitle>
             {cliente ? "Editar cliente" : "Novo cliente"}
           </DialogTitle>
@@ -61,28 +62,30 @@ export function ClienteDialog({
             <Label htmlFor="nome">Nome *</Label>
             <Input id="nome" name="nome" defaultValue={cliente?.nome} />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="telefone">Telefone / WhatsApp *</Label>
-            <InputTelefone
-              id="telefone"
-              name="telefone"
-              defaultValue={cliente?.telefone}
-              required
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="telefone">Telefone / WhatsApp *</Label>
+              <InputTelefone
+                id="telefone"
+                name="telefone"
+                defaultValue={cliente?.telefone}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="documento">CPF / CNPJ</Label>
+              <Input
+                id="documento"
+                name="documento"
+                inputMode="numeric"
+                placeholder="para gerar contrato"
+                defaultValue={cliente?.documento ?? ""}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail</Label>
             <Input id="email" name="email" defaultValue={cliente?.email ?? ""} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="documento">CPF / CNPJ</Label>
-            <Input
-              id="documento"
-              name="documento"
-              inputMode="numeric"
-              placeholder="Necessário para gerar contrato"
-              defaultValue={cliente?.documento ?? ""}
-            />
           </div>
           <CamposEndereco
             obrigatorio
@@ -98,9 +101,11 @@ export function ClienteDialog({
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>
           )}
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Salvando…" : "Salvar"}
-          </Button>
+          <div className="sticky bottom-0 -mx-4 -mb-4 border-t bg-popover px-4 py-3">
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

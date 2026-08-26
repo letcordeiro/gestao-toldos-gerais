@@ -60,8 +60,10 @@ export function NovoAtendimentoDialog({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger render={<Button>Novo atendimento</Button>} />
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg">
+        {/* Cabeçalho e botão grudados: o formulário é longo e, rolando, dava
+            para perder de vista tanto o título quanto o "Criar atendimento". */}
+        <DialogHeader className="sticky top-0 z-10 -mx-4 -mt-4 border-b bg-popover px-4 pb-2 pt-4">
           <DialogTitle>Novo atendimento</DialogTitle>
         </DialogHeader>
         <form action={formAction} className="space-y-4">
@@ -79,13 +81,15 @@ export function NovoAtendimentoDialog({
                 <Label htmlFor="nome">Nome *</Label>
                 <Input id="nome" name="nome" />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="telefone">Telefone *</Label>
-                <InputTelefone id="telefone" name="telefone" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" name="email" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="telefone">Telefone *</Label>
+                  <InputTelefone id="telefone" name="telefone" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" name="email" />
+                </div>
               </div>
               {/* CEP busca o endereço sozinho (ViaCEP) e preenche rua, bairro
                   e cidade — mesmo componente do cadastro de clientes. */}
@@ -141,14 +145,16 @@ export function NovoAtendimentoDialog({
           )}
           <div className="space-y-1.5">
             <Label htmlFor="observacoes">Observações</Label>
-            <Textarea id="observacoes" name="observacoes" rows={3} />
+            <Textarea id="observacoes" name="observacoes" rows={2} />
           </div>
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>
           )}
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Criando…" : "Criar atendimento"}
-          </Button>
+          <div className="sticky bottom-0 -mx-4 -mb-4 border-t bg-popover px-4 py-3">
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? "Criando…" : "Criar atendimento"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

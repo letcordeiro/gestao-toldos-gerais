@@ -241,6 +241,18 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
 
+## Diálogos: altura da tela (26/08/2026)
+
+`DialogContent` tem `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto`. Antes, um
+diálogo mais alto que a janela era **cortado em cima e embaixo** — sumia o
+título e o botão de salvar ficava inalcançável (reportado no "Novo
+atendimento"). O X de fechar mora numa faixa `sticky` de altura zero antes do
+conteúdo, então continua no canto depois de rolar.
+
+Formulário longo dentro de diálogo (novo atendimento, cliente) usa
+`DialogHeader` com `sticky top-0` e o botão de salvar num rodapé
+`sticky bottom-0`, ambos com `-mx-4` para encostar nas bordas.
+
 ## Armadilha: `loading.tsx` × Server Actions (25/08/2026)
 
 **Não colocar `loading.tsx` no grupo `(app)`.** Um `loading.tsx` cobrindo o
