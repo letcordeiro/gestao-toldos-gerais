@@ -10,16 +10,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Fase = { id: number; nome: string; cor: string };
+type Fase = { id: number; nome: string; cor: string; total: number };
 
 export function FiltrosFunil({
   fases,
+  totalGeral,
   q,
   fase,
+  ordem,
+  dir,
 }: {
   fases: Fase[];
+  /** Quantos atendimentos a visão padrão mostra (sem os perdidos). */
+  totalGeral: number;
   q?: string;
   fase?: string;
+  ordem?: string;
+  dir?: string;
 }) {
   const router = useRouter();
 
@@ -29,6 +36,9 @@ export function FiltrosFunil({
     const novaFase = mudanca.fase ?? fase ?? "";
     if (novoQ) params.set("q", novoQ);
     if (novaFase) params.set("fase", novaFase);
+    // Filtrar não pode desfazer a ordenação escolhida.
+    if (ordem) params.set("ordem", ordem);
+    if (dir) params.set("dir", dir);
     router.replace(`/atendimentos?${params.toString()}`);
   }
 
@@ -43,25 +53,29 @@ export function FiltrosFunil({
       <Select
         value={fase ?? "todas"}
         items={[
-          { value: "todas", label: "Todas as fases" },
-          ...fases.map((f) => ({ value: String(f.id), label: f.nome })),
+          { value: "todas", label: `Todas as fases (${totalGeral})` },
+          ...fases.map((f) => ({
+            value: String(f.id),
+            label: `${f.nome} (${f.total})`,
+          })),
         ]}
         onValueChange={(v) =>
           atualizar({ fase: !v || v === "todas" ? "" : v })
         }
       >
-        <SelectTrigger className="w-[220px] bg-card">
+        <SelectTrigger className="w-[240px] bg-card">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="todas">Todas as fases</SelectItem>
+          <SelectItem value="todas">Todas as fases ({totalGeral})</SelectItem>
           {fases.map((f) => (
             <SelectItem key={f.id} value={String(f.id)}>
               <span
                 className="inline-block size-2 rounded-full"
                 style={{ backgroundColor: f.cor }}
               />
-              {f.nome}
+              {f.nome}{" "}
+              <span className="text-muted-foreground">({f.total})</span>
             </SelectItem>
           ))}
         </SelectContent>

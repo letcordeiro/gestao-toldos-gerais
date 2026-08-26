@@ -1,5 +1,6 @@
-// Uso interno (não vai para produção): monta um banco novo com um contrato
-// emitido, para conferir o PDF do contrato de ponta a ponta.
+// Uso interno (não vai para produção): monta um banco novo com massa de teste —
+// um contrato emitido (para conferir o PDF de ponta a ponta) e um funil com
+// clientes em fases diferentes (para conferir filtro e ordenação).
 //   node scripts/preview-contrato.mjs  ->  data/preview.db + token
 import fs from "node:fs";
 import path from "node:path";
@@ -104,3 +105,30 @@ sqlite
   .run();
 
 console.log("banco:", dbPath, "token:", token);
+
+// massa do funil — vários clientes e fases, para testar ordenação e filtro
+const nomes = [
+  ["Zulmira Alves","(31) 97000-0001",1,0],["Beatriz Nunes","(31) 97000-0002",3,5],
+  ["Alfredo Matos","(31) 97000-0003",8,2],["Carla Prado","(31) 97000-0004",4,11],
+  ["Ivo Rezende","(31) 97000-0005",9,30],["Marta Lima","(31) 97000-0006",6,1],
+  ["Otávio Bastos","(31) 97000-0007",2,7],["Ana Bueno","(31) 97000-0008",3,3],
+];
+const fasesSeed = [
+  [2,"Visita técnica",2,"#8E7CC3"],[3,"Orçamento enviado",3,"#E5A000"],
+  [4,"Negociação",4,"#FF8500"],[6,"Em produção",6,"#00857A"],
+  [8,"Concluído",8,"#004E36"],[9,"Perdido",9,"#E40014"],[1,"Novo lead",1,"#2F80ED"],
+];
+for (const [id, nome, ordem, cor] of fasesSeed) {
+  sqlite.prepare("INSERT OR IGNORE INTO fases (id,nome,ordem,cor) VALUES (?,?,?,?)").run(id, nome, ordem, cor);
+}
+const agora = Math.floor(Date.now() / 1000);
+nomes.forEach(([nome, tel, faseId, diasAtras], i) => {
+  const cid = 100 + i;
+  sqlite.prepare(`INSERT INTO clientes (id,nome,telefone,ativo) VALUES (?,?,?,1)`).run(cid, nome, tel);
+  const aid = 200 + i;
+  sqlite.prepare(`INSERT INTO atendimentos (id,cliente_id,fase_id,observacoes,criado_em,atualizado_em)
+                  VALUES (?,?,?,?,?,?)`).run(aid, cid, faseId, `obs ${nome}`, agora - diasAtras*86400, agora - i*3600);
+  sqlite.prepare(`INSERT INTO historico_fases (atendimento_id,fase_nova_id,data) VALUES (?,?,?)`)
+        .run(aid, faseId, agora - diasAtras*86400);
+});
+console.log("funil de teste:", nomes.length, "atendimentos");

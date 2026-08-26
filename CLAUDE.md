@@ -110,6 +110,21 @@ src/
 - Toda mudança de fase grava em `historico_fases`
 - Exibir "há X dias nesta fase" em cada linha
 
+## Lista de atendimentos: filtro e ordenação (26/08/2026)
+
+- Os **botões redondos de fase saíram**. Filtrar era a mesma coisa em dois
+  lugares; ficou só o seletor, que agora traz a contagem junto
+  ("Orçamento enviado (13)") — a informação que os botões davam.
+- **Colunas ordenam**: Cliente, Telefone, Status e No status. É `<Link>` puro,
+  estado na URL (`?ordem=&dir=`), então funciona sem javascript e dá para
+  salvar a visão. Clicar na coluna já ativa inverte.
+- Ordenar por **Status usa a ordem do funil**, não o nome da fase. "No status"
+  também é calculado (vem do `historico_fases`), então as duas ordenações
+  acontecem em memória depois da consulta, não no SQL.
+- Filtrar não desfaz a ordenação: `FiltrosFunil` repassa `ordem`/`dir`.
+- **Perdido** continua fora da visão padrão e agora só se chega nele pelo
+  seletor — antes era pelo botão redondo.
+
 ## Auto-cadastro público
 
 - Botão "Gerar link de cadastro" cria token (nanoid, 8 chars), expiração 7 dias, uso único

@@ -41,9 +41,15 @@ function tempoNaFase(desde: Date): string {
 export default async function AtendimentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fase?: string; q?: string }>;
+  searchParams: Promise<{
+    fase?: string;
+    q?: string;
+    ordem?: string;
+    dir?: string;
+  }>;
 }) {
-  const { fase, q } = await searchParams;
+  const { fase, q, ordem, dir } = await searchParams;
+  const crescente = dir !== "desc";
   const usuario = await exigirUsuario();
   // Vendedor vê só os próprios atendimentos; gestor vê todos.
   const escopoVendedor =
@@ -123,6 +129,30 @@ export default async function AtendimentosPage({
     entradas.map((e) => [e.atendimentoId, new Date(e.desde * 1000)])
   );
 
+  // Ordenação por coluna. Feita aqui e não no SQL porque duas das colunas são
+  // calculadas: "No status" sai do histórico de fases e "Status" ordena pela
+  // ordem do funil, não pelo nome da fase.
+  const ordemDaFase = new Map(todasFases.map((f) => [f.id, f.ordem]));
+  const diasNaFase = (l: (typeof linhas)[number]) =>
+    differenceInCalendarDays(
+      new Date(),
+      desdePorAtendimento.get(l.id) ?? l.criadoEm
+    );
+  const CHAVES: Record<
+    string,
+    (a: (typeof linhas)[number], b: (typeof linhas)[number]) => number
+  > = {
+    cliente: (a, b) => a.clienteNome.localeCompare(b.clienteNome, "pt-BR"),
+    telefone: (a, b) => a.clienteTelefone.localeCompare(b.clienteTelefone, "pt-BR"),
+    status: (a, b) =>
+      (ordemDaFase.get(a.faseId) ?? 0) - (ordemDaFase.get(b.faseId) ?? 0),
+    tempo: (a, b) => diasNaFase(a) - diasNaFase(b),
+  };
+  const comparar = ordem ? CHAVES[ordem] : undefined;
+  const linhasOrdenadas = comparar
+    ? [...linhas].sort((a, b) => (crescente ? 1 : -1) * comparar(a, b))
+    : linhas;
+
   // Resumo do funil: total de atendimentos por fase (visão geral, sem filtro)
   const contagens = await db
     .select({
@@ -171,6 +201,44 @@ export default async function AtendimentosPage({
     cor
       ? { backgroundColor: `${cor}1f`, borderColor: `${cor}66` }
       : undefined;
+
+  /**
+   * Cabeçalho que ordena. Clicar na coluna ativa inverte; nas outras, começa
+   * crescente. É um link normal — funciona sem javascript e o estado da
+   * ordenação fica na URL, então dá para salvar e compartilhar a visão.
+   */
+  function Ordenar({
+    chave,
+    children,
+  }: {
+    chave: string;
+    children: React.ReactNode;
+  }) {
+    const ativa = ordem === chave;
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (fase) params.set("fase", fase);
+    params.set("ordem", chave);
+    // Na coluna já ativa, o clique inverte o sentido.
+    if (ativa && crescente) params.set("dir", "desc");
+    return (
+      <Link
+        href={`/atendimentos?${params.toString()}`}
+        aria-label={`Ordenar por ${chave}`}
+        className={`flex w-full items-center gap-1.5 px-4 py-3 text-left transition-colors hover:bg-secondary ${
+          ativa ? "font-semibold text-foreground" : ""
+        }`}
+      >
+        {children}
+        <span
+          aria-hidden
+          className={`text-[10px] ${ativa ? "text-primary" : "opacity-30"}`}
+        >
+          {ativa && !crescente ? "▼" : "▲"}
+        </span>
+      </Link>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -278,54 +346,40 @@ export default async function AtendimentosPage({
           />
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href="/atendimentos"
-          className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-            !fase
-              ? "border-primary bg-primary/10 font-medium text-primary"
-              : "text-muted-foreground hover:bg-secondary"
-          }`}
-        >
-          Todos <span className="text-muted-foreground">({totalGeral})</span>
-        </Link>
-        {todasFases.map((f) => {
-          const n = totalPorFase.get(f.id) ?? 0;
-          if (n === 0 && String(f.id) !== fase) return null;
-          const ativo = String(f.id) === fase;
-          return (
-            <Link
-              key={f.id}
-              href={`/atendimentos?fase=${f.id}`}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
-                ativo
-                  ? "border-primary bg-primary/10 font-medium"
-                  : "text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              <span
-                className="size-2 rounded-full"
-                style={{ backgroundColor: f.cor }}
-              />
-              {f.nome} <span className="text-muted-foreground">({n})</span>
-            </Link>
-          );
-        })}
-      </div>
-      <FiltrosFunil fases={todasFases} q={q} fase={fase} />
+      <FiltrosFunil
+        fases={todasFases.map((f) => ({
+          id: f.id,
+          nome: f.nome,
+          cor: f.cor,
+          total: totalPorFase.get(f.id) ?? 0,
+        }))}
+        totalGeral={totalGeral}
+        q={q}
+        fase={fase}
+        ordem={ordem}
+        dir={dir}
+      />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-              <TableHead>Status do atendimento</TableHead>
-              <TableHead className="hidden sm:table-cell">No status</TableHead>
+              <TableHead className="p-0">
+                <Ordenar chave="cliente">Cliente</Ordenar>
+              </TableHead>
+              <TableHead className="hidden p-0 sm:table-cell">
+                <Ordenar chave="telefone">Telefone</Ordenar>
+              </TableHead>
+              <TableHead className="p-0">
+                <Ordenar chave="status">Status do atendimento</Ordenar>
+              </TableHead>
+              <TableHead className="hidden p-0 sm:table-cell">
+                <Ordenar chave="tempo">No status</Ordenar>
+              </TableHead>
               <TableHead className="hidden md:table-cell">Observações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.length === 0 && (
+            {linhasOrdenadas.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -335,7 +389,7 @@ export default async function AtendimentosPage({
                 </TableCell>
               </TableRow>
             )}
-            {linhas.map((linha) => (
+            {linhasOrdenadas.map((linha) => (
               <TableRow key={linha.id}>
                 <TableCell className="font-medium">
                   <Link
