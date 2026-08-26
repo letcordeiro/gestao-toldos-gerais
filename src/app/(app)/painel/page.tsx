@@ -9,7 +9,7 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { pendenciasDoAviso } from "@/lib/avisos";
 import { formatarCentavos } from "@/lib/format";
 import {
@@ -27,13 +27,14 @@ const FASES_TERMINAIS = ["Concluído", "Perdido"];
 
 export default async function PainelPage() {
   const usuario = await exigirUsuario();
-  const ehGestor = usuario.papel === "gestor";
+  // Gestor e atendente veem os números do negócio inteiro.
+  const veTudo = veFunilInteiro(usuario.papel);
   const escopoAt =
-    !ehGestor && usuario.vendedorId != null
+    !veTudo && usuario.vendedorId != null
       ? eq(atendimentos.vendedorId, usuario.vendedorId)
       : undefined;
   const escopoOrc =
-    !ehGestor && usuario.vendedorId != null
+    !veTudo && usuario.vendedorId != null
       ? eq(orcamentos.vendedorId, usuario.vendedorId)
       : undefined;
 
@@ -85,13 +86,13 @@ export default async function PainelPage() {
     ? (
         await pendenciasDoAviso(
           avisoCobranca,
-          !ehGestor && usuario.vendedorId != null ? usuario.vendedorId : null
+          !veTudo && usuario.vendedorId != null ? usuario.vendedorId : null
         )
       ).length
     : 0;
 
   // Desempenho por vendedor (só gestor)
-  const porVendedor = ehGestor
+  const porVendedor = veTudo
     ? await db
         .select({
           nome: vendedores.nome,
@@ -137,14 +138,14 @@ export default async function PainelPage() {
       <TutorialInicial
         email={usuario.email}
         nome={usuario.nome}
-        ehGestor={ehGestor}
+        ehGestor={veTudo}
         temPerfil={usuario.vendedorId != null}
       />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
         <p className="text-sm text-muted-foreground">
           {usuario.nome ? `Olá, ${usuario.nome.split(" ")[0]}. ` : ""}
-          {ehGestor ? "Visão geral da equipe." : "Seus números."}
+          {veTudo ? "Visão geral da equipe." : "Seus números."}
         </p>
       </div>
 
@@ -216,7 +217,7 @@ export default async function PainelPage() {
           </CardContent>
         </Card>
 
-        {ehGestor && (
+        {veTudo && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Por vendedor</CardTitle>

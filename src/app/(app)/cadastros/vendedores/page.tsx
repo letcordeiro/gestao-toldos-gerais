@@ -19,6 +19,12 @@ import { LinkCadastroVendedor } from "./link-cadastro-vendedor";
 export const metadata = { title: "Vendedores" };
 
 
+const PAPEL_TITULO: Record<"gestor" | "atendente" | "vendedor", string> = {
+  gestor: "Gestor",
+  atendente: "Atendente",
+  vendedor: "Vendedor",
+};
+
 export default async function VendedoresPage() {
   await exigirGestor();
   const linhas = await db
@@ -69,10 +75,14 @@ export default async function VendedoresPage() {
                 <TableCell>
                   <Badge
                     variant={
-                      vendedor.papel === "gestor" ? "default" : "secondary"
+                      vendedor.papel === "gestor"
+                        ? "default"
+                        : vendedor.papel === "atendente"
+                          ? "outline"
+                          : "secondary"
                     }
                   >
-                    {vendedor.papel === "gestor" ? "Gestor" : "Vendedor"}
+                    {PAPEL_TITULO[vendedor.papel]}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm">

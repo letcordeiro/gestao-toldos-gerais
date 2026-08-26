@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserRound } from "lucide-react";
-import { exigirUsuario, encerrarSessao } from "@/lib/auth";
+import { exigirUsuario, encerrarSessao, PAPEL_LABEL } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
 import { BottomNav } from "./bottom-nav";
@@ -13,7 +13,7 @@ async function sair() {
   redirect("/login");
 }
 
-// soGestor: itens de administração escondidos do vendedor.
+// soGestor: itens de administração — só o gestor vê (atendente e vendedor não).
 // curto: rótulo compacto usado no menu inferior (mobile), pra caber em qualquer tela.
 const NAV = [
   { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
@@ -87,7 +87,7 @@ export default async function AppLayout({
                   <span className="truncate">
                     {usuario.nome ?? usuario.email}
                     <span className="hidden sm:inline">
-                      {ehGestor ? " · gestor" : " · vendedor"}
+                      {` · ${PAPEL_LABEL[usuario.papel]}`}
                     </span>
                   </span>
                 </Link>

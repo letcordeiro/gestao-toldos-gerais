@@ -14,7 +14,7 @@ import {
   orcamentoItens,
   orcamentos,
 } from "@/db/schema";
-import { exigirSessao, usuarioAtual } from "@/lib/auth";
+import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
 import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
@@ -146,6 +146,10 @@ export async function criarOrcamento(
 ): Promise<OrcamentoFormState> {
   const usuario = await usuarioAtual();
   if (!usuario) return { erro: "Sessão expirada" };
+  // Atendente faz triagem, não orçamento.
+  if (!podeComercial(usuario.papel)) {
+    return { erro: "Seu acesso não permite criar orçamento." };
+  }
 
   let itensBrutos: unknown;
   try {
@@ -256,7 +260,7 @@ export async function atualizarOrcamento(
   _prev: OrcamentoFormState,
   formData: FormData
 ): Promise<OrcamentoFormState> {
-  await exigirSessao();
+  await exigirComercial();
 
   const orcamentoId = Number(formData.get("orcamentoId"));
   if (!Number.isInteger(orcamentoId) || orcamentoId <= 0) {
@@ -351,7 +355,7 @@ export async function mudarStatusOrcamento(
   orcamentoId: number,
   status: string
 ) {
-  await exigirSessao();
+  await exigirComercial();
   const novoStatus = statusSchema.parse(status);
   const id = z.coerce.number().int().positive().parse(orcamentoId);
 
@@ -383,10 +387,12 @@ export async function mudarStatusOrcamento(
   revalidatePath(`/atendimentos/${orcamento.atendimentoId}`);
 }
 
-// Verifica se o usuário pode mexer no orçamento (gestor = qualquer; vendedor = o seu).
+// Quem pode mexer no orçamento: gestor em qualquer um, vendedor no seu.
+// Atendente não mexe em nenhum.
 async function orcamentoEditavel(orcamentoId: number) {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
+  if (!podeComercial(usuario.papel)) return null;
   const orc = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),
   });
@@ -474,7 +480,7 @@ export async function excluirOrcamento(
 
 // Cria um novo orçamento (rascunho) copiando todos os dados de um existente.
 export async function duplicarOrcamento(formData: FormData) {
-  await exigirSessao();
+  await exigirComercial();
   const id = z.coerce.number().int().positive().parse(formData.get("orcamentoId"));
 
   const original = await db.query.orcamentos.findFirst({

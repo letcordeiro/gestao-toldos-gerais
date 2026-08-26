@@ -12,7 +12,7 @@ import {
   contratos,
   orcamentos,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, podeComercial } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
 import { formatarCentavos } from "@/lib/format";
 import { enderecoCompleto } from "@/lib/endereco";
@@ -85,7 +85,9 @@ export default async function ContratoPage({
 
   const { contrato, cliente, orcamento } = linha;
   const status = contrato.status as StatusContrato;
-  const editavel = podeFazer(status, "editar");
+  // Atendente consulta o contrato, não mexe nele.
+  const ehComercial = podeComercial(usuario.papel);
+  const editavel = ehComercial && podeFazer(status, "editar");
 
   const carregado = await carregarDadosContrato(eq(contratos.id, contratoId));
   if (!carregado) notFound();
@@ -175,12 +177,14 @@ export default async function ContratoPage({
         </div>
       </div>
 
-      <AcoesContrato
-        contratoId={contrato.id}
-        status={status}
-        publicToken={contrato.publicToken}
-        urlBase={base}
-      />
+      {ehComercial ? (
+        <AcoesContrato
+          contratoId={contrato.id}
+          status={status}
+          publicToken={contrato.publicToken}
+          urlBase={base}
+        />
+      ) : null}
 
       {contrato.status === "cancelado" && contrato.motivoCancelamento && (
         <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm">
@@ -222,12 +226,19 @@ export default async function ContratoPage({
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Edição */}
         <div className="space-y-4">
-          {!editavel && (
+          {!ehComercial ? (
             <p className="rounded-lg border bg-secondary/40 p-3 text-sm text-muted-foreground">
-              Contrato {STATUS_LABEL[status].toLowerCase()} — os dados estão
-              congelados. Use <strong>Nova versão</strong> (antes da assinatura)
-              ou <strong>Gerar aditivo</strong> (depois) para mudar algo.
+              Somente consulta — contrato é do vendedor responsável.
             </p>
+          ) : (
+            !editavel && (
+              <p className="rounded-lg border bg-secondary/40 p-3 text-sm text-muted-foreground">
+                Contrato {STATUS_LABEL[status].toLowerCase()} — os dados estão
+                congelados. Use <strong>Nova versão</strong> (antes da
+                assinatura) ou <strong>Gerar aditivo</strong> (depois) para
+                mudar algo.
+              </p>
+            )
           )}
 
           <Card>

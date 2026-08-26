@@ -14,7 +14,7 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirGestor, exigirSessao, usuarioAtual } from "@/lib/auth";
+import { exigirSessao, exigirTriagem, usuarioAtual } from "@/lib/auth";
 
 const novoAtendimentoSchema = z
   .object({
@@ -271,9 +271,9 @@ export async function marcarContatoAviso(
   revalidatePath("/atendimentos");
 }
 
-// Gestor (re)atribui o vendedor responsável por um atendimento.
+// Gestor ou atendente (re)atribui o vendedor responsável por um atendimento.
 export async function atribuirVendedor(atendimentoId: number, vendedorId: number) {
-  await exigirGestor();
+  await exigirTriagem();
   const at = z.coerce.number().int().positive().parse(atendimentoId);
   const vend = z.coerce.number().int().positive().parse(vendedorId);
 

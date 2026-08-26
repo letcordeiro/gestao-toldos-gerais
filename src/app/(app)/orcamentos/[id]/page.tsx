@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
+import { podeComercial } from "@/lib/auth";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
@@ -110,9 +111,11 @@ export default async function OrcamentoPage({
 
 
   // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam.
+  // Atendente só consulta — o comercial não é dela.
   const podeEditar =
-    usuario.papel === "gestor" ||
-    orcamento.orc.vendedorId === usuario.vendedorId;
+    podeComercial(usuario.papel) &&
+    (usuario.papel === "gestor" ||
+      orcamento.orc.vendedorId === usuario.vendedorId);
 
   const { orc, cliente, vendedor } = orcamento;
 
@@ -177,17 +180,21 @@ export default async function OrcamentoPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusSelect orcamentoId={orc.id} status={orc.status} />
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={`/orcamentos/${orc.id}/editar`} />}
-          >
-            Editar
-          </Button>
+          {podeEditar && (
+            <StatusSelect orcamentoId={orc.id} status={orc.status} />
+          )}
+          {podeEditar && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={`/orcamentos/${orc.id}/editar`} />}
+            >
+              Editar
+            </Button>
+          )}
           <form action={duplicarOrcamento}>
             <input type="hidden" name="orcamentoId" value={orc.id} />
-            <Button type="submit" variant="outline">
+            <Button type="submit" variant="outline" disabled={!podeEditar}>
               Duplicar
             </Button>
           </form>
@@ -219,11 +226,13 @@ export default async function OrcamentoPage({
                 <FileSignature className="size-4" /> Ver contrato
               </Button>
             ) : (
-              <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
-                <Button type="submit" variant="outline">
-                  <FileSignature className="size-4" /> Gerar contrato
-                </Button>
-              </form>
+              podeEditar && (
+                <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
+                  <Button type="submit" variant="outline">
+                    <FileSignature className="size-4" /> Gerar contrato
+                  </Button>
+                </form>
+              )
             ))}
           {linkProposta && (
             <Button

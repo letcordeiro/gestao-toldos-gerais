@@ -54,6 +54,24 @@ src/
 
 ## Autenticação
 
+### Papéis (`src/lib/papeis.ts` — regras puras, testadas)
+
+| | gestor | atendente | vendedor |
+|---|---|---|---|
+| Funil, orçamentos, contratos e Painel de **todo mundo** | ✅ | ✅ | só o que é dele |
+| Cadastrar cliente e abrir atendimento | ✅ | ✅ | ✅ |
+| **Escolher/trocar o vendedor** do atendimento | ✅ | ✅ | ❌ |
+| Criar/editar orçamento, ficha e contrato | ✅ | ❌ | os dele |
+| Modelos, Fases, Avisos, Vendedores | ✅ | ❌ (só consulta) | ❌ (só consulta) |
+
+- `veFunilInteiro(papel)` = gestor ou atendente — troca todo `papel === "gestor"`
+  que era **visibilidade**. `podeComercial(papel)` = qualquer um menos atendente.
+- Guards em `auth.ts`: `exigirGestor` (configuração), `exigirTriagem`
+  (direcionar cliente), `exigirComercial` (orçamento/contrato).
+- **Atendente não recebe lead**: fica fora da lista de responsáveis e do link
+  público de cadastro. O papel é uma linha em `vendedores` como as outras.
+- Login de admin do env/`usuarios` (sem linha em `vendedores`) continua gestor.
+
 - Sessão própria: cookie httpOnly `tg_session` com token HMAC-SHA256 (`SESSION_SECRET`), validade 30 dias
 - Usuários em env `AUTH_USERS="email:senha,email2:senha2"` — sem signup público
 - Middleware protege tudo em `(app)/`; `/cadastro/[token]` e `/login` são públicos

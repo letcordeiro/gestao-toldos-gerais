@@ -101,8 +101,10 @@ export const vendedores = sqliteTable("vendedores", {
   email: text("email"),
   // Login do vendedor: quem tem senhaHash consegue entrar no sistema
   senhaHash: text("senha_hash"),
-  // Papel de acesso: gestor vê tudo e gerencia cadastros; vendedor vê só o seu
-  papel: text("papel", { enum: ["gestor", "vendedor"] })
+  // Papel de acesso: gestor faz tudo; atendente vê o funil inteiro e direciona
+  // clientes, sem tocar em orçamento/contrato nem nos cadastros de
+  // configuração; vendedor vê só o que é dele.
+  papel: text("papel", { enum: ["gestor", "atendente", "vendedor"] })
     .notNull()
     .default("vendedor"),
   // Link público de cadastro exclusivo do vendedor (/cadastro/{linkToken}).

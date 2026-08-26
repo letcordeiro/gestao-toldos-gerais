@@ -17,7 +17,7 @@ import {
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
 import { centavosParaInput } from "@/lib/format";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirComercial } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -42,7 +42,8 @@ export default async function EditarOrcamentoPage({
   const orcamentoId = Number(id);
   if (!Number.isInteger(orcamentoId)) notFound();
 
-  const usuario = await exigirUsuario();
+  // Atendente não edita orçamento.
+  const usuario = await exigirComercial();
 
   const orcamento = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),

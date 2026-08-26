@@ -10,7 +10,7 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,10 +56,12 @@ export default async function OrcamentosPage({
     statusParam && statusParam in STATUS_BADGE ? statusParam : undefined;
 
   const usuario = await exigirUsuario();
-  const ehGestor = usuario.papel === "gestor";
+  // Gestor e atendente veem os orçamentos de todo mundo.
+  const veTudo = veFunilInteiro(usuario.papel);
+  const ehComercial = podeComercial(usuario.papel);
   // Vendedor vê só os próprios orçamentos.
   const escopo =
-    !ehGestor && usuario.vendedorId != null
+    !veTudo && usuario.vendedorId != null
       ? eq(orcamentos.vendedorId, usuario.vendedorId)
       : undefined;
 
@@ -113,9 +115,11 @@ export default async function OrcamentosPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Orçamentos</h1>
-        <Button nativeButton={false} render={<Link href="/orcamentos/novo" />}>
-          Novo orçamento
-        </Button>
+        {ehComercial && (
+          <Button nativeButton={false} render={<Link href="/orcamentos/novo" />}>
+            Novo orçamento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -169,7 +173,7 @@ export default async function OrcamentosPage({
             <TableRow>
               <TableHead>Número</TableHead>
               <TableHead>Cliente</TableHead>
-              {ehGestor && (
+              {veTudo && (
                 <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
               )}
               <TableHead>Status</TableHead>
@@ -181,7 +185,7 @@ export default async function OrcamentosPage({
             {linhas.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={ehGestor ? 6 : 5}
+                  colSpan={veTudo ? 6 : 5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {statusFiltro
@@ -200,7 +204,7 @@ export default async function OrcamentosPage({
                     {linha.numero}
                   </TableCell>
                   <TableCell>{linha.clienteNome}</TableCell>
-                  {ehGestor && (
+                  {veTudo && (
                     <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {linha.vendedorNome ?? "—"}
                     </TableCell>

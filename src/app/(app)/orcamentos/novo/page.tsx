@@ -11,7 +11,7 @@ import {
   GARANTIA_PADRAO,
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
-import { vendedorDaSessao } from "@/lib/auth";
+import { exigirComercial, vendedorDaSessao } from "@/lib/auth";
 import { OrcamentoForm } from "@/components/shared/orcamento-form";
 
 export const metadata = { title: "Novo orçamento" };
@@ -22,6 +22,8 @@ export default async function NovoOrcamentoPage({
 }: {
   searchParams: Promise<{ atendimento?: string }>;
 }) {
+  // Atendente faz triagem, não orçamento: cai de volta no funil.
+  await exigirComercial();
   const { atendimento } = await searchParams;
 
   const listaAtendimentos = await db

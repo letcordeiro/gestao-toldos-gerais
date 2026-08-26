@@ -22,7 +22,7 @@ type Vendedor = {
   telefoneFixo: string | null;
   email: string | null;
   temAcesso: boolean;
-  papel: "gestor" | "vendedor";
+  papel: "gestor" | "atendente" | "vendedor";
 };
 
 export function VendedorDialog({
@@ -96,6 +96,9 @@ export function VendedorDialog({
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="vendedor">Vendedor (vê só o que é dele)</option>
+              <option value="atendente">
+                Atendente (vê tudo e direciona, sem orçamento nem cadastros)
+              </option>
               <option value="gestor">Gestor (vê tudo e gerencia)</option>
             </select>
           </div>

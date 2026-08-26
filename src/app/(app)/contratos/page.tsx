@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
 import { clientes, contratoOpcoes, contratos, orcamentos } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { formatarCentavos } from "@/lib/format";
 import { STATUS_LABEL, type StatusContrato } from "@/lib/contratos";
@@ -48,11 +48,12 @@ export default async function ContratosPage({
 }) {
   const { status, q } = await searchParams;
   const usuario = await exigirUsuario();
-  const ehGestor = usuario.papel === "gestor";
+  // Gestor e atendente veem os contratos de todo mundo.
+  const veTudo = veFunilInteiro(usuario.papel);
 
   const filtros = [];
   // Vendedor vê só contratos dos orçamentos dele.
-  if (!ehGestor && usuario.vendedorId != null) {
+  if (!veTudo && usuario.vendedorId != null) {
     filtros.push(eq(orcamentos.vendedorId, usuario.vendedorId));
   }
   if (status && status !== "todos") {

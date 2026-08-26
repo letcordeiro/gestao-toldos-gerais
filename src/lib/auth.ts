@@ -1,4 +1,5 @@
 import "server-only";
+import { podeComercial, veFunilInteiro, type Papel } from "./papeis";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
@@ -124,7 +125,6 @@ export async function vendedorDaSessao(): Promise<{
   return v ? { id: v.id, nome: v.nome } : null;
 }
 
-export type Papel = "gestor" | "vendedor";
 export type UsuarioAtual = {
   email: string;
   papel: Papel;
@@ -159,6 +159,8 @@ export function perfilVendedorCompleto(v: {
  * - Vendedor com login → papel vem da coluna `papel` (gestor|vendedor).
  * - Admin do env/usuarios (ex.: Letícia) → sempre gestor.
  */
+export { PAPEL_LABEL, podeComercial, veFunilInteiro, type Papel } from "./papeis";
+
 export async function usuarioAtual(): Promise<UsuarioAtual | null> {
   const sessao = await getSessao();
   if (!sessao) return null;
@@ -188,10 +190,27 @@ export async function exigirUsuario(): Promise<UsuarioAtual> {
   return u;
 }
 
-/** Exige que o usuário seja gestor; vendedor é mandado de volta pra home. */
+/** Exige que o usuário seja gestor; os demais voltam pra home. */
 export async function exigirGestor(): Promise<UsuarioAtual> {
   const u = await exigirUsuario();
   if (u.papel !== "gestor") redirect("/painel");
+  return u;
+}
+
+/** Exige quem distribui atendimento entre vendedores: gestor ou atendente. */
+export async function exigirTriagem(): Promise<UsuarioAtual> {
+  const u = await exigirUsuario();
+  if (!veFunilInteiro(u.papel)) redirect("/atendimentos");
+  return u;
+}
+
+/**
+ * Exige quem pode mexer no comercial (orçamento e contrato): gestor ou
+ * vendedor. A atendente é barrada aqui.
+ */
+export async function exigirComercial(): Promise<UsuarioAtual> {
+  const u = await exigirUsuario();
+  if (!podeComercial(u.papel)) redirect("/atendimentos");
   return u;
 }
 

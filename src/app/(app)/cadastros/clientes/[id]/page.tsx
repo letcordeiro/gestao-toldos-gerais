@@ -10,7 +10,7 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -46,16 +46,17 @@ export default async function HistoricoClientePage({
   if (!Number.isInteger(clienteId) || clienteId <= 0) notFound();
 
   const usuario = await exigirUsuario();
-  const ehGestor = usuario.papel === "gestor";
+  // Gestor e atendente veem o histórico inteiro do cliente.
+  const veTudo = veFunilInteiro(usuario.papel);
 
   const cliente = await db.query.clientes.findFirst({
     where: eq(clientes.id, clienteId),
   });
   if (!cliente) notFound();
 
-  // Vendedor vê só os atendimentos/orçamentos dele; gestor vê tudo.
+  // Vendedor vê só os atendimentos/orçamentos dele.
   const escopoAtendimento =
-    !ehGestor && usuario.vendedorId != null
+    !veTudo && usuario.vendedorId != null
       ? eq(atendimentos.vendedorId, usuario.vendedorId)
       : undefined;
 
@@ -74,7 +75,7 @@ export default async function HistoricoClientePage({
     .orderBy(desc(atendimentos.criadoEm));
 
   const escopoOrcamento =
-    !ehGestor && usuario.vendedorId != null
+    !veTudo && usuario.vendedorId != null
       ? eq(orcamentos.vendedorId, usuario.vendedorId)
       : undefined;
 

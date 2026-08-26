@@ -11,12 +11,14 @@ import {
   orcamentoInstalacao,
   orcamentos,
 } from "@/db/schema";
-import { usuarioAtual } from "@/lib/auth";
+import { podeComercial, usuarioAtual } from "@/lib/auth";
 
-// Mesma regra do resto do orçamento: vendedor só mexe no que é dele; gestor em tudo.
+// Mesma regra do resto do orçamento: vendedor só mexe no que é dele, gestor em
+// tudo, atendente em nada.
 async function orcamentoPermitido(orcamentoId: number) {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
+  if (!podeComercial(usuario.papel)) return null;
   const orc = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),
   });

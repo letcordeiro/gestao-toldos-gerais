@@ -19,7 +19,7 @@ import {
   orcamentoItens,
   orcamentos,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirComercial, exigirUsuario, podeComercial } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
 import {
   calcularRetencao,
@@ -101,9 +101,13 @@ async function carregarContrato(id: number) {
   return contrato ?? null;
 }
 
-/** Vendedor só mexe em contrato de orçamento dele; gestor mexe em tudo. */
+/**
+ * Vendedor só mexe em contrato de orçamento dele; gestor mexe em tudo;
+ * atendente não mexe em nenhum (faz triagem, não comercial).
+ */
 async function exigirAcesso(contratoId: number) {
   const usuario = await exigirUsuario();
+  if (!podeComercial(usuario.papel)) return null;
   const contrato = await carregarContrato(contratoId);
   if (!contrato) return null;
   if (usuario.papel === "vendedor") {
@@ -128,7 +132,7 @@ function nomeUsuario(u: { nome: string | null; email: string }): string {
  * entrada é o botão "Gerar contrato" na tela do orçamento aprovado.
  */
 export async function gerarContratoDoOrcamento(orcamentoId: number) {
-  const usuario = await exigirUsuario();
+  const usuario = await exigirComercial();
   const id = z.coerce.number().int().positive().parse(orcamentoId);
 
   const [linha] = await db
@@ -518,7 +522,7 @@ export async function salvarDocumentoCliente(
   clienteId: number,
   documento: string
 ): Promise<{ erro?: string }> {
-  await exigirUsuario();
+  await exigirComercial();
   const id = z.coerce.number().int().positive().parse(clienteId);
   const doc = z.string().trim().max(30).parse(documento);
   await db

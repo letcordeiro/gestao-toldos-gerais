@@ -20,7 +20,7 @@ const vendedorSchema = z
       .email("E-mail inválido")
       .optional()
       .or(z.literal("")),
-    papel: z.enum(["gestor", "vendedor"]).default("vendedor"),
+    papel: z.enum(["gestor", "atendente", "vendedor"]).default("vendedor"),
     senha: z.string().optional(),
   })
   .refine((d) => !d.senha || d.senha.length >= 6, {

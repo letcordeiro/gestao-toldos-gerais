@@ -24,7 +24,7 @@ import {
 import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { ObservacoesForm } from "./observacoes-form";
 import { AtribuirVendedor } from "./atribuir-vendedor";
 
@@ -74,19 +74,29 @@ export default async function AtendimentoPage({
 
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
 
-  const ehGestor = usuario.papel === "gestor";
-  // Vendedor responsável atual + (só gestor) lista para reatribuir.
+  // Gestor e atendente redirecionam o cliente entre os vendedores.
+  const podeDirecionar = veFunilInteiro(usuario.papel);
+  // Vendedor responsável atual + lista para reatribuir (gestor e atendente).
   const vendedorAtual = atendimento.vendedorId
     ? await db.query.vendedores.findFirst({
         where: eq(vendedores.id, atendimento.vendedorId),
       })
     : null;
-  const listaVendedores = ehGestor
-    ? await db
-        .select({ id: vendedores.id, nome: vendedores.nome })
-        .from(vendedores)
-        .where(eq(vendedores.ativo, true))
-        .orderBy(asc(vendedores.nome))
+  const listaVendedores = podeDirecionar
+    ? (
+        await db
+          .select({
+            id: vendedores.id,
+            nome: vendedores.nome,
+            papel: vendedores.papel,
+          })
+          .from(vendedores)
+          .where(eq(vendedores.ativo, true))
+          .orderBy(asc(vendedores.nome))
+      )
+        // Atendente não atende cliente: não entra como responsável.
+        .filter((v) => v.papel !== "atendente")
+        .map((v) => ({ id: v.id, nome: v.nome }))
     : [];
 
   const faseAnterior = alias(fases, "fase_anterior");
@@ -183,7 +193,7 @@ export default async function AtendimentoPage({
             </p>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Vendedor:</span>{" "}
-              {ehGestor ? (
+              {podeDirecionar ? (
                 <AtribuirVendedor
                   atendimentoId={atendimento.id}
                   vendedorId={atendimento.vendedorId}

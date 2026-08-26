@@ -10,7 +10,7 @@ import {
   historicoFases,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
 import type { Aviso, PendenciaAviso } from "@/lib/avisos";
 import { BotaoContatoAviso } from "./botao-contato-aviso";
@@ -70,10 +70,15 @@ export default async function AtendimentosPage({
     .where(eq(vendedores.ativo, true))
     .orderBy(asc(vendedores.nome));
 
-  const ehGestor = usuario.papel === "gestor";
-  // Link de cadastro: gestor vê o de todos; vendedor só o seu.
-  const linksCadastro = vendedoresAtivos
-    .filter((v) => v.linkToken && (ehGestor || v.id === usuario.vendedorId))
+  // Quem enxerga o funil inteiro: gestor e atendente.
+  const veTudo = veFunilInteiro(usuario.papel);
+  // Atendente não recebe lead: fica de fora da lista de responsáveis.
+  const vendedoresAtribuiveis = vendedoresAtivos.filter(
+    (v) => v.papel !== "atendente"
+  );
+  // Link de cadastro: quem vê o funil inteiro vê o de todos; vendedor só o seu.
+  const linksCadastro = vendedoresAtribuiveis
+    .filter((v) => v.linkToken && (veTudo || v.id === usuario.vendedorId))
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
 
   const fasePerdido = todasFases.find((f) => f.nome === "Perdido");
@@ -207,7 +212,7 @@ export default async function AtendimentosPage({
                           ? `· orçamento ${p.orcamentoNumero} `
                           : ""}
                         · há {dias} dias
-                        {ehGestor && p.vendedorNome ? ` · ${p.vendedorNome}` : ""}
+                        {veTudo && p.vendedorNome ? ` · ${p.vendedorNome}` : ""}
                       </span>
                       <a
                         href={p.linkWhatsApp}
@@ -244,7 +249,7 @@ export default async function AtendimentosPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
         <div className="flex flex-wrap gap-2">
-          {ehGestor && (
+          {veTudo && (
             <>
               <Button
                 variant="outline"
@@ -265,8 +270,11 @@ export default async function AtendimentosPage({
           <GerarLinkDialog links={linksCadastro} />
           <NovoAtendimentoDialog
             clientes={todosClientes}
-            vendedores={vendedoresAtivos.map((v) => ({ id: v.id, nome: v.nome }))}
-            ehGestor={ehGestor}
+            vendedores={vendedoresAtribuiveis.map((v) => ({
+              id: v.id,
+              nome: v.nome,
+            }))}
+            ehGestor={veTudo}
           />
         </div>
       </div>
