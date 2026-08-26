@@ -80,7 +80,40 @@ export async function salvarVendedor(
     await definirSenhaVendedor(vendedorId, dados.senha);
   }
 
-  revalidatePath("/cadastros/vendedores");
+  revalidatePath("/cadastros/usuarios");
+  return { ok: true };
+}
+
+/**
+ * Gestor redefine a senha de um usuário sem precisar da senha antiga — é a
+ * saída para quem esqueceu. Sem e-mail não há login, então não há o que
+ * redefinir. Senha vazia REMOVE o acesso.
+ */
+export async function redefinirSenhaUsuario(
+  id: number,
+  senha: string
+): Promise<{ erro?: string; ok?: boolean }> {
+  const gestor = await exigirGestor();
+  const usuarioId = z.coerce.number().int().positive().parse(id);
+  const nova = z.string().max(100).parse(senha).trim();
+
+  const alvo = await db.query.vendedores.findFirst({
+    where: eq(vendedores.id, usuarioId),
+  });
+  if (!alvo) return { erro: "Usuário não encontrado" };
+  if (nova && !alvo.email?.trim()) {
+    return { erro: "Cadastre o e-mail do usuário antes de dar acesso." };
+  }
+  if (nova && nova.length < 6) {
+    return { erro: "A senha precisa ter ao menos 6 caracteres." };
+  }
+  // Evita o gestor se trancar para fora tirando o próprio acesso.
+  if (!nova && alvo.email && alvo.email === gestor.email) {
+    return { erro: "Você não pode remover o próprio acesso." };
+  }
+
+  await definirSenhaVendedor(usuarioId, nova);
+  revalidatePath("/cadastros/usuarios");
   return { ok: true };
 }
 
@@ -90,5 +123,5 @@ export async function alternarAtivoVendedor(id: number, ativo: boolean) {
     .update(vendedores)
     .set({ ativo })
     .where(eq(vendedores.id, z.coerce.number().int().positive().parse(id)));
-  revalidatePath("/cadastros/vendedores");
+  revalidatePath("/cadastros/usuarios");
 }

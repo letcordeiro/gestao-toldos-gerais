@@ -22,7 +22,7 @@ const NAV = [
   { href: "/contratos", label: "Contratos", curto: "Contr.", icon: "contratos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
   { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
-  { href: "/cadastros/vendedores", label: "Vendedores", curto: "Vend.", icon: "vendedores", soGestor: true },
+  { href: "/cadastros/usuarios", label: "Usuários", curto: "Usuár.", icon: "usuarios", soGestor: true },
 ];
 
 export default async function AppLayout({
@@ -39,7 +39,7 @@ export default async function AppLayout({
   const navItens = NAV.filter((item) => ehGestor || !item.soGestor);
 
   // No mobile, o gestor tem Modelos e Vendedores agrupados numa aba "Gestor".
-  const AGRUPADOS = ["modelos", "vendedores"];
+  const AGRUPADOS = ["modelos", "usuarios"];
   const bottomItens = ehGestor
     ? navItens.filter((item) => !AGRUPADOS.includes(item.icon))
     : navItens;

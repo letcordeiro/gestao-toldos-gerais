@@ -48,7 +48,7 @@ export function VendedorDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {vendedor ? "Editar vendedor" : "Novo vendedor"}
+            {vendedor ? "Editar usuário" : "Novo usuário"}
           </DialogTitle>
         </DialogHeader>
         <form action={formAction} className="space-y-3">

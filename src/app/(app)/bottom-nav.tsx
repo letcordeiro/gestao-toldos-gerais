@@ -27,7 +27,7 @@ const ICONS: Record<string, LucideIcon> = {
   contratos: FileSignature,
   clientes: Contact,
   modelos: Package,
-  vendedores: Users,
+  usuarios: Users,
   fases: Tag,
   gestor: Settings,
 };

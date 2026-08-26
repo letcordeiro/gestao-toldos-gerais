@@ -62,7 +62,7 @@ src/
 | Cadastrar cliente e abrir atendimento | ✅ | ✅ | ✅ |
 | **Escolher/trocar o vendedor** do atendimento | ✅ | ✅ | ❌ |
 | Criar/editar orçamento, ficha e contrato | ✅ | ❌ | os dele |
-| Modelos, Fases, Avisos, Vendedores | ✅ | ❌ (só consulta) | ❌ (só consulta) |
+| Modelos, Fases, Avisos, Usuários | ✅ | ❌ (só consulta) | ❌ (só consulta) |
 
 - `veFunilInteiro(papel)` = gestor ou atendente — troca todo `papel === "gestor"`
   que era **visibilidade**. `podeComercial(papel)` = qualquer um menos atendente.
@@ -71,6 +71,15 @@ src/
 - **Atendente não recebe lead**: fica fora da lista de responsáveis e do link
   público de cadastro. O papel é uma linha em `vendedores` como as outras.
 - Login de admin do env/`usuarios` (sem linha em `vendedores`) continua gestor.
+- A tela é **`/cadastros/usuarios`** ("Usuários", já que cabem os três papéis).
+  `/cadastros/vendedores` continua respondendo, com redirect permanente. A
+  **tabela do banco segue `vendedores`** — só a rota e os rótulos mudaram; não
+  confundir com a tabela `usuarios`, que guarda os admins do env.
+- **Redefinir senha**: botão por linha na tela de Usuários. Não pede a senha
+  antiga (é a saída para quem esqueceu), gera sugestão de 10 caracteres sem
+  0/O/1/l/I e permite copiar antes de salvar. Sem e-mail não há login, então o
+  diálogo só explica o que falta. "Remover acesso" apaga a senha, mas o gestor
+  é impedido de remover a própria — senão fica trancado do lado de fora.
 
 - Sessão própria: cookie httpOnly `tg_session` com token HMAC-SHA256 (`SESSION_SECRET`), validade 30 dias
 - Usuários em env `AUTH_USERS="email:senha,email2:senha2"` — sem signup público
