@@ -293,7 +293,14 @@ export const avisos = sqliteTable("avisos", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   nome: text("nome").notNull(),
   gatilho: text("gatilho", {
-    enum: ["orcamento_sem_resposta", "atendimento_concluido"],
+    enum: [
+      "orcamento_sem_resposta",
+      "atendimento_concluido",
+      // Régua de cobrança: parcela do contrato vencida há N dias e contrato
+      // emitido há N dias sem assinatura.
+      "parcela_vencida",
+      "contrato_sem_assinatura",
+    ],
   }).notNull(),
   dias: integer("dias").notNull(),
   mensagem: text("mensagem").notNull(),
@@ -441,6 +448,9 @@ export const contratoPagamentos = sqliteTable("contrato_pagamentos", {
   }).notNull(),
   diasApos: integer("dias_apos"),
   dataVencimento: integer("data_vencimento", { mode: "timestamp" }),
+  // Quando o dinheiro entrou. Null = ainda a receber — é o que a régua de
+  // cobrança olha para saber se ainda tem que lembrar o cliente.
+  pagoEm: integer("pago_em", { mode: "timestamp" }),
 });
 
 // Opções de preço do MESMO contrato (ex.: mesma pérgola em 3,00 m ou 4,55 m).

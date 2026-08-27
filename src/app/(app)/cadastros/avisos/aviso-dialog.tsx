@@ -17,7 +17,11 @@ import { salvarAviso, type AvisoFormState } from "./actions";
 type Aviso = {
   id: number;
   nome: string;
-  gatilho: "orcamento_sem_resposta" | "atendimento_concluido";
+  gatilho:
+    | "orcamento_sem_resposta"
+    | "atendimento_concluido"
+    | "parcela_vencida"
+    | "contrato_sem_assinatura";
   dias: number;
   mensagem: string;
   rearmeDias: number | null;
@@ -26,7 +30,8 @@ type Aviso = {
 const VARIAVEIS = [
   ["{cliente}", "primeiro nome do cliente"],
   ["{vendedor}", "primeiro nome do vendedor"],
-  ["{orcamento}", "número do orçamento"],
+  ["{orcamento}", "número do orçamento ou contrato"],
+  ["{valor}", "valor da parcela em atraso"],
   ["{avaliacao}", "link de avaliação no Google"],
 ] as const;
 
@@ -84,6 +89,12 @@ export function AvisoDialog({
                 </option>
                 <option value="atendimento_concluido">
                   Atendimento concluído
+                </option>
+                <option value="parcela_vencida">
+                  Parcela do contrato vencida
+                </option>
+                <option value="contrato_sem_assinatura">
+                  Contrato emitido sem assinatura
                 </option>
               </select>
             </div>

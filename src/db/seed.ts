@@ -1,6 +1,8 @@
+import { inArray } from "drizzle-orm";
 import { db } from "./index";
-import { fases, gatilhos, modelosToldo, motivosPerda } from "./schema";
+import { avisos, fases, gatilhos, modelosToldo, motivosPerda } from "./schema";
 import {
+  AVISOS_COBRANCA,
   FASES,
   GATILHOS,
   MODELOS,
@@ -52,6 +54,30 @@ async function seed() {
     console.log(`✔ ${valores.length} automações criadas`);
   } else {
     console.log("• Automações já existem, pulando");
+  }
+
+  // Régua de cobrança: só entra se ainda não existe nenhum aviso de cobrança.
+  // Assim não duplica em quem já rodou o seed antes.
+  type NovoAviso = typeof avisos.$inferInsert;
+  const cobrancaExistente = await db
+    .select()
+    .from(avisos)
+    .where(
+      inArray(avisos.gatilho, ["parcela_vencida", "contrato_sem_assinatura"])
+    );
+  if (cobrancaExistente.length === 0) {
+    await db.insert(avisos).values(
+      AVISOS_COBRANCA.map((a) => ({
+        nome: a.nome,
+        gatilho: a.gatilho as NovoAviso["gatilho"],
+        dias: a.dias,
+        rearmeDias: a.rearmeDias,
+        mensagem: a.mensagem,
+      }))
+    );
+    console.log(`✔ ${AVISOS_COBRANCA.length} avisos de cobrança criados`);
+  } else {
+    console.log("• Avisos de cobrança já existem, pulando");
   }
 }
 

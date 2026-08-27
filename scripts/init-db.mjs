@@ -8,6 +8,7 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import {
+  AVISOS_COBRANCA,
   FASES,
   GATILHOS,
   MODELOS,
@@ -465,6 +466,27 @@ try {
   }
 } catch (e) {
   console.warn("• automações não semeadas (não crítico):", e.message);
+}
+
+// Régua de cobrança: entra só se não houver nenhum aviso desse tipo ainda.
+try {
+  const n = sqlite
+    .prepare(
+      "SELECT count(*) AS c FROM avisos WHERE gatilho IN ('parcela_vencida','contrato_sem_assinatura')"
+    )
+    .get().c;
+  if (n === 0) {
+    const ins = sqlite.prepare(
+      "INSERT INTO avisos (nome, gatilho, dias, mensagem, rearme_dias, ativo) VALUES (?, ?, ?, ?, ?, 1)"
+    );
+    sqlite.transaction(() => {
+      for (const a of AVISOS_COBRANCA)
+        ins.run(a.nome, a.gatilho, a.dias, a.mensagem, a.rearmeDias);
+    })();
+    console.log(`✔ ${AVISOS_COBRANCA.length} avisos de cobrança criados`);
+  }
+} catch (e) {
+  console.warn("• avisos de cobrança não semeados (não crítico):", e.message);
 }
 
 sqlite.close();

@@ -193,10 +193,15 @@ export default async function AtendimentosPage({
       (f) => f.nome === "Orçamento enviado"
     )?.cor,
     atendimento_concluido: todasFases.find((f) => f.nome === "Concluído")?.cor,
+    // Cobrança não é fase do funil: cor própria (vermelho e laranja da marca).
+    parcela_vencida: "#EF4444",
+    contrato_sem_assinatura: "#FF8500",
   };
   const ICONE: Record<Aviso["gatilho"], string> = {
     orcamento_sem_resposta: "🔔",
     atendimento_concluido: "⭐",
+    parcela_vencida: "💰",
+    contrato_sem_assinatura: "✍️",
   };
   const tintaAviso = (cor?: string) =>
     cor
@@ -264,8 +269,9 @@ export default async function AtendimentosPage({
                       </Link>
                       <span className="text-muted-foreground">
                         {p.orcamentoNumero
-                          ? `· orçamento ${p.orcamentoNumero} `
+                          ? `· ${p.orcamentoNumero} `
                           : ""}
+                        {p.valorTexto ? `· ${p.valorTexto} ` : ""}
                         · há {dias} dias
                         {veTudo && p.vendedorNome ? ` · ${p.vendedorNome}` : ""}
                       </span>

@@ -17,7 +17,8 @@
     "src/lib/contratos.ts",
     "src/lib/papeis.ts",
     "src/lib/ordenacao.ts",
-    "src/lib/tarefas.ts"
+    "src/lib/tarefas.ts",
+    "src/lib/cobranca.ts"
   ],
   "files": [
     "src/lib/valor-extenso.test.ts",
@@ -26,6 +27,7 @@
     "src/lib/contrato-clausulas.test.ts",
     "src/lib/papeis.test.ts",
     "src/lib/ordenacao.test.ts",
-    "src/lib/tarefas.test.ts"
+    "src/lib/tarefas.test.ts",
+    "src/lib/cobranca.test.ts"
   ]
 }

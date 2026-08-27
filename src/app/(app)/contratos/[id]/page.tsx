@@ -9,7 +9,9 @@ import {
   contratoEventos,
   contratoItens,
   contratoOpcoes,
+  contratoPagamentos,
   contratos,
+  orcamentoInstalacao,
   orcamentos,
 } from "@/db/schema";
 import { exigirUsuario, podeComercial } from "@/lib/auth";
@@ -42,6 +44,7 @@ import { DocumentoCliente } from "./documento-cliente";
 import { ItensContrato } from "./itens-contrato";
 import { OpcoesPreco } from "./opcoes-preco";
 import { PlanoPagamento } from "./plano-pagamento";
+import { Recebimentos } from "./recebimentos";
 
 export const metadata = { title: "Contrato" };
 
@@ -91,6 +94,29 @@ export default async function ContratoPage({
 
   const carregado = await carregarDadosContrato(eq(contratos.id, contratoId));
   if (!carregado) notFound();
+
+  // Parcelas com id — o plano de pagamento trabalha com linhas sem id, mas a
+  // baixa de recebimento precisa saber qual linha é qual.
+  const parcelasContrato = await db
+    .select({
+      id: contratoPagamentos.id,
+      rotulo: contratoPagamentos.rotulo,
+      valor: contratoPagamentos.valor,
+      meio: contratoPagamentos.meio,
+      gatilho: contratoPagamentos.gatilho,
+      diasApos: contratoPagamentos.diasApos,
+      dataVencimento: contratoPagamentos.dataVencimento,
+      pagoEm: contratoPagamentos.pagoEm,
+    })
+    .from(contratoPagamentos)
+    .where(eq(contratoPagamentos.contratoId, contratoId))
+    .orderBy(asc(contratoPagamentos.ordem));
+
+  // Conclusão da instalação: a data que faz vencer as parcelas presas a ela.
+  const fichaInstalacao = await db.query.orcamentoInstalacao.findFirst({
+    where: eq(orcamentoInstalacao.orcamentoId, contrato.orcamentoId),
+  });
+  const dataEntregaInstalacao = fichaInstalacao?.dataEntrega ?? null;
 
   const itens = await db
     .select()
@@ -346,6 +372,25 @@ export default async function ContratoPage({
               />
             </CardContent>
           </Card>
+
+          {/* Depois de assinado, o que importa é o que entrou — não o que foi
+              combinado. Por isso a baixa fica num cartão próprio. */}
+          {(contrato.status === "assinado" ||
+            contrato.status === "aditivado") &&
+            parcelasContrato.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Recebimentos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Recebimentos
+                    parcelas={parcelasContrato}
+                    dataAssinatura={contrato.dataAssinatura}
+                    dataEntrega={dataEntregaInstalacao}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
           {aditivos.length > 0 && (
             <Card>

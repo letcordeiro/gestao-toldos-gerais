@@ -110,3 +110,41 @@ export const GATILHOS = [
       "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. Ficou tudo certo com a instalação? Se puder deixar sua avaliação, ajuda muito a gente: {avaliacao}",
   },
 ];
+
+// Régua de cobrança: cada degrau é um aviso próprio, editável depois em
+// Configurações → Avisos. Nascem prontos porque uma régua vazia não cobra
+// ninguém — e cobrança esquecida é dinheiro parado.
+export const AVISOS_COBRANCA = [
+  {
+    nome: "Parcela vencida — 1 dia",
+    gatilho: "parcela_vencida",
+    dias: 1,
+    rearmeDias: 3,
+    mensagem:
+      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. Passando para lembrar da parcela de {valor} do contrato {orcamento}, que venceu ontem. Se já pagou, é só desconsiderar e me mandar o comprovante.",
+  },
+  {
+    nome: "Parcela vencida — 7 dias",
+    gatilho: "parcela_vencida",
+    dias: 7,
+    rearmeDias: 7,
+    mensagem:
+      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. A parcela de {valor} do contrato {orcamento} está com uma semana de atraso. Consegue me dizer como prefere acertar?",
+  },
+  {
+    nome: "Parcela vencida — 15 dias",
+    gatilho: "parcela_vencida",
+    dias: 15,
+    rearmeDias: 15,
+    mensagem:
+      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. A parcela de {valor} do contrato {orcamento} está vencida há mais de 15 dias. Precisamos acertar para não travar o seu atendimento — me chama que a gente resolve.",
+  },
+  {
+    nome: "Contrato sem assinatura",
+    gatilho: "contrato_sem_assinatura",
+    dias: 5,
+    rearmeDias: 5,
+    mensagem:
+      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. O contrato {orcamento} foi enviado e ainda não voltou assinado. Ficou alguma dúvida no documento?",
+  },
+];

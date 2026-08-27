@@ -942,3 +942,48 @@ async function dispararGatilhoDoContrato(
   revalidatePath("/tarefas");
   revalidatePath("/painel");
 }
+
+/**
+ * Marca (ou desmarca) uma parcela como recebida. Vale mesmo com o contrato
+ * assinado — receber não é editar o contrato, é operação do dia a dia.
+ */
+export async function marcarParcelaRecebida(
+  parcelaId: number,
+  recebida: boolean
+): Promise<{ erro?: string }> {
+  const usuario = await exigirUsuario();
+  if (!podeComercial(usuario.papel)) {
+    return { erro: "Seu acesso não permite dar baixa em parcela." };
+  }
+  const id = z.coerce.number().int().positive().parse(parcelaId);
+
+  const [linha] = await db
+    .select({
+      contratoId: contratoPagamentos.contratoId,
+      vendedorId: orcamentos.vendedorId,
+    })
+    .from(contratoPagamentos)
+    .innerJoin(contratos, eq(contratoPagamentos.contratoId, contratos.id))
+    .innerJoin(orcamentos, eq(contratos.orcamentoId, orcamentos.id))
+    .where(eq(contratoPagamentos.id, id));
+  if (!linha) return { erro: "Parcela não encontrada" };
+  if (usuario.papel === "vendedor" && linha.vendedorId !== usuario.vendedorId) {
+    return { erro: "Este contrato não é seu." };
+  }
+
+  await db
+    .update(contratoPagamentos)
+    .set({ pagoEm: recebida ? new Date() : null })
+    .where(eq(contratoPagamentos.id, id));
+
+  await registrarEvento(
+    linha.contratoId,
+    "editado",
+    recebida ? "Parcela marcada como recebida" : "Recebimento de parcela desfeito",
+    nomeUsuario(usuario)
+  );
+  revalidatePath(`/contratos/${linha.contratoId}`);
+  revalidatePath("/atendimentos");
+  revalidatePath("/painel");
+  return {};
+}

@@ -10,7 +10,12 @@ import { exigirGestor } from "@/lib/auth";
 const avisoSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   nome: z.string().trim().min(1, "Dê um nome ao aviso").max(80),
-  gatilho: z.enum(["orcamento_sem_resposta", "atendimento_concluido"]),
+  gatilho: z.enum([
+    "orcamento_sem_resposta",
+    "atendimento_concluido",
+    "parcela_vencida",
+    "contrato_sem_assinatura",
+  ]),
   dias: z.coerce
     .number()
     .int("Dias deve ser um número inteiro")
