@@ -20,6 +20,11 @@ Sistema interno de orçamentos e funil de atendimento da Toldos Gerais Ltda (tol
 - `npm run db:seed` — seed de fases e modelos (idempotente)
 - Env em `.env.local`: `DATABASE_PATH`, `SESSION_SECRET`, `AUTH_USERS`
 - Login local: `leticia@toldosgerais.com.br` / `toldos2026` (trocar em produção)
+  - **Ordem de validação** (`validarCredenciais`): tabela `usuarios` → senha do
+    vendedor → `AUTH_USERS` do env. **Linha em `usuarios` ganha do env**: se a
+    senha for redefinida pela tela, a do `.env.local` para de valer e este
+    trecho aqui passa a mentir. Aconteceu em 27/08/2026 — a saída foi
+    `delete from usuarios where email = '…'`, que devolve o login ao env.
 
 ## Estrutura de pastas
 
@@ -316,6 +321,74 @@ Contrato é **opcional** e nasce de um orçamento aprovado ("Gerar contrato" na 
   contrato com um snapshot parcial.
 - **Seed de exemplo**: `SEED_CONTRATOS=1` no boot cria 2 contratos (rascunho + assinado). Fica atrás de env porque produção tem dados reais.
 
+
+## Tarefas e automações (27/08/2026)
+
+O funil dizia em que pé cada cliente estava, mas não o que fazer a seguir.
+Tarefa é a próxima ação combinada; gatilho é quem cria a tarefa sozinho.
+
+- **Tabelas** (migration `0021_tarefas_gatilhos`): `tarefas`, `gatilhos`,
+  `motivos_perda`. `fases` ganhou `exibirNaListagem`, `terminal` e `ehPerdido`;
+  `atendimentos` ganhou `motivoPerdaId`/`motivoPerdaObs`.
+- **`src/lib/tarefas.ts` é puro** (sem banco, sem date-fns) para rodar no
+  `node --test`, como `contratos.ts` e `papeis.ts`. As consultas ficam em
+  `src/lib/tarefas-consulta.ts`.
+- **Gavetas** organizam a tela: atrasada → hoje → amanhã → próximas → sem data.
+  Tarefa sem data não cobra prazo de ninguém.
+- **`dispararGatilhos(evento, ctx)`** (`src/lib/gatilhos.ts`) é chamado em
+  `mudarFase`, nas duas funções `moverParaOrcamento*` (a fase também muda por
+  ali), em `mudarStatusOrcamento` e em `emitirContrato`/`marcarAssinado`.
+  **Nunca derruba a ação principal**: erro no gatilho é engolido de propósito.
+  Não repete: já existindo tarefa PENDENTE daquela regra para o atendimento,
+  pula — senão vai e volta de fase enchia a lista.
+- **Seed** cria 4 automações (follow-up de orçamento em 3 dias, confirmar
+  visita, cobrar assinatura, pós-venda em 7 dias) e 7 motivos de perda.
+  Idempotente: só na primeira vez.
+
+## Fases carregam comportamento (27/08/2026)
+
+`"Perdido"` estava escrito à mão em quatro lugares. Agora são marcações na tela
+de Fases:
+
+| Marcação | O que muda |
+|---|---|
+| `exibirNaListagem` | fora dela, a fase só aparece escolhendo no filtro |
+| `liberaInstalacao` | negócio fechado: aprova orçamento, libera ficha e contrato |
+| `terminal` | sai da conta de "em aberto" no painel |
+| `ehPerdido` | pede o motivo da perda e recusa os orçamentos que aguardavam |
+
+Ao mover para uma fase `ehPerdido`, o `FaseSelect` para e pergunta o motivo
+(cadastro em Configurações → Motivos de perda). Sair da fase limpa o motivo —
+senão o relatório continuaria contando um negócio que voltou a andar.
+
+## Campos novos do orçamento (27/08/2026)
+
+`introducao` (abre a proposta), `aosCuidadosDe` (vazio = nome do cliente),
+`validadeDias` (padrão 15; vazio = sem prazo) e `observacoesInternas`.
+
+- A validade conta do **envio** (`enviadoEm`), não da criação; sem envio, vale a
+  criação. `textoValidade()` e `aosCuidados()` moram em `src/lib/proposta.ts` e
+  são usados nos **quatro** lugares que renderizam a proposta: PDF
+  (`gerar-proposta.ts`), `/orcamentos/[id]/imprimir`, `/proposta/[token]` e a
+  prévia da tela do orçamento.
+- **`observacoesInternas` nunca sai** no PDF, no imprimir nem na página pública.
+  Duplicar orçamento não copia a anotação: a cópia é outro negócio.
+
+## Painel e navegação (27/08/2026)
+
+- O painel **abre pelo dia**: tarefas atrasadas e de hoje antes dos números.
+  Depois vêm conversão, ticket médio e ciclo de venda (`src/lib/metricas.ts`,
+  tudo derivado de `historico_fases` + `orcamentos`), motivos de perda e
+  **"precisam de atenção"** — sem tarefa marcada e parados há 30+ dias, ou
+  nunca trabalhados.
+- **Navegação segue a rotina**: Painel · Tarefas · Atendimentos · Orçamentos ·
+  Contratos · Clientes. O resto foi para a engrenagem **Configurações**
+  (`menu-config.tsx`): Fases, Automações, Avisos, Motivos de perda, Modelos,
+  Usuários. Fases e Avisos eram telas órfãs, alcançáveis só por um botão dentro
+  de Atendimentos.
+- **Tela do orçamento**: os nove botões do topo viraram uma faixa de
+  **"Próximo passo"** (que muda conforme o status) + `AcoesOrcamento`, um menu
+  com editar, duplicar, link do cliente e excluir.
 
 ## Diálogos: altura da tela (26/08/2026)
 
