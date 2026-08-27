@@ -39,7 +39,8 @@ export function FiltrosFunil({
     // Filtrar não pode desfazer a ordenação escolhida.
     if (ordem) params.set("ordem", ordem);
     if (dir) params.set("dir", dir);
-    router.replace(`/atendimentos?${params.toString()}`);
+    // scroll: false — digitar na busca não pode jogar a página para o topo.
+    router.replace(`/atendimentos?${params.toString()}`, { scroll: false });
   }
 
   return (

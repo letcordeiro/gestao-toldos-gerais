@@ -132,3 +132,25 @@ nomes.forEach(([nome, tel, faseId, diasAtras], i) => {
         .run(aid, faseId, agora - diasAtras*86400);
 });
 console.log("funil de teste:", nomes.length, "atendimentos");
+
+// massa de avisos — um orçamento enviado há 5 dias dispara "cobrar retorno",
+// e um atendimento concluído há 10 dias dispara o pós-venda.
+const dia = 86400;
+sqlite.prepare(`INSERT INTO avisos (id,nome,gatilho,dias,mensagem,rearme_dias,ativo)
+  VALUES (1,'Cobrar retorno do orçamento','orcamento_sem_resposta',3,'Olá, {cliente}! E o orçamento {orcamento}?',3,1)`).run();
+sqlite.prepare(`INSERT INTO avisos (id,nome,gatilho,dias,mensagem,rearme_dias,ativo)
+  VALUES (2,'Pós-venda','atendimento_concluido',7,'Olá, {cliente}! Tudo certo com o toldo?',NULL,1)`).run();
+
+// cliente com orçamento enviado há 5 dias
+sqlite.prepare(`INSERT INTO clientes (id,nome,telefone,ativo) VALUES (300,'Cobrança Teste','(31) 96000-0001',1)`).run();
+sqlite.prepare(`INSERT INTO atendimentos (id,cliente_id,fase_id,criado_em,atualizado_em) VALUES (300,300,3,?,?)`)
+  .run(agora - 8*dia, agora - 5*dia);
+sqlite.prepare(`INSERT INTO orcamentos (id,numero,atendimento_id,status,enviado_em,criado_em)
+  VALUES (300,'${ano}-300',300,'enviado',?,?)`).run(agora - 5*dia, agora - 8*dia);
+
+// cliente concluído há 10 dias (pós-venda, rearme null)
+sqlite.prepare(`INSERT INTO clientes (id,nome,telefone,ativo) VALUES (301,'Pós-venda Teste','(31) 96000-0002',1)`).run();
+sqlite.prepare(`INSERT INTO atendimentos (id,cliente_id,fase_id,criado_em,atualizado_em) VALUES (301,301,8,?,?)`)
+  .run(agora - 30*dia, agora - 10*dia);
+sqlite.prepare(`INSERT INTO historico_fases (atendimento_id,fase_nova_id,data) VALUES (301,8,?)`).run(agora - 10*dia);
+console.log("avisos de teste prontos");

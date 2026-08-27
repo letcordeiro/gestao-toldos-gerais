@@ -13,7 +13,7 @@ import {
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
 import type { Aviso, PendenciaAviso } from "@/lib/avisos";
-import { BotaoContatoAviso } from "./botao-contato-aviso";
+import { LinhaPendencia } from "./linha-pendencia";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -224,6 +224,9 @@ export default async function AtendimentosPage({
     return (
       <Link
         href={`/atendimentos?${params.toString()}`}
+        // Sem isto, o Next joga a página para o topo a cada clique e a tabela
+        // sai da vista — parece que nada aconteceu.
+        scroll={false}
         aria-label={`Ordenar por ${chave}`}
         className={`flex w-full items-center gap-1.5 px-4 py-3 text-left transition-colors hover:bg-secondary ${
           ativa ? "font-semibold text-foreground" : ""
@@ -265,9 +268,11 @@ export default async function AtendimentosPage({
                 {pendencias.map((p) => {
                   const dias = differenceInCalendarDays(new Date(), p.desde);
                   return (
-                    <li
+                    <LinhaPendencia
                       key={p.alvoId}
-                      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+                      avisoId={aviso.id}
+                      alvoId={p.alvoId}
+                      temRearme={aviso.rearmeDias != null}
                     >
                       <Link
                         href={`/atendimentos/${p.atendimentoId}`}
@@ -290,23 +295,7 @@ export default async function AtendimentosPage({
                       >
                         WhatsApp ↗
                       </a>
-                      <BotaoContatoAviso
-                        avisoId={aviso.id}
-                        alvoId={p.alvoId}
-                        definitivo={false}
-                      >
-                        já contatei
-                      </BotaoContatoAviso>
-                      {aviso.rearmeDias != null && (
-                        <BotaoContatoAviso
-                          avisoId={aviso.id}
-                          alvoId={p.alvoId}
-                          definitivo
-                        >
-                          não avisar mais
-                        </BotaoContatoAviso>
-                      )}
-                    </li>
+                    </LinhaPendencia>
                   );
                 })}
               </ul>

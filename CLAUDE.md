@@ -122,6 +122,13 @@ src/
   também é calculado (vem do `historico_fases`), então as duas ordenações
   acontecem em memória depois da consulta, não no SQL.
 - Filtrar não desfaz a ordenação: `FiltrosFunil` repassa `ordem`/`dir`.
+- Os links de ordenação e a busca usam **`scroll={false}`**. Sem isso o Next
+  joga a página para o topo a cada clique, a tabela sai da vista e parece que
+  a ordenação não funcionou.
+- **Dispensa de aviso é otimista** (`linha-pendencia.tsx`): o item sai da lista
+  no clique e só volta se o servidor recusar. Antes dependia de a tela se
+  redesenhar depois de gravar; quando isso falhava, o item ficava lá e parecia
+  que o clique não tinha feito nada.
 - **Perdido** continua fora da visão padrão e agora só se chega nele pelo
   seletor — antes era pelo botão redondo.
 
