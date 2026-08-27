@@ -20,7 +20,8 @@
     "src/lib/tarefas.ts",
     "src/lib/cobranca.ts",
     "src/lib/resumo.ts",
-    "src/lib/pesquisa.ts"
+    "src/lib/pesquisa.ts",
+    "src/lib/chamados.ts"
   ],
   "files": [
     "src/lib/valor-extenso.test.ts",
@@ -32,6 +33,7 @@
     "src/lib/tarefas.test.ts",
     "src/lib/cobranca.test.ts",
     "src/lib/resumo.test.ts",
-    "src/lib/pesquisa.test.ts"
+    "src/lib/pesquisa.test.ts",
+    "src/lib/chamados.test.ts"
   ]
 }

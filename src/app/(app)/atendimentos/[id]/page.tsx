@@ -26,7 +26,14 @@ import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { buscarTarefas } from "@/lib/tarefas-consulta";
-import { motivosPerda } from "@/db/schema";
+import { chamados, motivosPerda } from "@/db/schema";
+import {
+  SITUACAO_CHAMADO_COR,
+  SITUACAO_CHAMADO_LABEL,
+  SITUACOES_ABERTAS,
+  type SituacaoChamado,
+} from "@/lib/chamados";
+import { ChamadoDialog } from "../../chamados/chamado-dialog";
 import { ListaTarefas } from "../../tarefas/lista-tarefas";
 import { TarefaDialog } from "../../tarefas/tarefa-dialog";
 import { ObservacoesForm } from "./observacoes-form";
@@ -132,6 +139,18 @@ export default async function AtendimentoPage({
   const tarefas = await buscarTarefas({ atendimentoId });
   const pendentes = tarefas.filter((t) => t.status === "pendente");
 
+  // Chamados de pós-venda deste cliente.
+  const chamadosDoAtendimento = await db
+    .select({
+      id: chamados.id,
+      assunto: chamados.assunto,
+      situacao: chamados.situacao,
+      criadoEm: chamados.criadoEm,
+    })
+    .from(chamados)
+    .where(eq(chamados.atendimentoId, atendimentoId))
+    .orderBy(desc(chamados.criadoEm));
+
   // Motivo da perda, quando o atendimento está numa fase de negócio perdido.
   const faseAtual = todasFases.find((f) => f.id === atendimento.faseId);
   const motivo = atendimento.motivoPerdaId
@@ -164,6 +183,16 @@ export default async function AtendimentoPage({
             atendimentoId={atendimento.id}
             responsaveis={listaVendedores}
             trigger={<Button variant="outline">Nova tarefa</Button>}
+          />
+          <ChamadoDialog
+            atendimentoId={atendimento.id}
+            orcamentos={orcamentosDoAtendimento.map((o) => ({
+              id: o.id,
+              numero: o.numero,
+            }))}
+            responsaveis={listaVendedores}
+            irParaChamado
+            trigger={<Button variant="outline">Abrir chamado</Button>}
           />
           <Button
             nativeButton={false}
@@ -327,6 +356,57 @@ export default async function AtendimentoPage({
             )}
           </CardContent>
         </Card>
+
+        {chamadosDoAtendimento.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Chamados
+                {chamadosDoAtendimento.filter((c) =>
+                  SITUACOES_ABERTAS.includes(c.situacao as SituacaoChamado)
+                ).length > 0 && (
+                  <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                    {
+                      chamadosDoAtendimento.filter((c) =>
+                        SITUACOES_ABERTAS.includes(c.situacao as SituacaoChamado)
+                      ).length
+                    }{" "}
+                    aberto(s)
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {chamadosDoAtendimento.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between gap-2 text-sm"
+                  >
+                    <Link
+                      href={`/chamados/${c.id}`}
+                      className="min-w-0 flex-1 truncate font-medium hover:underline"
+                    >
+                      {c.assunto}
+                    </Link>
+                    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                      <span
+                        className="size-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            SITUACAO_CHAMADO_COR[c.situacao as SituacaoChamado],
+                        }}
+                      />
+                      {SITUACAO_CHAMADO_LABEL[c.situacao as SituacaoChamado]}
+                      {" · "}
+                      {format(c.criadoEm, "dd/MM/yyyy")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

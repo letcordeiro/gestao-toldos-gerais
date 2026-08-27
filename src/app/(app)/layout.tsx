@@ -6,7 +6,7 @@ import { exigirUsuario, encerrarSessao, PAPEL_LABEL } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
 import { BottomNav } from "./bottom-nav";
-import { MenuConfiguracoes } from "./menu-config";
+import { MenuConfiguracoes, MenuSuspenso } from "./menu-config";
 
 async function sair() {
   "use server";
@@ -14,9 +14,10 @@ async function sair() {
   redirect("/login");
 }
 
-// A navegação principal segue o dia de trabalho, na ordem em que ele acontece:
-// olho o painel, faço as tarefas, ando com os atendimentos, mando orçamento,
-// fecho contrato. Cadastro que se configura uma vez foi para a engrenagem.
+// A barra principal só tem o que se abre TODO DIA, na ordem em que o dia
+// acontece: olho o painel, faço as tarefas, ando com os atendimentos, mando
+// orçamento, acompanho a instalação. O de uso semanal foi para "Mais" e o que
+// se ajusta uma vez, para a engrenagem.
 // curto: rótulo compacto do menu inferior (mobile).
 const NAV = [
   { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
@@ -24,8 +25,31 @@ const NAV = [
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
   { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false },
-  { href: "/contratos", label: "Contratos", curto: "Contr.", icon: "contratos", soGestor: false },
-  { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
+];
+
+// Telas de uso semanal: entram no menu "Mais" em vez de disputar espaço na
+// barra com o que se abre todo dia.
+const MAIS = [
+  {
+    titulo: "",
+    itens: [
+      {
+        href: "/chamados",
+        label: "Chamados",
+        ajuda: "Pós-venda e garantia depois da instalação",
+      },
+      {
+        href: "/contratos",
+        label: "Contratos",
+        ajuda: "Minutas, assinaturas e recebimentos",
+      },
+      {
+        href: "/cadastros/clientes",
+        label: "Clientes",
+        ajuda: "Cadastro e histórico de cada um",
+      },
+    ],
+  },
 ];
 
 // Menu da engrenagem (desktop) e da aba "Mais" (mobile). Só o gestor vê.
@@ -57,11 +81,6 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         href: "/cadastros/resumos",
         label: "Resumo por e-mail",
         ajuda: "O sistema te manda notícia sem você abrir",
-      },
-      {
-        href: "/pesquisas",
-        label: "Satisfação",
-        ajuda: "Respostas da pesquisa de pós-venda",
       },
     ],
   },
@@ -97,20 +116,24 @@ export default async function AppLayout({
 
   // No mobile a barra de baixo cabe em cinco: as quatro telas do dia + um
   // botão que abre o resto.
-  const NO_MENU = ["contratos", "clientes"];
+  const NO_MENU = ["instalacoes"];
   const bottomItens = navItens.filter((item) => !NO_MENU.includes(item.icon));
   const grupoMais = {
     label: "Mais",
     curto: "Mais",
     icon: "gestor",
     itens: [
-      ...navItens.filter((item) => NO_MENU.includes(item.icon)),
+      ...navItens
+        .filter((item) => NO_MENU.includes(item.icon))
+        .map((i) => ({ href: i.href, label: i.label, icon: i.icon })),
+      ...MAIS.flatMap((g) =>
+        g.itens.map((i) => ({ href: i.href, label: i.label, icon: "config" }))
+      ),
       ...(ehGestor
         ? CONFIG.flatMap((g) =>
             g.itens.map((i) => ({
               href: i.href,
               label: i.label,
-              curto: i.label,
               icon: "config",
             }))
           )
@@ -141,6 +164,7 @@ export default async function AppLayout({
             {/* Nav inline no desktop */}
             <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
               <NavLinks itens={navItens} />
+              <MenuSuspenso rotulo="Mais" grupos={MAIS} />
               {ehGestor && <MenuConfiguracoes grupos={CONFIG} />}
             </nav>
             <div className="flex shrink-0 items-center gap-1">

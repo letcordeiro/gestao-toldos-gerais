@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings } from "lucide-react";
+import { ChevronDown, Settings, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -13,17 +13,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type ItemConfig = { href: string; label: string; ajuda: string };
+export type ItemMenu = { href: string; label: string; ajuda: string };
+export type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
 /**
- * Tudo que se configura uma vez e quase não se mexe fica atrás desta
- * engrenagem. Antes, Fases e Avisos só existiam como botão dentro da tela de
- * Atendimentos — quem não soubesse disso nunca achava.
+ * Menu suspenso da barra de cima. Usado duas vezes: "Mais" (telas de uso
+ * semanal) e "Configurações" (o que se ajusta uma vez). Sem isso a barra
+ * passava de oito itens e nenhum deles se destacava.
  */
-export function MenuConfiguracoes({
+export function MenuSuspenso({
+  rotulo,
   grupos,
+  icone: Icone,
 }: {
-  grupos: { titulo: string; itens: ItemConfig[] }[];
+  rotulo: string;
+  grupos: GrupoMenu[];
+  icone?: LucideIcon;
 }) {
   const path = usePathname();
   const ativo = grupos.some((g) =>
@@ -36,7 +41,6 @@ export function MenuConfiguracoes({
         render={
           <button
             type="button"
-            aria-label="Configurações"
             className={cn(
               "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
               ativo
@@ -44,8 +48,9 @@ export function MenuConfiguracoes({
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
-            <Settings className="size-4" />
-            Configurações
+            {Icone ? <Icone className="size-4" /> : null}
+            {rotulo}
+            {Icone ? null : <ChevronDown className="size-3.5" />}
           </button>
         }
       />
@@ -53,7 +58,9 @@ export function MenuConfiguracoes({
         {grupos.map((grupo, i) => (
           <div key={grupo.titulo}>
             {i > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel>{grupo.titulo}</DropdownMenuLabel>
+            {grupo.titulo && (
+              <DropdownMenuLabel>{grupo.titulo}</DropdownMenuLabel>
+            )}
             {grupo.itens.map((item) => (
               <DropdownMenuItem
                 key={item.href}
@@ -71,5 +78,12 @@ export function MenuConfiguracoes({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Atalho para o menu de configurações, com a engrenagem. */
+export function MenuConfiguracoes({ grupos }: { grupos: GrupoMenu[] }) {
+  return (
+    <MenuSuspenso rotulo="Configurações" grupos={grupos} icone={Settings} />
   );
 }

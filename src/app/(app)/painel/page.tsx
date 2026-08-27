@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
   avisos,
+  chamados,
   fases,
   orcamentoItens,
   orcamentos,
@@ -20,6 +21,7 @@ import {
   perdasPorMotivo,
 } from "@/lib/metricas";
 import { buscarInstalacoes, contarPorGaveta } from "@/lib/instalacoes";
+import { SITUACOES_ABERTAS } from "@/lib/chamados";
 import {
   Card,
   CardContent,
@@ -108,6 +110,12 @@ export default async function PainelPage() {
     ? (await pendenciasDoAviso(avisoCobranca, escopoVendedorId)).length
     : 0;
 
+  // ---- Chamados abertos ----------------------------------------------------
+  const [{ nChamados }] = await db
+    .select({ nChamados: sql<number>`count(*)` })
+    .from(chamados)
+    .where(inArray(chamados.situacao, SITUACOES_ABERTAS));
+
   // ---- Métricas, perdas e esquecidos ---------------------------------------
   const metricas = await metricasDoFunil(escopoVendedorId);
   const perdas = await perdasPorMotivo(escopoVendedorId);
@@ -146,6 +154,13 @@ export default async function PainelPage() {
       valor: String(aprovados.n),
       sub: formatarCentavos(aprovados.valor),
       href: "/orcamentos",
+    },
+    {
+      label: "Chamados abertos",
+      valor: String(nChamados),
+      sub: "pós-venda e garantia",
+      href: "/chamados",
+      alerta: nChamados > 0,
     },
     {
       label: "A cobrar retorno",

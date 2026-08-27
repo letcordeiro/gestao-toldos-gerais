@@ -640,3 +640,54 @@ export const pesquisas = sqliteTable("pesquisas", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// ---------------------------------------------------------------------------
+// CHAMADOS (pós-venda / garantia)
+// O que acontece DEPOIS da instalação: goteira, lona rasgada, motor parado.
+// Vive preso ao atendimento, então o histórico do cliente fica num lugar só.
+// ---------------------------------------------------------------------------
+
+export const chamados = sqliteTable("chamados", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  atendimentoId: integer("atendimento_id")
+    .notNull()
+    .references(() => atendimentos.id),
+  // Qual serviço gerou o chamado — é o que diz se ainda está na garantia.
+  orcamentoId: integer("orcamento_id").references(() => orcamentos.id),
+  assunto: text("assunto").notNull(),
+  descricao: text("descricao"),
+  // Receptivo = o cliente procurou. Ativo = a empresa procurou o cliente.
+  tipo: text("tipo", { enum: ["receptivo", "ativo"] })
+    .notNull()
+    .default("receptivo"),
+  // Na garantia ou fora dela: muda quem paga, e é a primeira pergunta que
+  // aparece. `null` enquanto ninguém decidiu.
+  naGarantia: integer("na_garantia", { mode: "boolean" }),
+  prioridade: text("prioridade", { enum: ["baixa", "media", "alta"] })
+    .notNull()
+    .default("media"),
+  situacao: text("situacao", {
+    enum: ["aberto", "em_andamento", "resolvido", "cancelado"],
+  })
+    .notNull()
+    .default("aberto"),
+  responsavelId: integer("responsavel_id").references(() => vendedores.id),
+  fechadoEm: integer("fechado_em", { mode: "timestamp" }),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Histórico do chamado: cada retorno dado ao cliente vira uma linha.
+export const chamadoInteracoes = sqliteTable("chamado_interacoes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  chamadoId: integer("chamado_id")
+    .notNull()
+    .references(() => chamados.id, { onDelete: "cascade" }),
+  texto: text("texto").notNull(),
+  autor: text("autor"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
