@@ -691,3 +691,82 @@ export const chamadoInteracoes = sqliteTable("chamado_interacoes", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// ---------------------------------------------------------------------------
+// COTAÇÃO DE FORNECEDOR
+// Antes do orçamento sair: manda a lista de material para N fornecedores e
+// compara as respostas lado a lado.
+// ---------------------------------------------------------------------------
+
+export const fornecedores = sqliteTable("fornecedores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  contato: text("contato"),
+  telefone: text("telefone"),
+  email: text("email"),
+  // O que ele vende — aparece na hora de escolher quem cotar.
+  fornece: text("fornece"),
+  observacoes: text("observacoes"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const cotacoes = sqliteTable("cotacoes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  titulo: text("titulo").notNull(),
+  // Orçamento que motivou a cotação, quando existe.
+  orcamentoId: integer("orcamento_id").references(() => orcamentos.id),
+  prazoResposta: integer("prazo_resposta", { mode: "timestamp" }),
+  // Sai no link do fornecedor.
+  observacoes: text("observacoes"),
+  // Nunca sai: é recado da equipe.
+  observacoesInternas: text("observacoes_internas"),
+  situacao: text("situacao", { enum: ["aberta", "fechada", "cancelada"] })
+    .notNull()
+    .default("aberta"),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const cotacaoItens = sqliteTable("cotacao_itens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  cotacaoId: integer("cotacao_id")
+    .notNull()
+    .references(() => cotacoes.id, { onDelete: "cascade" }),
+  descricao: text("descricao").notNull(),
+  quantidade: text("quantidade"),
+  unidade: text("unidade"),
+  ordem: integer("ordem").notNull().default(0),
+});
+
+// Um convite por fornecedor: cada um tem link próprio e responde sem ver o
+// preço dos outros.
+export const cotacaoFornecedores = sqliteTable("cotacao_fornecedores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  cotacaoId: integer("cotacao_id")
+    .notNull()
+    .references(() => cotacoes.id, { onDelete: "cascade" }),
+  fornecedorId: integer("fornecedor_id")
+    .notNull()
+    .references(() => fornecedores.id),
+  token: text("token").notNull().unique(),
+  prazoEntrega: text("prazo_entrega"),
+  observacao: text("observacao"),
+  respondidoEm: integer("respondido_em", { mode: "timestamp" }),
+});
+
+export const cotacaoRespostas = sqliteTable("cotacao_respostas", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  cotacaoFornecedorId: integer("cotacao_fornecedor_id")
+    .notNull()
+    .references(() => cotacaoFornecedores.id, { onDelete: "cascade" }),
+  itemId: integer("item_id")
+    .notNull()
+    .references(() => cotacaoItens.id, { onDelete: "cascade" }),
+  // Centavos, como todo valor do sistema. Null = fornecedor não cotou o item.
+  valorUnitario: integer("valor_unitario"),
+});
