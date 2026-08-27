@@ -110,7 +110,34 @@ src/
 - Toda mudança de fase grava em `historico_fases`
 - Exibir "há X dias nesta fase" em cada linha
 
-## Lista de atendimentos: filtro e ordenação (26/08/2026)
+## Tabelas: ordenação por coluna (27/08/2026)
+
+Toda lista do sistema ordena clicando no cabeçalho. Duas peças:
+
+- `src/lib/ordenacao.ts` — regras puras (`ordenarLista`, `linkDaColuna`,
+  `compararValores`), com teste próprio.
+- `src/components/shared/coluna-ordenavel.tsx` — o `<th>` clicável.
+
+Como funciona e por quê:
+
+- É um **`<Link>` com `scroll={false}`**. Funciona sem javascript, o estado
+  fica na URL (dá para salvar a visão) e a página **não pula para o topo** —
+  sem isso a tabela sai da vista e parece que nada aconteceu.
+- A ordenação roda **em memória, depois da consulta**, porque várias colunas
+  são calculadas: tempo em fase (vem do histórico), total do orçamento
+  (subquery), valor do contrato com opções de preço.
+- **Coluna de estado ordena pelo andamento, nunca pelo nome**: fase pela ordem
+  do funil, status de orçamento por rascunho→enviado→aprovado→recusado, papel
+  de usuário por gestor→atendente→vendedor. Alfabético não diria nada.
+- **Vazio vai sempre para o fim**, nos dois sentidos — senão ordenar por uma
+  coluna com buracos enche a primeira tela de linhas em branco.
+- Filtro e busca são preservados via `extras`; a tela do cliente tem duas
+  tabelas e usa pares próprios (`ordemA`/`dirA` e `ordemO`/`dirO`).
+
+Telas cobertas: atendimentos, orçamentos, contratos, clientes, ficha do
+cliente (2 tabelas), usuários, modelos, avisos e fases.
+
+## Lista de atendimentos: filtro (26/08/2026)
 
 - Os **botões redondos de fase saíram**. Filtrar era a mesma coisa em dois
   lugares; ficou só o seletor, que agora traz a contagem junto

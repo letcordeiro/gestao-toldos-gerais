@@ -4,6 +4,8 @@ import { format } from "date-fns";
 import { db } from "@/db";
 import { clientes, contratoOpcoes, contratos, orcamentos } from "@/db/schema";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { cn } from "@/lib/utils";
 import { formatarCentavos } from "@/lib/format";
 import { STATUS_LABEL, type StatusContrato } from "@/lib/contratos";
@@ -12,7 +14,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -44,9 +45,9 @@ const FILTROS: { chave: string; rotulo: string }[] = [
 export default async function ContratosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; ordem?: string; dir?: string }>;
 }) {
-  const { status, q } = await searchParams;
+  const { status, q, ordem, dir } = await searchParams;
   const usuario = await exigirUsuario();
   // Gestor e atendente veem os contratos de todo mundo.
   const veTudo = veFunilInteiro(usuario.papel);
@@ -104,6 +105,44 @@ export default async function ContratosPage({
     opcoesPorContrato.set(o.contratoId, atual);
   }
 
+  // Status ordena pelo andamento do contrato, não pelo nome.
+  const ORDEM_STATUS: Record<string, number> = {
+    rascunho: 0, emitido: 1, assinado: 2, aditivado: 3, cancelado: 4,
+  };
+  // Contrato com opções de preço não tem valor fechado: ordena pela menor.
+  const valorDe = (id: number, valorTotal: number) => {
+    const vs = opcoesPorContrato.get(id);
+    return vs && vs.length ? Math.min(...vs) : valorTotal;
+  };
+  const linhasOrdenadas = ordenarLista(linhas, ordem, dir, {
+    numero: (l) => l.numero,
+    cliente: (l) => l.clienteNome,
+    status: (l) => ORDEM_STATUS[l.status] ?? 99,
+    valor: (l) => valorDe(l.id, l.valorTotal),
+    orcamento: (l) => l.orcamentoNumero,
+    data: (l) => l.dataEmissao ?? l.criadoEm,
+  });
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/contratos"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      extras={{ status, q }}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -146,16 +185,22 @@ export default async function ContratosPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Valor</TableHead>
-              <TableHead className="hidden lg:table-cell">Orçamento</TableHead>
-              <TableHead className="hidden md:table-cell">Data</TableHead>
+              <Coluna chave="numero">Número</Coluna>
+              <Coluna chave="cliente">Cliente</Coluna>
+              <Coluna chave="status">Status</Coluna>
+              <Coluna chave="valor" className="hidden md:table-cell">
+                Valor
+              </Coluna>
+              <Coluna chave="orcamento" className="hidden lg:table-cell">
+                Orçamento
+              </Coluna>
+              <Coluna chave="data" className="hidden md:table-cell">
+                Data
+              </Coluna>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.length === 0 && (
+            {linhasOrdenadas.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -166,7 +211,7 @@ export default async function ContratosPage({
                 </TableCell>
               </TableRow>
             )}
-            {linhas.map((linha) => (
+            {linhasOrdenadas.map((linha) => (
               <LinhaClicavel key={linha.id} href={`/contratos/${linha.id}`}>
                 <TableCell className="font-medium text-primary">
                   {linha.numero ?? "—"}

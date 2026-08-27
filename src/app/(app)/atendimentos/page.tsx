@@ -14,6 +14,8 @@ import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
 import type { Aviso, PendenciaAviso } from "@/lib/avisos";
 import { LinhaPendencia } from "./linha-pendencia";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
+import { ordenarLista } from "@/lib/ordenacao";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -49,7 +51,6 @@ export default async function AtendimentosPage({
   }>;
 }) {
   const { fase, q, ordem, dir } = await searchParams;
-  const crescente = dir !== "desc";
   const usuario = await exigirUsuario();
   // Vendedor vê só os próprios atendimentos; gestor vê todos.
   const escopoVendedor =
@@ -138,20 +139,13 @@ export default async function AtendimentosPage({
       new Date(),
       desdePorAtendimento.get(l.id) ?? l.criadoEm
     );
-  const CHAVES: Record<
-    string,
-    (a: (typeof linhas)[number], b: (typeof linhas)[number]) => number
-  > = {
-    cliente: (a, b) => a.clienteNome.localeCompare(b.clienteNome, "pt-BR"),
-    telefone: (a, b) => a.clienteTelefone.localeCompare(b.clienteTelefone, "pt-BR"),
-    status: (a, b) =>
-      (ordemDaFase.get(a.faseId) ?? 0) - (ordemDaFase.get(b.faseId) ?? 0),
-    tempo: (a, b) => diasNaFase(a) - diasNaFase(b),
-  };
-  const comparar = ordem ? CHAVES[ordem] : undefined;
-  const linhasOrdenadas = comparar
-    ? [...linhas].sort((a, b) => (crescente ? 1 : -1) * comparar(a, b))
-    : linhas;
+  const linhasOrdenadas = ordenarLista(linhas, ordem, dir, {
+    cliente: (l) => l.clienteNome,
+    telefone: (l) => l.clienteTelefone,
+    // Status ordena pela ordem do funil, não pelo nome da fase.
+    status: (l) => ordemDaFase.get(l.faseId) ?? 0,
+    tempo: (l) => diasNaFase(l),
+  });
 
   // Resumo do funil: total de atendimentos por fase (visão geral, sem filtro)
   const contagens = await db
@@ -202,46 +196,27 @@ export default async function AtendimentosPage({
       ? { backgroundColor: `${cor}1f`, borderColor: `${cor}66` }
       : undefined;
 
-  /**
-   * Cabeçalho que ordena. Clicar na coluna ativa inverte; nas outras, começa
-   * crescente. É um link normal — funciona sem javascript e o estado da
-   * ordenação fica na URL, então dá para salvar e compartilhar a visão.
-   */
-  function Ordenar({
+
+  const Coluna = ({
     chave,
+    className,
     children,
   }: {
     chave: string;
+    className?: string;
     children: React.ReactNode;
-  }) {
-    const ativa = ordem === chave;
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (fase) params.set("fase", fase);
-    params.set("ordem", chave);
-    // Na coluna já ativa, o clique inverte o sentido.
-    if (ativa && crescente) params.set("dir", "desc");
-    return (
-      <Link
-        href={`/atendimentos?${params.toString()}`}
-        // Sem isto, o Next joga a página para o topo a cada clique e a tabela
-        // sai da vista — parece que nada aconteceu.
-        scroll={false}
-        aria-label={`Ordenar por ${chave}`}
-        className={`flex w-full items-center gap-1.5 px-4 py-3 text-left transition-colors hover:bg-secondary ${
-          ativa ? "font-semibold text-foreground" : ""
-        }`}
-      >
-        {children}
-        <span
-          aria-hidden
-          className={`text-[10px] ${ativa ? "text-primary" : "opacity-30"}`}
-        >
-          {ativa && !crescente ? "▼" : "▲"}
-        </span>
-      </Link>
-    );
-  }
+  }) => (
+    <ColunaOrdenavel
+      base="/atendimentos"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      extras={{ q, fase }}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
 
   return (
     <div className="space-y-4">
@@ -352,18 +327,14 @@ export default async function AtendimentosPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="p-0">
-                <Ordenar chave="cliente">Cliente</Ordenar>
-              </TableHead>
-              <TableHead className="hidden p-0 sm:table-cell">
-                <Ordenar chave="telefone">Telefone</Ordenar>
-              </TableHead>
-              <TableHead className="p-0">
-                <Ordenar chave="status">Status do atendimento</Ordenar>
-              </TableHead>
-              <TableHead className="hidden p-0 sm:table-cell">
-                <Ordenar chave="tempo">No status</Ordenar>
-              </TableHead>
+              <Coluna chave="cliente">Cliente</Coluna>
+              <Coluna chave="telefone" className="hidden sm:table-cell">
+                Telefone
+              </Coluna>
+              <Coluna chave="status">Status do atendimento</Coluna>
+              <Coluna chave="tempo" className="hidden sm:table-cell">
+                No status
+              </Coluna>
               <TableHead className="hidden md:table-cell">Observações</TableHead>
             </TableRow>
           </TableHeader>

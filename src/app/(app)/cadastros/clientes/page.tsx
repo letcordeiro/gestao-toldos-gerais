@@ -4,6 +4,8 @@ import { format } from "date-fns";
 import { db } from "@/db";
 import { clientes } from "@/db/schema";
 import { cn } from "@/lib/utils";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +29,9 @@ type Filtro = "ativos" | "inativos" | "todos";
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; filtro?: string }>;
+  searchParams: Promise<{ q?: string; filtro?: string; ordem?: string; dir?: string }>;
 }) {
-  const { q, filtro: filtroParam } = await searchParams;
+  const { q, filtro: filtroParam, ordem, dir } = await searchParams;
   const filtro: Filtro =
     filtroParam === "inativos" || filtroParam === "todos"
       ? filtroParam
@@ -47,8 +49,35 @@ export default async function ClientesPage({
 
   const ativos = todos.filter((c) => c.ativo);
   const inativos = todos.filter((c) => !c.ativo);
-  const linhas =
+  const daAba =
     filtro === "ativos" ? ativos : filtro === "inativos" ? inativos : todos;
+  const linhas = ordenarLista(daAba, ordem, dir, {
+    nome: (c) => c.nome,
+    telefone: (c) => c.telefone,
+    cidade: (c) => c.cidade,
+    origem: (c) => c.origem,
+    criado: (c) => c.criadoEm,
+  });
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/cadastros/clientes"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      extras={{ q, filtro: filtroParam }}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
 
   const abas: { chave: Filtro; rotulo: string; total: number }[] = [
     { chave: "ativos", rotulo: "Ativos", total: ativos.length },
@@ -92,11 +121,19 @@ export default async function ClientesPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-              <TableHead className="hidden md:table-cell">Cidade</TableHead>
-              <TableHead className="hidden md:table-cell">Origem</TableHead>
-              <TableHead className="hidden lg:table-cell">Criado em</TableHead>
+              <Coluna chave="nome">Nome</Coluna>
+              <Coluna chave="telefone" className="hidden sm:table-cell">
+                Telefone
+              </Coluna>
+              <Coluna chave="cidade" className="hidden md:table-cell">
+                Cidade
+              </Coluna>
+              <Coluna chave="origem" className="hidden md:table-cell">
+                Origem
+              </Coluna>
+              <Coluna chave="criado" className="hidden lg:table-cell">
+                Criado em
+              </Coluna>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-0" />
             </TableRow>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { avisos } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 import { GATILHO_LABEL } from "@/lib/avisos";
@@ -20,10 +22,42 @@ import { ExcluirAvisoButton } from "./excluir-aviso-button";
 export const metadata = { title: "Avisos" };
 
 
-export default async function AvisosPage() {
+export default async function AvisosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ordem?: string; dir?: string }>;
+}) {
+  const { ordem, dir } = await searchParams;
   await exigirGestor();
 
-  const linhas = await db.select().from(avisos).orderBy(asc(avisos.id));
+  const todos = await db.select().from(avisos).orderBy(asc(avisos.id));
+  const linhas = ordenarLista(todos, ordem, dir, {
+    nome: (a) => a.nome,
+    quando: (a) => a.dias,
+    ativo: (a) => (a.ativo ? 0 : 1),
+  });
+
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/cadastros/avisos"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
+
+
 
   return (
     <div className="space-y-4">
@@ -47,13 +81,15 @@ export default async function AvisosPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead className="hidden md:table-cell">Quando</TableHead>
+              <Coluna chave="nome">Nome</Coluna>
+              <Coluna chave="quando" className="hidden md:table-cell">
+                Quando
+              </Coluna>
               <TableHead className="hidden lg:table-cell">Mensagem</TableHead>
               <TableHead className="hidden sm:table-cell">
                 Depois do &quot;já contatei&quot;
               </TableHead>
-              <TableHead>Ativo</TableHead>
+              <Coluna chave="ativo">Ativo</Coluna>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>

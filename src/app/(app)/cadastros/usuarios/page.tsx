@@ -1,5 +1,7 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { vendedores } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
@@ -26,12 +28,46 @@ const PAPEL_TITULO: Record<"gestor" | "atendente" | "vendedor", string> = {
   vendedor: "Vendedor",
 };
 
-export default async function UsuariosPage() {
+export default async function UsuariosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ordem?: string; dir?: string }>;
+}) {
+  const { ordem, dir } = await searchParams;
   await exigirGestor();
-  const linhas = await db
+  const todos = await db
     .select()
     .from(vendedores)
     .orderBy(asc(vendedores.nome));
+  const linhas = ordenarLista(todos, ordem, dir, {
+    nome: (v) => v.nome,
+    email: (v) => v.email,
+    // Papel ordena pelo alcance do acesso: gestor, atendente, vendedor.
+    papel: (v) => ["gestor", "atendente", "vendedor"].indexOf(v.papel),
+    acesso: (v) => (v.senhaHash ? 0 : 1),
+  });
+
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/cadastros/usuarios"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
+
+
   const signupToken = process.env.VENDEDOR_SIGNUP_TOKEN;
 
   return (
@@ -45,10 +81,12 @@ export default async function UsuariosPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead className="hidden md:table-cell">E-mail</TableHead>
-              <TableHead>Papel</TableHead>
-              <TableHead>Acesso</TableHead>
+              <Coluna chave="nome">Nome</Coluna>
+              <Coluna chave="email" className="hidden md:table-cell">
+                E-mail
+              </Coluna>
+              <Coluna chave="papel">Papel</Coluna>
+              <Coluna chave="acesso">Acesso</Coluna>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-0" />
             </TableRow>

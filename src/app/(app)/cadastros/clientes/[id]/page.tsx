@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import {
   atendimentos,
   clientes,
@@ -16,7 +18,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -38,10 +39,19 @@ const STATUS_BADGE: Record<
 
 export default async function HistoricoClientePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  // Duas tabelas na mesma tela: cada uma com o próprio par de parâmetros.
+  searchParams: Promise<{
+    ordemA?: string;
+    dirA?: string;
+    ordemO?: string;
+    dirO?: string;
+  }>;
 }) {
   const { id } = await params;
+  const { ordemA, dirA, ordemO, dirO } = await searchParams;
   const clienteId = Number(id);
   if (!Number.isInteger(clienteId) || clienteId <= 0) notFound();
 
@@ -99,6 +109,59 @@ export default async function HistoricoClientePage({
     .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .where(and(eq(atendimentos.clienteId, clienteId), escopoOrcamento))
     .orderBy(desc(orcamentos.criadoEm));
+
+  const atendimentosOrdenados = ordenarLista(listaAtendimentos, ordemA, dirA, {
+    fase: (a) => a.faseNome,
+    vendedor: (a) => a.vendedorNome,
+    data: (a) => a.criadoEm,
+  });
+  const ORDEM_STATUS: Record<string, number> = {
+    rascunho: 0, enviado: 1, aprovado: 2, recusado: 3,
+  };
+  const orcamentosOrdenados = ordenarLista(listaOrcamentos, ordemO, dirO, {
+    numero: (o) => o.numero,
+    status: (o) => ORDEM_STATUS[o.status] ?? 99,
+    fase: (o) => o.faseNome,
+    total: (o) => o.total ?? 0,
+    data: (o) => o.criadoEm,
+  });
+  const baseFicha = `/cadastros/clientes/${clienteId}`;
+  const ColunaA = (props: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base={baseFicha}
+      chave={props.chave}
+      ordem={ordemA}
+      dir={dirA}
+      extras={{ ordemO, dirO }}
+      nomeOrdem="ordemA"
+      nomeDir="dirA"
+      className={props.className}
+    >
+      {props.children}
+    </ColunaOrdenavel>
+  );
+  const ColunaO = (props: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base={baseFicha}
+      chave={props.chave}
+      ordem={ordemO}
+      dir={dirO}
+      extras={{ ordemA, dirA }}
+      nomeOrdem="ordemO"
+      nomeDir="dirO"
+      className={props.className}
+    >
+      {props.children}
+    </ColunaOrdenavel>
+  );
 
   const enderecoCompleto = [
     [cliente.endereco, cliente.numero].filter(Boolean).join(", "),
@@ -162,13 +225,15 @@ export default async function HistoricoClientePage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Fase</TableHead>
-                <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
-                <TableHead>Data</TableHead>
+                <ColunaA chave="fase">Fase</ColunaA>
+                <ColunaA chave="vendedor" className="hidden sm:table-cell">
+                  Vendedor
+                </ColunaA>
+                <ColunaA chave="data">Data</ColunaA>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {listaAtendimentos.length === 0 && (
+              {atendimentosOrdenados.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={3}
@@ -178,7 +243,7 @@ export default async function HistoricoClientePage({
                   </TableCell>
                 </TableRow>
               )}
-              {listaAtendimentos.map((at) => (
+              {atendimentosOrdenados.map((at) => (
                 <LinhaClicavel key={at.id} href={`/atendimentos/${at.id}`}>
                   <TableCell>
                     <span className="inline-flex items-center gap-2">
@@ -208,19 +273,19 @@ export default async function HistoricoClientePage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">
+                <ColunaO chave="numero">Número</ColunaO>
+                <ColunaO chave="status">Status</ColunaO>
+                <ColunaO chave="fase" className="hidden sm:table-cell">
                   Fase do atendimento
-                </TableHead>
-                <TableHead className="hidden md:table-cell">
+                </ColunaO>
+                <ColunaO chave="total" className="hidden md:table-cell">
                   Total (a partir de)
-                </TableHead>
-                <TableHead>Data</TableHead>
+                </ColunaO>
+                <ColunaO chave="data">Data</ColunaO>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {listaOrcamentos.length === 0 && (
+              {orcamentosOrdenados.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={5}
@@ -230,7 +295,7 @@ export default async function HistoricoClientePage({
                   </TableCell>
                 </TableRow>
               )}
-              {listaOrcamentos.map((orc) => {
+              {orcamentosOrdenados.map((orc) => {
                 const badge = STATUS_BADGE[orc.status];
                 return (
                   <LinhaClicavel key={orc.id} href={`/orcamentos/${orc.id}`}>

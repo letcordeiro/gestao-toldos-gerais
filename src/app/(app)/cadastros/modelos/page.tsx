@@ -1,5 +1,7 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { modelosToldo } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +22,44 @@ import { ExcluirModeloButton } from "./excluir-modelo-button";
 export const metadata = { title: "Modelos de toldo" };
 
 
-export default async function ModelosPage() {
+export default async function ModelosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ordem?: string; dir?: string }>;
+}) {
+  const { ordem, dir } = await searchParams;
   const usuario = await exigirUsuario();
   const ehGestor = usuario.papel === "gestor";
-  const linhas = await db
+  const todos = await db
     .select()
     .from(modelosToldo)
     .orderBy(asc(modelosToldo.nome));
+  const linhas = ordenarLista(todos, ordem, dir, {
+    nome: (m) => m.nome,
+    ativo: (m) => (m.ativo ? 0 : 1),
+  });
+
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/cadastros/modelos"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
+
+
 
   return (
     <div className="space-y-4">
@@ -44,11 +77,11 @@ export default async function ModelosPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <Coluna chave="nome">Nome</Coluna>
               <TableHead className="hidden md:table-cell">
                 Descrição do material
               </TableHead>
-              <TableHead>Ativo</TableHead>
+              <Coluna chave="ativo">Ativo</Coluna>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>

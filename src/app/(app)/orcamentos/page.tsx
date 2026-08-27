@@ -11,6 +11,8 @@ import {
   vendedores,
 } from "@/db/schema";
 import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -49,9 +50,9 @@ const STATUS_CARDS: { chave: string; label: string; cor: string }[] = [
 export default async function OrcamentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; ordem?: string; dir?: string }>;
 }) {
-  const { status: statusParam } = await searchParams;
+  const { status: statusParam, ordem, dir } = await searchParams;
   const statusFiltro =
     statusParam && statusParam in STATUS_BADGE ? statusParam : undefined;
 
@@ -107,9 +108,42 @@ export default async function OrcamentosPage({
 
   // Visão padrão mostra só o que está em jogo: recusado sai da lista e fica
   // atrás do card "Recusados" (contagem e valor continuam visíveis nele).
-  const linhas = statusFiltro
+  const emJogo = statusFiltro
     ? todos.filter((o) => o.status === statusFiltro)
     : todos.filter((o) => o.status !== "recusado");
+  // Status ordena pelo andamento (rascunho → enviado → aprovado → recusado),
+  // não pelo nome.
+  const ORDEM_STATUS: Record<string, number> = {
+    rascunho: 0, enviado: 1, aprovado: 2, recusado: 3,
+  };
+  const linhas = ordenarLista(emJogo, ordem, dir, {
+    numero: (o) => o.numero,
+    cliente: (o) => o.clienteNome,
+    vendedor: (o) => o.vendedorNome,
+    status: (o) => ORDEM_STATUS[o.status] ?? 99,
+    total: (o) => o.total ?? 0,
+    data: (o) => o.criadoEm,
+  });
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/orcamentos"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      extras={{ status: statusParam }}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
 
   return (
     <div className="space-y-4">
@@ -171,14 +205,20 @@ export default async function OrcamentosPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Cliente</TableHead>
+              <Coluna chave="numero">Número</Coluna>
+              <Coluna chave="cliente">Cliente</Coluna>
               {veTudo && (
-                <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
+                <Coluna chave="vendedor" className="hidden sm:table-cell">
+                  Vendedor
+                </Coluna>
               )}
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Total (a partir de)</TableHead>
-              <TableHead className="hidden md:table-cell">Data</TableHead>
+              <Coluna chave="status">Status</Coluna>
+              <Coluna chave="total" className="hidden md:table-cell">
+                Total (a partir de)
+              </Coluna>
+              <Coluna chave="data" className="hidden md:table-cell">
+                Data
+              </Coluna>
             </TableRow>
           </TableHeader>
           <TableBody>

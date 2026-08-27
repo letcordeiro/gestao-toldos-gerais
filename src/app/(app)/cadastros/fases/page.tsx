@@ -1,5 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import { db } from "@/db";
+import { ordenarLista } from "@/lib/ordenacao";
+import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { atendimentos, fases } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -17,9 +19,14 @@ import { ExcluirFaseButton } from "./excluir-fase-button";
 export const metadata = { title: "Fases do funil" };
 
 
-export default async function FasesPage() {
+export default async function FasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ordem?: string; dir?: string }>;
+}) {
+  const { ordem, dir } = await searchParams;
   await exigirGestor();
-  const linhas = await db
+  const todas = await db
     .select({
       id: fases.id,
       nome: fases.nome,
@@ -31,6 +38,33 @@ export default async function FasesPage() {
     .leftJoin(atendimentos, eq(atendimentos.faseId, fases.id))
     .groupBy(fases.id)
     .orderBy(asc(fases.ordem));
+  // A ordem do funil é a ordenação natural desta tela; as colunas só mudam a
+  // visão, não o campo `ordem` (esse continua sendo editado na própria linha).
+  const linhas = ordenarLista(todas, ordem, dir, {
+    posicao: (f) => f.ordem,
+    nome: (f) => f.nome,
+    atendimentos: (f) => f.emUso,
+  });
+  const Coluna = ({
+    chave,
+    className,
+    children,
+  }: {
+    chave: string;
+    className?: string;
+    children: React.ReactNode;
+  }) => (
+    <ColunaOrdenavel
+      base="/cadastros/fases"
+      chave={chave}
+      ordem={ordem}
+      dir={dir}
+      className={className}
+    >
+      {children}
+    </ColunaOrdenavel>
+  );
+
 
   const proximaOrdem =
     linhas.reduce((max, fase) => Math.max(max, fase.ordem), 0) + 1;
@@ -50,9 +84,11 @@ export default async function FasesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Ordem</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Atendimentos</TableHead>
+              <Coluna chave="posicao" className="w-16">
+                Ordem
+              </Coluna>
+              <Coluna chave="nome">Nome</Coluna>
+              <Coluna chave="atendimentos">Atendimentos</Coluna>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
