@@ -16,7 +16,7 @@ import {
   vendedores,
 } from "@/db/schema";
 import { exigirSessao, exigirTriagem, usuarioAtual } from "@/lib/auth";
-import { dispararGatilhos } from "@/lib/gatilhos";
+import { dispararGatilhos } from "@/lib/gatilhos-executor";
 
 const novoAtendimentoSchema = z
   .object({

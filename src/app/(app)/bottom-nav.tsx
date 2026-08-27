@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CheckSquare,
   Contact,
+  Hammer,
   FileSignature,
   FileText,
   Home,
@@ -25,6 +26,7 @@ type Grupo = { label: string; curto?: string; icon: string; itens: Item[] };
 const ICONS: Record<string, LucideIcon> = {
   painel: Home,
   tarefas: CheckSquare,
+  instalacoes: Hammer,
   config: Settings,
   atendimentos: ListChecks,
   orcamentos: FileText,

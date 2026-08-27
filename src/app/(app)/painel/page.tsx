@@ -19,6 +19,7 @@ import {
   metricasDoFunil,
   perdasPorMotivo,
 } from "@/lib/metricas";
+import { buscarInstalacoes, contarPorGaveta } from "@/lib/instalacoes";
 import {
   Card,
   CardContent,
@@ -56,6 +57,11 @@ export default async function PainelPage() {
   const atrasadas = doDia.filter(
     (t) => gavetaDaTarefa(t.previstaEm) === "atrasada"
   ).length;
+
+  // ---- Instalações vencendo ---------------------------------------------
+  const instalacoes = await buscarInstalacoes(escopoVendedorId);
+  const porPrazo = contarPorGaveta(instalacoes);
+  const instalacoesUrgentes = porPrazo.atrasada + porPrazo.hoje;
 
   // ---- Contagens do funil ---------------------------------------------------
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
@@ -250,6 +256,29 @@ export default async function PainelPage() {
           )}
         </CardContent>
       </Card>
+
+      {instalacoesUrgentes > 0 && (
+        <Link
+          href={`/instalacoes?prazo=${porPrazo.atrasada > 0 ? "atrasada" : "hoje"}`}
+          className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 transition-colors hover:bg-destructive/10"
+        >
+          <span className="text-sm">
+            <strong className="text-destructive">
+              {porPrazo.atrasada > 0
+                ? `${porPrazo.atrasada} instalação(ões) com a data já vencida`
+                : `${porPrazo.hoje} instalação(ões) marcadas para hoje`}
+            </strong>
+            <span className="block text-muted-foreground">
+              {porPrazo.atrasada > 0 && porPrazo.hoje > 0
+                ? `e mais ${porPrazo.hoje} para hoje.`
+                : "Confira a ficha e avise o cliente."}
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-primary">
+            Ver instalações →
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (

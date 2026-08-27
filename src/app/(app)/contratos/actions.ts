@@ -21,7 +21,8 @@ import {
 } from "@/db/schema";
 import { exigirComercial, exigirUsuario, podeComercial } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
-import { dispararGatilhos, type EventoGatilho } from "@/lib/gatilhos";
+import { dispararGatilhos } from "@/lib/gatilhos-executor";
+import type { EventoGatilho } from "@/lib/gatilhos";
 import {
   calcularRetencao,
   gerarPreset,

@@ -16,7 +16,7 @@ import {
 } from "@/db/schema";
 import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
-import { dispararGatilhos } from "@/lib/gatilhos";
+import { dispararGatilhos } from "@/lib/gatilhos-executor";
 import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
 const itemSchema = z.object({

@@ -23,6 +23,7 @@ const NAV = [
   { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
+  { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false },
   { href: "/contratos", label: "Contratos", curto: "Contr.", icon: "contratos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
 ];
