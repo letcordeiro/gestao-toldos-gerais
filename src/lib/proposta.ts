@@ -14,3 +14,27 @@ export const FORMA_PAGAMENTO_PADRAO =
 // Prazo de entrega fixo (padrão). O número de dias pode ser alterado por orçamento.
 export const PRAZO_ENTREGA_PADRAO =
   "20 (vinte) dias úteis a partir da confirmação do pedido e do pagamento da entrada.";
+
+/**
+ * Texto de validade da proposta. A contagem começa no envio ao cliente; se o
+ * orçamento ainda é rascunho, vale a data de criação. Null = sem prazo.
+ */
+export function textoValidade(
+  validadeDias: number | null,
+  base: Date
+): string | null {
+  if (validadeDias == null || validadeDias <= 0) return null;
+  const limite = new Date(base);
+  limite.setDate(limite.getDate() + validadeDias);
+  const dia = String(limite.getDate()).padStart(2, "0");
+  const mes = String(limite.getMonth() + 1).padStart(2, "0");
+  return `Proposta válida até ${dia}/${mes}/${limite.getFullYear()} (${validadeDias} dias).`;
+}
+
+/** A/c da proposta: o que foi digitado ou, na falta, o nome do cliente. */
+export function aosCuidados(
+  aosCuidadosDe: string | null,
+  clienteNome: string
+): string {
+  return aosCuidadosDe?.trim() || clienteNome;
+}

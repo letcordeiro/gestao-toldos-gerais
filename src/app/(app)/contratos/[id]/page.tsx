@@ -277,6 +277,7 @@ export default async function ContratoPage({
                   escopo: contrato.escopo,
                   localInstalacao: contrato.localInstalacao,
                   observacoesTecnicas: contrato.observacoesTecnicas ?? "",
+            observacoesInternas: contrato.observacoesInternas ?? "",
                   valorTotal: contrato.valorTotal,
                   prazoDiasUteis: contrato.prazoDiasUteis,
                   garantiaMeses: contrato.garantiaMeses,

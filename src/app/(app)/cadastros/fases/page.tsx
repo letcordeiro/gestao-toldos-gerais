@@ -19,6 +19,14 @@ import { ExcluirFaseButton } from "./excluir-fase-button";
 export const metadata = { title: "Fases do funil" };
 
 
+function Marca({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
 export default async function FasesPage({
   searchParams,
 }: {
@@ -32,6 +40,10 @@ export default async function FasesPage({
       nome: fases.nome,
       ordem: fases.ordem,
       cor: fases.cor,
+      liberaInstalacao: fases.liberaInstalacao,
+      exibirNaListagem: fases.exibirNaListagem,
+      terminal: fases.terminal,
+      ehPerdido: fases.ehPerdido,
       emUso: count(atendimentos.id),
     })
     .from(fases)
@@ -88,6 +100,7 @@ export default async function FasesPage({
                 Ordem
               </Coluna>
               <Coluna chave="nome">Nome</Coluna>
+              <TableHead className="hidden md:table-cell">O que faz</TableHead>
               <Coluna chave="atendimentos">Atendimentos</Coluna>
               <TableHead className="w-0" />
             </TableRow>
@@ -105,6 +118,16 @@ export default async function FasesPage({
                       style={{ backgroundColor: fase.cor }}
                     />
                     {fase.nome}
+                  </span>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <span className="flex flex-wrap gap-1">
+                    {fase.exibirNaListagem || (
+                      <Marca>fora da lista padrão</Marca>
+                    )}
+                    {fase.liberaInstalacao && <Marca>negócio fechado</Marca>}
+                    {fase.terminal && <Marca>encerra</Marca>}
+                    {fase.ehPerdido && <Marca>perdido</Marca>}
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground">

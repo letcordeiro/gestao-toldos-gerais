@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
+import { dispararGatilhos } from "@/lib/gatilhos";
 import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
 const itemSchema = z.object({
@@ -36,6 +37,14 @@ const orcamentoSchema = z.object({
   garantiaTexto: z.string().trim().optional(),
   formaPagamento: z.string().trim().optional(),
   prazoEntrega: z.string().trim().optional(),
+  introducao: z.string().trim().optional(),
+  aosCuidadosDe: z.string().trim().max(120).optional(),
+  // "" ou 0 = proposta sem prazo de validade
+  validadeDias: z
+    .union([z.literal(""), z.coerce.number().int().min(0).max(365)])
+    .optional()
+    .transform((v) => (v === "" || v === 0 || v === undefined ? null : v)),
+  observacoesInternas: z.string().trim().max(4000).optional(),
   status: z.enum(["rascunho", "enviado"]),
   itens: z.array(itemSchema).min(1, "Adicione ao menos um item"),
 });
@@ -106,6 +115,12 @@ async function moverParaOrcamentoEnviado(atendimentoId: number) {
     faseAnteriorId: atendimento.faseId,
     faseNovaId: faseEnviado.id,
   });
+  // A fase mudou por aqui e não pelo seletor do funil — as automações de
+  // fase precisam rodar do mesmo jeito.
+  await dispararGatilhos("entrou_na_fase", {
+    atendimentoId,
+    faseId: faseEnviado.id,
+  });
 }
 
 /**
@@ -138,6 +153,10 @@ async function moverParaOrcamentoAprovado(atendimentoId: number) {
     faseAnteriorId: atendimento.faseId,
     faseNovaId: faseAprovado.id,
   });
+  await dispararGatilhos("entrou_na_fase", {
+    atendimentoId,
+    faseId: faseAprovado.id,
+  });
 }
 
 export async function criarOrcamento(
@@ -169,6 +188,10 @@ export async function criarOrcamento(
     garantiaTexto: formData.get("garantiaTexto") || undefined,
     formaPagamento: formData.get("formaPagamento") || undefined,
     prazoEntrega: formData.get("prazoEntrega") || undefined,
+    introducao: formData.get("introducao") || undefined,
+    aosCuidadosDe: formData.get("aosCuidadosDe") || undefined,
+    validadeDias: formData.get("validadeDias") ?? "",
+    observacoesInternas: formData.get("observacoesInternas") || undefined,
     status: formData.get("status"),
     itens: itensBrutos,
   });
@@ -202,6 +225,10 @@ export async function criarOrcamento(
       garantiaTexto: dados.garantiaTexto || null,
       formaPagamento: dados.formaPagamento || null,
       prazoEntrega: dados.prazoEntrega || null,
+      introducao: dados.introducao || null,
+      aosCuidadosDe: dados.aosCuidadosDe || null,
+      validadeDias: dados.validadeDias,
+      observacoesInternas: dados.observacoesInternas || null,
       status: dados.status,
       publicToken: nanoid(12),
       enviadoEm: dados.status === "enviado" ? new Date() : null,
@@ -290,6 +317,10 @@ export async function atualizarOrcamento(
     garantiaTexto: formData.get("garantiaTexto") || undefined,
     formaPagamento: formData.get("formaPagamento") || undefined,
     prazoEntrega: formData.get("prazoEntrega") || undefined,
+    introducao: formData.get("introducao") || undefined,
+    aosCuidadosDe: formData.get("aosCuidadosDe") || undefined,
+    validadeDias: formData.get("validadeDias") ?? "",
+    observacoesInternas: formData.get("observacoesInternas") || undefined,
     status: formData.get("status"),
     itens: itensBrutos,
   });
@@ -319,6 +350,10 @@ export async function atualizarOrcamento(
       garantiaTexto: dados.garantiaTexto || null,
       formaPagamento: dados.formaPagamento || null,
       prazoEntrega: dados.prazoEntrega || null,
+      introducao: dados.introducao || null,
+      aosCuidadosDe: dados.aosCuidadosDe || null,
+      validadeDias: dados.validadeDias,
+      observacoesInternas: dados.observacoesInternas || null,
       status: dados.status,
       ...(viraEnviadoAgora ? { enviadoEm: new Date() } : {}),
     })
@@ -376,10 +411,26 @@ export async function mudarStatusOrcamento(
 
   if (novoStatus === "enviado") {
     await moverParaOrcamentoEnviado(orcamento.atendimentoId);
+    await dispararGatilhos("orcamento_enviado", {
+      atendimentoId: orcamento.atendimentoId,
+      orcamentoId: id,
+    });
   }
   if (novoStatus === "aprovado") {
     await moverParaOrcamentoAprovado(orcamento.atendimentoId);
+    await dispararGatilhos("orcamento_aprovado", {
+      atendimentoId: orcamento.atendimentoId,
+      orcamentoId: id,
+    });
   }
+  if (novoStatus === "recusado") {
+    await dispararGatilhos("orcamento_recusado", {
+      atendimentoId: orcamento.atendimentoId,
+      orcamentoId: id,
+    });
+  }
+  revalidatePath("/tarefas");
+  revalidatePath("/painel");
 
   revalidatePath("/orcamentos");
   revalidatePath(`/orcamentos/${id}`);
@@ -479,9 +530,9 @@ export async function excluirOrcamento(
 }
 
 // Cria um novo orçamento (rascunho) copiando todos os dados de um existente.
-export async function duplicarOrcamento(formData: FormData) {
+export async function duplicarOrcamento(orcamentoId: number) {
   await exigirComercial();
-  const id = z.coerce.number().int().positive().parse(formData.get("orcamentoId"));
+  const id = z.coerce.number().int().positive().parse(orcamentoId);
 
   const original = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, id),
@@ -508,6 +559,10 @@ export async function duplicarOrcamento(formData: FormData) {
       garantiaTexto: original.garantiaTexto,
       formaPagamento: original.formaPagamento,
       prazoEntrega: original.prazoEntrega,
+      introducao: original.introducao,
+      aosCuidadosDe: original.aosCuidadosDe,
+      validadeDias: original.validadeDias,
+      // Anotação interna não é copiada: a duplicata é outro negócio.
       status: "rascunho",
       publicToken: nanoid(12),
     })

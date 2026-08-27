@@ -67,6 +67,10 @@ export type OrcamentoInicial = {
   garantiaTexto: string;
   formaPagamento: string;
   prazoEntrega: string;
+  introducao: string;
+  aosCuidadosDe: string;
+  validadeDias: string;
+  observacoesInternas: string;
   itens: Item[];
 };
 
@@ -332,6 +336,16 @@ export function OrcamentoForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
+            <Label htmlFor="introducao">Introdução</Label>
+            <Textarea
+              id="introducao"
+              name="introducao"
+              rows={2}
+              defaultValue={orcamento?.introducao ?? ""}
+              placeholder="Abre a proposta, antes do MODELO. Deixe em branco para começar direto."
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="descricaoMaterial">Descrição do material</Label>
             <Textarea
               id="descricaoMaterial"
@@ -384,6 +398,52 @@ export function OrcamentoForm({
               />
             </div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="validadeDias">Validade da proposta</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="validadeDias"
+                  name="validadeDias"
+                  type="number"
+                  min={0}
+                  max={365}
+                  className="w-24"
+                  defaultValue={orcamento?.validadeDias ?? "15"}
+                />
+                <span className="text-sm text-muted-foreground">
+                  dias — em branco, a proposta sai sem prazo
+                </span>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="aosCuidadosDe">Aos cuidados de</Label>
+              <Input
+                id="aosCuidadosDe"
+                name="aosCuidadosDe"
+                defaultValue={orcamento?.aosCuidadosDe ?? ""}
+                placeholder="Em branco, usa o nome do cliente"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Anotação interna</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Só a equipe vê. Não entra no PDF nem no link do cliente.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            id="observacoesInternas"
+            name="observacoesInternas"
+            rows={3}
+            defaultValue={orcamento?.observacoesInternas ?? ""}
+            placeholder="Ex.: cliente pediu desconto; João foi medir e o vão tem 3,20 m"
+          />
         </CardContent>
       </Card>
 

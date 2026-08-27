@@ -13,7 +13,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { salvarFase, type FaseFormState } from "./actions";
 
-type Fase = { id: number; nome: string; ordem: number; cor: string };
+type Fase = {
+  id: number;
+  nome: string;
+  ordem: number;
+  cor: string;
+  liberaInstalacao: boolean;
+  exibirNaListagem: boolean;
+  terminal: boolean;
+  ehPerdido: boolean;
+};
+
+// O que cada marcação muda no sistema — escrito do lado de quem usa, não do
+// lado do banco.
+const FLAGS: { nome: keyof Fase; rotulo: string; ajuda: string }[] = [
+  {
+    nome: "exibirNaListagem",
+    rotulo: "Aparece na lista de atendimentos",
+    ajuda: "Desligado, só quem escolher esta fase no filtro enxerga.",
+  },
+  {
+    nome: "liberaInstalacao",
+    rotulo: "Negócio fechado",
+    ajuda:
+      "Aprova o orçamento e libera a ficha de instalação e o contrato.",
+  },
+  {
+    nome: "terminal",
+    rotulo: "Encerra o atendimento",
+    ajuda: "Sai da conta de “em aberto” no painel.",
+  },
+  {
+    nome: "ehPerdido",
+    rotulo: "Negócio perdido",
+    ajuda: "Pede o motivo da perda e recusa os orçamentos que aguardavam.",
+  },
+];
 
 export function FaseDialog({
   fase,
@@ -37,7 +72,7 @@ export function FaseDialog({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{fase ? "Editar fase" : "Nova fase"}</DialogTitle>
         </DialogHeader>
@@ -68,6 +103,28 @@ export function FaseDialog({
                 defaultValue={fase?.cor ?? "#3B82F6"}
               />
             </div>
+          </div>
+          <div className="space-y-2 rounded-lg border p-3">
+            {FLAGS.map((f) => (
+              <label key={f.nome} className="flex cursor-pointer gap-2.5">
+                <input
+                  type="checkbox"
+                  name={f.nome}
+                  defaultChecked={
+                    fase
+                      ? Boolean(fase[f.nome])
+                      : f.nome === "exibirNaListagem"
+                  }
+                  className="mt-0.5 size-4 shrink-0"
+                />
+                <span>
+                  <span className="block text-sm font-medium">{f.rotulo}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {f.ajuda}
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
           {state.erro && (
             <p className="text-sm text-destructive">{state.erro}</p>

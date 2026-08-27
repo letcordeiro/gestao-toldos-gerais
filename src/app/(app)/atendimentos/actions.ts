@@ -11,10 +11,12 @@ import {
   clientes,
   fases,
   historicoFases,
+  motivosPerda,
   orcamentos,
   vendedores,
 } from "@/db/schema";
 import { exigirSessao, exigirTriagem, usuarioAtual } from "@/lib/auth";
+import { dispararGatilhos } from "@/lib/gatilhos";
 
 const novoAtendimentoSchema = z
   .object({
@@ -164,7 +166,9 @@ export async function mudarFase(
   faseId: number,
   // ids escolhidos na caixa de diálogo. undefined = aprova todos os enviados
   // (caminho de quando existe só um, ou fallback sem JavaScript).
-  orcamentoIds?: number[]
+  orcamentoIds?: number[],
+  // Preenchido quando a fase de destino é de negócio perdido.
+  perda?: { motivoId: number | null; observacao?: string | null }
 ) {
   await exigirSessao();
   const parsed = mudarFaseSchema.parse({ atendimentoId, faseId });
@@ -174,9 +178,22 @@ export async function mudarFase(
   });
   if (!atendimento || atendimento.faseId === parsed.faseId) return;
 
+  const faseNova = await db.query.fases.findFirst({
+    where: eq(fases.id, parsed.faseId),
+  });
+
   await db
     .update(atendimentos)
-    .set({ faseId: parsed.faseId, atualizadoEm: new Date() })
+    .set({
+      faseId: parsed.faseId,
+      atualizadoEm: new Date(),
+      // Sair da fase de perdido limpa o motivo — senão o relatório continua
+      // contando um negócio que voltou a andar.
+      motivoPerdaId: faseNova?.ehPerdido ? (perda?.motivoId ?? null) : null,
+      motivoPerdaObs: faseNova?.ehPerdido
+        ? (perda?.observacao?.trim() || null)
+        : null,
+    })
     .where(eq(atendimentos.id, parsed.atendimentoId));
 
   await db.insert(historicoFases).values({
@@ -188,34 +205,34 @@ export async function mudarFase(
   // Fase de negócio fechado ("Orçamento aprovado" em diante) aprova sozinha os
   // orçamentos que estavam aguardando resposta. Não mexe em rascunho (ainda não
   // foi ao cliente) nem em recusado (decisão já tomada).
-  const faseNova = await db.query.fases.findFirst({
-    where: eq(fases.id, parsed.faseId),
-  });
+  const aprovados: number[] = [];
   if (faseNova?.liberaInstalacao) {
     const escolhidos = orcamentoIds
       ?.map((n) => Number(n))
       .filter((n) => Number.isInteger(n) && n > 0);
 
-    await db
-      .update(orcamentos)
-      .set({ status: "aprovado" })
-      .where(
-        and(
-          eq(orcamentos.atendimentoId, parsed.atendimentoId),
-          eq(orcamentos.status, "enviado"),
-          // só os escolhidos, quando a tela mandou a seleção
-          ...(escolhidos && escolhidos.length
-            ? [inArray(orcamentos.id, escolhidos)]
-            : [])
-        )
-      );
+    const alvo = and(
+      eq(orcamentos.atendimentoId, parsed.atendimentoId),
+      eq(orcamentos.status, "enviado"),
+      // só os escolhidos, quando a tela mandou a seleção
+      ...(escolhidos && escolhidos.length
+        ? [inArray(orcamentos.id, escolhidos)]
+        : [])
+    );
+    const vaoAprovar = await db
+      .select({ id: orcamentos.id })
+      .from(orcamentos)
+      .where(alvo);
+    aprovados.push(...vaoAprovar.map((o) => o.id));
+
+    await db.update(orcamentos).set({ status: "aprovado" }).where(alvo);
     revalidatePath("/orcamentos");
   }
 
   // Negócio perdido: orçamentos que aguardavam resposta viram recusados —
   // somem do aviso de cobrança e entram na conta certa dos cards por status.
   // Rascunho (nunca foi ao cliente) e aprovado (decisão tomada) ficam como estão.
-  if (faseNova?.nome === "Perdido") {
+  if (faseNova?.ehPerdido) {
     await db
       .update(orcamentos)
       .set({ status: "recusado" })
@@ -228,8 +245,37 @@ export async function mudarFase(
     revalidatePath("/orcamentos");
   }
 
+  // Automações: a fase nova sempre dispara; aprovar/recusar dispara junto.
+  await dispararGatilhos("entrou_na_fase", {
+    atendimentoId: parsed.atendimentoId,
+    faseId: parsed.faseId,
+  });
+  for (const orcamentoId of aprovados) {
+    await dispararGatilhos("orcamento_aprovado", {
+      atendimentoId: parsed.atendimentoId,
+      orcamentoId,
+    });
+  }
+  if (faseNova?.ehPerdido) {
+    await dispararGatilhos("orcamento_recusado", {
+      atendimentoId: parsed.atendimentoId,
+    });
+  }
+
   revalidatePath("/atendimentos");
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
+  revalidatePath("/tarefas");
+  revalidatePath("/painel");
+}
+
+/** Motivos de perda ativos — a tela pergunta na hora de marcar como perdido. */
+export async function motivosDePerdaAtivos() {
+  await exigirSessao();
+  return db
+    .select({ id: motivosPerda.id, nome: motivosPerda.nome })
+    .from(motivosPerda)
+    .where(eq(motivosPerda.ativo, true))
+    .orderBy(asc(motivosPerda.ordem), asc(motivosPerda.id));
 }
 
 // "Já contatei" / "não avisar mais" de um aviso configurável.

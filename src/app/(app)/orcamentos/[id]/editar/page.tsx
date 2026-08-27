@@ -112,6 +112,11 @@ export default async function EditarOrcamentoPage({
     garantiaTexto: orcamento.garantiaTexto ?? "",
     formaPagamento: orcamento.formaPagamento ?? "",
     prazoEntrega: orcamento.prazoEntrega ?? "",
+    introducao: orcamento.introducao ?? "",
+    aosCuidadosDe: orcamento.aosCuidadosDe ?? "",
+    validadeDias:
+      orcamento.validadeDias == null ? "" : String(orcamento.validadeDias),
+    observacoesInternas: orcamento.observacoesInternas ?? "",
     itens: itens.map((item) => ({
       descricao: item.descricao,
       valorMin: centavosParaInput(item.valorMin),

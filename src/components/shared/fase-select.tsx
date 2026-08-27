@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatarCentavos } from "@/lib/format";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  motivosDePerdaAtivos,
   mudarFase,
   orcamentosParaAprovar,
 } from "@/app/(app)/atendimentos/actions";
@@ -30,6 +32,7 @@ type Fase = {
   nome: string;
   cor: string;
   liberaInstalacao?: boolean;
+  ehPerdido?: boolean;
 };
 type OrcamentoOpcao = { id: number; numero: string; total: number | null };
 
@@ -52,14 +55,26 @@ export function FaseSelect({
     opcoes: OrcamentoOpcao[];
     escolhidos: number[];
   } | null>(null);
+  // Perguntar o motivo é o que faz o relatório de perdas existir: sem isso o
+  // negócio some do funil sem deixar rastro do porquê.
+  const [perda, setPerda] = useState<{
+    faseId: number;
+    motivos: { id: number; nome: string }[];
+    motivoId: number | null;
+    observacao: string;
+  } | null>(null);
 
   const faseAtual = fases.find((f) => f.id === faseId);
   const cor = faseAtual?.cor;
 
-  async function aplicar(novaFaseId: number, orcamentoIds?: number[]) {
+  async function aplicar(
+    novaFaseId: number,
+    orcamentoIds?: number[],
+    dadosPerda?: { motivoId: number | null; observacao: string }
+  ) {
     setSalvando(true);
     try {
-      await mudarFase(atendimentoId, novaFaseId, orcamentoIds);
+      await mudarFase(atendimentoId, novaFaseId, orcamentoIds, dadosPerda);
       // Atualiza a tela sem depender de recarregar na mão.
       router.refresh();
     } catch {
@@ -76,6 +91,19 @@ export function FaseSelect({
 
     setSalvando(true);
     try {
+      // Fase de negócio perdido: para antes de gravar e pergunta o motivo.
+      if (fase?.ehPerdido) {
+        const motivos = await motivosDePerdaAtivos().catch(
+          () => [] as { id: number; nome: string }[]
+        );
+        setPerda({
+          faseId: novaFaseId,
+          motivos,
+          motivoId: null,
+          observacao: "",
+        });
+        return;
+      }
       // Fase que fecha negócio: se houver mais de um orçamento aguardando,
       // perguntamos qual foi o aprovado em vez de decidir por conta própria.
       if (fase?.liberaInstalacao) {
@@ -238,6 +266,81 @@ export function FaseSelect({
                 Aprovar {pergunta?.escolhidos.length || ""}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={perda != null}
+        onOpenChange={(aberto) => {
+          if (!aberto) setPerda(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Por que o negócio foi perdido?</DialogTitle>
+            <DialogDescription>
+              Fica no relatório de perdas. Se ainda não souber, dá para marcar
+              sem motivo e voltar aqui depois.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {perda?.motivos.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Nenhum motivo cadastrado ainda. Cadastre em Configurações →
+                Motivos de perda.
+              </p>
+            )}
+            {perda?.motivos.map((m) => {
+              const marcado = perda.motivoId === m.id;
+              return (
+                <label
+                  key={m.id}
+                  className={
+                    "flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors " +
+                    (marcado ? "border-primary bg-primary/5" : "hover:bg-secondary")
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="motivo-perda"
+                    checked={marcado}
+                    onChange={() =>
+                      setPerda((p) => (p ? { ...p, motivoId: m.id } : p))
+                    }
+                    className="size-4"
+                  />
+                  <span className="text-sm font-medium">{m.nome}</span>
+                </label>
+              );
+            })}
+            <Textarea
+              rows={2}
+              placeholder="Detalhe (opcional) — ex.: fechou com o concorrente por R$ 800 a menos"
+              value={perda?.observacao ?? ""}
+              onChange={(e) =>
+                setPerda((p) => (p ? { ...p, observacao: e.target.value } : p))
+              }
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPerda(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!perda) return;
+                aplicar(perda.faseId, undefined, {
+                  motivoId: perda.motivoId,
+                  observacao: perda.observacao,
+                });
+                setPerda(null);
+              }}
+            >
+              Marcar como perdido
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

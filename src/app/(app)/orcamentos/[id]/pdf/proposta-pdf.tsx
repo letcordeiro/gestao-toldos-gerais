@@ -47,6 +47,12 @@ const styles = StyleSheet.create({
   },
   secao: { marginBottom: 7 },
   secaoInline: { marginBottom: 0 },
+  introducao: { marginBottom: 8, textAlign: "justify" },
+  validade: {
+    marginTop: 8,
+    fontFamily: "Helvetica-Bold",
+    color: VERDE,
+  },
   tituloSecao: {
     fontSize: 8.5,
     fontFamily: "Helvetica-Bold",
@@ -202,6 +208,12 @@ export type DadosProposta = {
   };
   modeloNome: string | null;
   formatoLabel: string | null;
+  // Abre a proposta, antes do MODELO.
+  introducao: string | null;
+  // A/c — já resolvido (campo próprio ou nome do cliente).
+  aosCuidadosDe: string;
+  // "Proposta válida até …" — null quando o orçamento não tem prazo.
+  validadeTexto: string | null;
   descricaoMaterial: string | null;
   estruturaLabel: string | null;
   fixacaoVedacao: string | null;
@@ -298,10 +310,14 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
 
         <View style={styles.destinatario}>
           <Text style={{ fontFamily: "Helvetica-Bold" }}>
-            A/c de {dados.cliente.nome} — {dados.cliente.telefone}
+            A/c de {dados.aosCuidadosDe} — {dados.cliente.telefone}
           </Text>
           {enderecoCliente ? <Text>{enderecoCliente}</Text> : null}
         </View>
+
+        {dados.introducao ? (
+          <Text style={styles.introducao}>{dados.introducao}</Text>
+        ) : null}
 
         <Secao titulo="MODELO" texto={modeloTexto} />
         <Secao titulo="DESCRIÇÃO DO MATERIAL" texto={dados.descricaoMaterial} />
@@ -348,6 +364,10 @@ export function PropostaPDF({ dados }: { dados: DadosProposta }) {
             />
           </View>
         </View>
+
+        {dados.validadeTexto ? (
+          <Text style={styles.validade}>{dados.validadeTexto}</Text>
+        ) : null}
 
         {dados.fotos.length > 0 ? (
           <View style={styles.fotosSecao} break={dados.fotos.length > 2}>

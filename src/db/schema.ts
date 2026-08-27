@@ -34,6 +34,24 @@ export const fases = sqliteTable("fases", {
   liberaInstalacao: integer("libera_instalacao", { mode: "boolean" })
     .notNull()
     .default(false),
+  // Aparece na visão padrão do funil. Desligado = só quem escolher a fase no
+  // filtro vê (era a regra fixa do "Perdido", agora é configurável por fase).
+  exibirNaListagem: integer("exibir_na_listagem", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  // Negócio encerrado: sai da conta de "em aberto" no painel.
+  terminal: integer("terminal", { mode: "boolean" }).notNull().default(false),
+  // Negócio perdido: recusa os orçamentos que aguardavam e pede o motivo.
+  ehPerdido: integer("eh_perdido", { mode: "boolean" }).notNull().default(false),
+});
+
+// Por que o negócio foi perdido. Cadastro próprio para o relatório sair
+// somado — texto livre nunca agrupa.
+export const motivosPerda = sqliteTable("motivos_perda", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  ordem: integer("ordem").notNull().default(0),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
 });
 
 export const atendimentos = sqliteTable("atendimentos", {
@@ -50,6 +68,9 @@ export const atendimentos = sqliteTable("atendimentos", {
   // Quando o contato de pós-venda foi feito (null = ainda pendente). Some do
   // aviso de pós-venda depois de marcado.
   posVendaEm: integer("pos_venda_em", { mode: "timestamp" }),
+  // Preenchidos quando o atendimento entra numa fase marcada como perdida.
+  motivoPerdaId: integer("motivo_perda_id"),
+  motivoPerdaObs: text("motivo_perda_obs"),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -132,6 +153,15 @@ export const orcamentos = sqliteTable("orcamentos", {
   garantiaTexto: text("garantia_texto"),
   formaPagamento: text("forma_pagamento"),
   prazoEntrega: text("prazo_entrega"),
+  // Abre a proposta, acima do MODELO. Vazio = proposta começa como sempre.
+  introducao: text("introducao"),
+  // A/c da proposta. Vazio = nome do cliente (comportamento antigo).
+  aosCuidadosDe: text("aos_cuidados_de"),
+  // Dias de validade contados do envio (ou da criação, se ainda não foi
+  // enviado). Null = proposta sem prazo, como era antes.
+  validadeDias: integer("validade_dias"),
+  // Recado interno: NUNCA sai no PDF nem na página pública.
+  observacoesInternas: text("observacoes_internas"),
   status: text("status", {
     enum: ["rascunho", "enviado", "aprovado", "recusado"],
   })
@@ -324,6 +354,8 @@ export const contratos = sqliteTable("contratos", {
     .default("fabricacao"),
   localInstalacao: text("local_instalacao").notNull().default(""),
   observacoesTecnicas: text("observacoes_tecnicas"),
+  // Recado interno: não entra no documento nem na página pública.
+  observacoesInternas: text("observacoes_internas"),
   prazoDiasUteis: integer("prazo_dias_uteis").notNull().default(30),
   garantiaMeses: integer("garantia_meses").notNull().default(12),
   retencaoPercent: integer("retencao_percent").notNull().default(30),
@@ -462,6 +494,89 @@ export const contratoEventos = sqliteTable("contrato_eventos", {
   }).notNull(),
   descricao: text("descricao").notNull(),
   usuario: text("usuario"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ---------------------------------------------------------------------------
+// TAREFAS E GATILHOS
+// A tarefa é a próxima ação combinada — é o que transforma o funil de "lista
+// de status" em "lista do que fazer". O gatilho é quem cria a tarefa sozinho
+// quando um evento acontece, para o follow-up não depender de memória.
+// ---------------------------------------------------------------------------
+
+export const tarefas = sqliteTable("tarefas", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tipo: text("tipo", {
+    enum: ["ligacao", "whatsapp", "visita", "proposta", "reuniao", "nota"],
+  })
+    .notNull()
+    .default("ligacao"),
+  titulo: text("titulo").notNull(),
+  descricao: text("descricao"),
+  // Vínculo — pelo menos um. O atendimento é o mais comum; o orçamento e o
+  // contrato aparecem quando a tarefa nasceu de um deles.
+  atendimentoId: integer("atendimento_id").references(() => atendimentos.id),
+  orcamentoId: integer("orcamento_id").references(() => orcamentos.id),
+  contratoId: integer("contrato_id").references(() => contratos.id),
+  responsavelId: integer("responsavel_id").references(() => vendedores.id),
+  prioridade: text("prioridade", { enum: ["baixa", "media", "alta"] })
+    .notNull()
+    .default("media"),
+  status: text("status", { enum: ["pendente", "concluida", "cancelada"] })
+    .notNull()
+    .default("pendente"),
+  // Dia combinado. Sem hora de propósito: a agenda do dia é do João, o
+  // sistema só diz o que vence quando.
+  previstaEm: integer("prevista_em", { mode: "timestamp" }),
+  concluidaEm: integer("concluida_em", { mode: "timestamp" }),
+  // Mensagem pronta de WhatsApp (com as variáveis já resolvidas). Quando
+  // existe, a tarefa mostra o botão que abre a conversa com o texto.
+  mensagem: text("mensagem"),
+  // Gatilho que criou a tarefa (null = criada à mão). Evita repetir a mesma
+  // tarefa automática duas vezes para o mesmo alvo.
+  gatilhoId: integer("gatilho_id"),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Regra "quando X acontecer, crie a tarefa Y".
+export const gatilhos = sqliteTable("gatilhos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  evento: text("evento", {
+    enum: [
+      "entrou_na_fase",
+      "orcamento_enviado",
+      "orcamento_aprovado",
+      "orcamento_recusado",
+      "contrato_emitido",
+      "contrato_assinado",
+    ],
+  }).notNull(),
+  // Só para "entrou_na_fase": qual fase dispara.
+  faseId: integer("fase_id").references(() => fases.id),
+  // A tarefa que será criada.
+  tarefaTipo: text("tarefa_tipo", {
+    enum: ["ligacao", "whatsapp", "visita", "proposta", "reuniao", "nota"],
+  })
+    .notNull()
+    .default("ligacao"),
+  tarefaTitulo: text("tarefa_titulo").notNull(),
+  tarefaPrioridade: text("tarefa_prioridade", {
+    enum: ["baixa", "media", "alta"],
+  })
+    .notNull()
+    .default("media"),
+  // Prazo em dias contados do evento. 0 = para hoje.
+  prazoDias: integer("prazo_dias").notNull().default(0),
+  // Template de WhatsApp (mesmas variáveis dos avisos). Vazio = tarefa sem
+  // mensagem pronta.
+  mensagem: text("mensagem"),
   criadoEm: integer("criado_em", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

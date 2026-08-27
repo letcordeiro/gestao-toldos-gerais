@@ -7,7 +7,13 @@ import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { FASES, MODELOS, VENDEDORES } from "./seed-data.mjs";
+import {
+  FASES,
+  GATILHOS,
+  MODELOS,
+  MOTIVOS_PERDA,
+  VENDEDORES,
+} from "./seed-data.mjs";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DATABASE_PATH ?? "./data/toldos.db";
@@ -407,6 +413,58 @@ try {
   }
 } catch (e) {
   console.warn("• subtítulos não reordenados (não crítico):", e.message);
+}
+
+// Motivos de perda e automações padrão — idempotentes: só entram na primeira
+// vez. Depois disso quem manda é o que a gestora cadastrou na tela.
+try {
+  const nMotivos = sqlite.prepare("SELECT count(*) AS c FROM motivos_perda").get().c;
+  if (nMotivos === 0) {
+    const ins = sqlite.prepare(
+      "INSERT INTO motivos_perda (nome, ordem, ativo) VALUES (?, ?, 1)"
+    );
+    sqlite.transaction(() => {
+      for (const m of MOTIVOS_PERDA) ins.run(m.nome, m.ordem);
+    })();
+    console.log(`✔ ${MOTIVOS_PERDA.length} motivos de perda criados`);
+  }
+} catch (e) {
+  console.warn("• motivos de perda não semeados (não crítico):", e.message);
+}
+
+try {
+  const nGatilhos = sqlite.prepare("SELECT count(*) AS c FROM gatilhos").get().c;
+  if (nGatilhos === 0) {
+    const buscarFase = sqlite.prepare("SELECT id FROM fases WHERE nome = ?");
+    const ins = sqlite.prepare(
+      `INSERT INTO gatilhos
+       (nome, ativo, evento, fase_id, tarefa_tipo, tarefa_titulo, tarefa_prioridade, prazo_dias, mensagem)
+       VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    let criados = 0;
+    sqlite.transaction(() => {
+      for (const g of GATILHOS) {
+        const faseId = g.faseNome ? buscarFase.get(g.faseNome)?.id ?? null : null;
+        // Gatilho de fase sem a fase correspondente não é criado: viraria uma
+        // regra que dispara em fase nenhuma.
+        if (g.evento === "entrou_na_fase" && faseId == null) continue;
+        ins.run(
+          g.nome,
+          g.evento,
+          faseId,
+          g.tarefaTipo,
+          g.tarefaTitulo,
+          g.tarefaPrioridade,
+          g.prazoDias,
+          g.mensagem
+        );
+        criados++;
+      }
+    })();
+    console.log(`✔ ${criados} automações criadas`);
+  }
+} catch (e) {
+  console.warn("• automações não semeadas (não crítico):", e.message);
 }
 
 sqlite.close();

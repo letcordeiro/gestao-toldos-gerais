@@ -6,6 +6,7 @@ import { exigirUsuario, encerrarSessao, PAPEL_LABEL } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
 import { BottomNav } from "./bottom-nav";
+import { MenuConfiguracoes } from "./menu-config";
 
 async function sair() {
   "use server";
@@ -13,16 +14,61 @@ async function sair() {
   redirect("/login");
 }
 
-// soGestor: itens de administração — só o gestor vê (atendente e vendedor não).
-// curto: rótulo compacto usado no menu inferior (mobile), pra caber em qualquer tela.
+// A navegação principal segue o dia de trabalho, na ordem em que ele acontece:
+// olho o painel, faço as tarefas, ando com os atendimentos, mando orçamento,
+// fecho contrato. Cadastro que se configura uma vez foi para a engrenagem.
+// curto: rótulo compacto do menu inferior (mobile).
 const NAV = [
   { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
+  { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
   { href: "/contratos", label: "Contratos", curto: "Contr.", icon: "contratos", soGestor: false },
   { href: "/cadastros/clientes", label: "Clientes", curto: "Clientes", icon: "clientes", soGestor: false },
-  { href: "/cadastros/modelos", label: "Modelos", curto: "Modelos", icon: "modelos", soGestor: false },
-  { href: "/cadastros/usuarios", label: "Usuários", curto: "Usuár.", icon: "usuarios", soGestor: true },
+];
+
+// Menu da engrenagem (desktop) e da aba "Mais" (mobile). Só o gestor vê.
+const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: string }[] }[] = [
+  {
+    titulo: "Como o funil funciona",
+    itens: [
+      {
+        href: "/cadastros/fases",
+        label: "Fases",
+        ajuda: "Etapas do funil e o que cada uma libera",
+      },
+      {
+        href: "/cadastros/gatilhos",
+        label: "Automações",
+        ajuda: "Tarefas que nascem sozinhas",
+      },
+      {
+        href: "/cadastros/avisos",
+        label: "Avisos",
+        ajuda: "Lembretes de WhatsApp na lista",
+      },
+      {
+        href: "/cadastros/motivos-perda",
+        label: "Motivos de perda",
+        ajuda: "O que responder quando o negócio cai",
+      },
+    ],
+  },
+  {
+    titulo: "Cadastros",
+    itens: [
+      {
+        href: "/cadastros/modelos",
+        label: "Modelos de toldo",
+        ajuda: "Textos que preenchem a proposta",
+      },
+      {
+        href: "/cadastros/usuarios",
+        label: "Usuários",
+        ajuda: "Quem entra e o que pode fazer",
+      },
+    ],
+  },
 ];
 
 export default async function AppLayout({
@@ -38,19 +84,28 @@ export default async function AppLayout({
   const ehGestor = usuario.papel === "gestor";
   const navItens = NAV.filter((item) => ehGestor || !item.soGestor);
 
-  // No mobile, o gestor tem Modelos e Vendedores agrupados numa aba "Gestor".
-  const AGRUPADOS = ["modelos", "usuarios"];
-  const bottomItens = ehGestor
-    ? navItens.filter((item) => !AGRUPADOS.includes(item.icon))
-    : navItens;
-  const grupoGestor = ehGestor
-    ? {
-        label: "Gestor",
-        curto: "Gestor",
-        icon: "gestor",
-        itens: navItens.filter((item) => AGRUPADOS.includes(item.icon)),
-      }
-    : undefined;
+  // No mobile a barra de baixo cabe em cinco: as quatro telas do dia + um
+  // botão que abre o resto.
+  const NO_MENU = ["contratos", "clientes"];
+  const bottomItens = navItens.filter((item) => !NO_MENU.includes(item.icon));
+  const grupoMais = {
+    label: "Mais",
+    curto: "Mais",
+    icon: "gestor",
+    itens: [
+      ...navItens.filter((item) => NO_MENU.includes(item.icon)),
+      ...(ehGestor
+        ? CONFIG.flatMap((g) =>
+            g.itens.map((i) => ({
+              href: i.href,
+              label: i.label,
+              curto: i.label,
+              icon: "config",
+            }))
+          )
+        : []),
+    ],
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,6 +130,7 @@ export default async function AppLayout({
             {/* Nav inline no desktop */}
             <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
               <NavLinks itens={navItens} />
+              {ehGestor && <MenuConfiguracoes grupos={CONFIG} />}
             </nav>
             <div className="flex shrink-0 items-center gap-1">
               {usuario.vendedorId != null ? (
@@ -114,7 +170,7 @@ export default async function AppLayout({
         {children}
       </main>
       {/* Menu no rodapé (só mobile) */}
-      <BottomNav itens={bottomItens} grupo={grupoGestor} />
+      <BottomNav itens={bottomItens} grupo={grupoMais} />
     </div>
   );
 }

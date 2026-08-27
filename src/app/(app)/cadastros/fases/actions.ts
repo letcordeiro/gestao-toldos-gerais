@@ -7,11 +7,20 @@ import { db } from "@/db";
 import { atendimentos, fases } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 
+// Checkbox não enviado vem null; enviado vem "on".
+const flag = z
+  .union([z.literal("on"), z.literal("true"), z.null(), z.literal("")])
+  .transform((v) => v === "on" || v === "true");
+
 const faseSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   nome: z.string().trim().min(1, "Informe o nome"),
   ordem: z.coerce.number().int().min(1, "Ordem deve ser 1 ou maior"),
   cor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida"),
+  liberaInstalacao: flag,
+  exibirNaListagem: flag,
+  terminal: flag,
+  ehPerdido: flag,
 });
 
 export type FaseFormState = { erro?: string; ok?: boolean };
@@ -27,6 +36,10 @@ export async function salvarFase(
     nome: formData.get("nome"),
     ordem: formData.get("ordem"),
     cor: formData.get("cor"),
+    liberaInstalacao: formData.get("liberaInstalacao"),
+    exibirNaListagem: formData.get("exibirNaListagem"),
+    terminal: formData.get("terminal"),
+    ehPerdido: formData.get("ehPerdido"),
   });
 
   if (!parsed.success) {
@@ -42,6 +55,7 @@ export async function salvarFase(
 
   revalidatePath("/cadastros/fases");
   revalidatePath("/atendimentos");
+  revalidatePath("/painel");
   return { ok: true };
 }
 

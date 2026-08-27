@@ -16,7 +16,7 @@ import { exigirUsuario } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
 import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
-import { MONTAGEM_COBERTURA } from "@/lib/proposta";
+import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { ImprimirAutomatico } from "../ficha/imprimir/imprimir-automatico";
 
 function Secao({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -71,6 +71,10 @@ export default async function ImprimirOrcamentoPage({
 
   const { orc, cliente, vendedor } = linha;
   const endereco = enderecoCompleto(cliente);
+  const validade = textoValidade(
+    orc.validadeDias,
+    orc.enviadoEm ?? orc.criadoEm
+  );
   const modeloTexto = linha.modeloNome
     ? orc.formato
       ? `${linha.modeloNome} — Formato: ${rotuloFormato(orc.formato)}`
@@ -98,10 +102,15 @@ export default async function ImprimirOrcamentoPage({
 
         <div className="mb-3 border-b border-neutral-200 pb-2 text-[11px]">
           <p className="font-semibold">
-            A/c de {cliente.nome} — {cliente.telefone}
+            A/c de {aosCuidados(orc.aosCuidadosDe, cliente.nome)} —{" "}
+            {cliente.telefone}
           </p>
           {endereco ? <p className="text-neutral-600">{endereco}</p> : null}
         </div>
+
+        {orc.introducao ? (
+          <p className="mb-2.5 text-justify text-[11px]">{orc.introducao}</p>
+        ) : null}
 
         <Secao titulo="MODELO" texto={modeloTexto} />
         <Secao titulo="DESCRIÇÃO DO MATERIAL" texto={orc.descricaoMaterial} />
@@ -145,6 +154,10 @@ export default async function ImprimirOrcamentoPage({
             <Secao titulo="PRAZO DE ENTREGA" texto={orc.prazoEntrega} />
           </div>
         </div>
+
+        {validade ? (
+          <p className="mb-3 text-[11px] font-bold text-[#004e36]">{validade}</p>
+        ) : null}
 
         <div className="border-t border-neutral-200 pt-2 text-center text-[9px] text-neutral-500">
           {vendedor ? (

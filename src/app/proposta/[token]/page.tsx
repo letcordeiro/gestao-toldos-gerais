@@ -15,7 +15,7 @@ import {
 import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
-import { MONTAGEM_COBERTURA } from "@/lib/proposta";
+import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { formatarValorItem } from "@/lib/format";
 import { enderecoCompleto } from "@/lib/endereco";
 
@@ -150,12 +150,17 @@ export default async function PropostaPublicaPage({
 
           <div className="border-b pb-3 text-sm">
             <p className="font-semibold">
-              A/c de {cliente.nome} — {cliente.telefone}
+              A/c de {aosCuidados(orc.aosCuidadosDe, cliente.nome)} —{" "}
+              {cliente.telefone}
             </p>
             {enderecoCliente ? (
               <p className="text-muted-foreground">{enderecoCliente}</p>
             ) : null}
           </div>
+
+          {orc.introducao ? (
+            <p className="text-justify text-sm">{orc.introducao}</p>
+          ) : null}
 
           <Secao titulo="MODELO" texto={modeloTexto} />
           <Secao titulo="DESCRIÇÃO DO MATERIAL" texto={orc.descricaoMaterial} />
@@ -200,6 +205,12 @@ export default async function PropostaPublicaPage({
             <Secao titulo="FORMA DE PAGAMENTO" texto={orc.formaPagamento} />
             <Secao titulo="PRAZO DE ENTREGA" texto={orc.prazoEntrega} />
           </div>
+
+          {textoValidade(orc.validadeDias, orc.enviadoEm ?? orc.criadoEm) ? (
+            <p className="text-sm font-semibold text-primary">
+              {textoValidade(orc.validadeDias, orc.enviadoEm ?? orc.criadoEm)}
+            </p>
+          ) : null}
 
           {fotos.length > 0 && (
             <div>

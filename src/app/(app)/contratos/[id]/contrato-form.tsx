@@ -19,6 +19,7 @@ export type DadosForm = {
   escopo: EscopoContrato;
   localInstalacao: string;
   observacoesTecnicas: string;
+  observacoesInternas: string;
   valorTotal: number;
   prazoDiasUteis: number;
   garantiaMeses: number;
@@ -131,6 +132,16 @@ export function ContratoForm({
           disabled={!editavel}
           defaultValue={inicial.observacoesTecnicas}
           placeholder="Detalhes que devem constar no objeto do contrato"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="observacoesInternas">Anotação interna</Label>
+        <Textarea
+          id="observacoesInternas"
+          name="observacoesInternas"
+          rows={3}
+          defaultValue={inicial.observacoesInternas}
+          placeholder="Só a equipe vê. Não entra no contrato nem no link do cliente."
         />
       </div>
 

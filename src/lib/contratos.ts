@@ -213,6 +213,7 @@ export type PresetPlano =
   | "entrada_saldo_cartao"
   | "parcelado_cartao"
   | "entrada_parcelas_mensais"
+  | "intervalo_dias"
   | "personalizado";
 
 export const PRESETS: { chave: PresetPlano; nome: string; descricao: string }[] =
@@ -237,6 +238,11 @@ export const PRESETS: { chave: PresetPlano; nome: string; descricao: string }[] 
       chave: "entrada_parcelas_mensais",
       nome: "Entrada + parcelas mensais",
       descricao: "Entrada + N mensais (PIX/boleto)",
+    },
+    {
+      chave: "intervalo_dias",
+      nome: "N parcelas a cada X dias",
+      descricao: "Datas fixas a partir de um dia escolhido",
     },
     {
       chave: "personalizado",
@@ -275,7 +281,18 @@ export type OpcoesPreset = {
   parcelas?: number;
   /** Data base para vencimentos mensais ("yyyy-MM-dd"). Padrão: hoje. */
   dataBase?: string;
+  /** Dias entre parcelas no preset de intervalo. Padrão 30. */
+  intervaloDias?: number;
+  /** Meio de pagamento das parcelas geradas. Padrão pix. */
+  meio?: MeioPagamento;
 };
+
+/** Soma dias a uma data ISO ("yyyy-MM-dd"), sem depender de fuso. */
+function somarDias(iso: string, dias: number): string {
+  const [a, m, d] = iso.split("-").map(Number);
+  const data = new Date(Date.UTC(a, m - 1, d + dias));
+  return data.toISOString().slice(0, 10);
+}
 
 /** Gera as linhas de um preset. `personalizado` devolve lista vazia. */
 /**
@@ -437,6 +454,27 @@ function gerarPresetValores(
         });
       });
       return linhas;
+    }
+
+    // "6× a cada 30 dias a partir de 10/09": o gerador cru, sem entrada e sem
+    // amarrar a periodicidade ao mês. Complementa os presets acima.
+    case "intervalo_dias": {
+      const n = Math.max(1, opcoes.parcelas ?? 3);
+      const intervalo = Math.max(1, opcoes.intervaloDias ?? 30);
+      const meio = opcoes.meio ?? "pix";
+      const valores = dividirCentavos(valorTotal, n);
+      // A primeira parcela vence na data base; as seguintes a cada intervalo.
+      return valores.map((valor, i) => ({
+        ordem: i,
+        rotulo: n === 1 ? "Pagamento" : `Parcela ${i + 1} de ${n}`,
+        tipo: (i === 0 && n > 1 ? "sinal" : "parcela") as TipoPagamento,
+        valor,
+        meio,
+        numeroParcelas: 1,
+        gatilho: "data_fixa" as GatilhoPagamento,
+        diasApos: null,
+        dataVencimento: somarDias(dataBase, i * intervalo),
+      }));
     }
 
     case "personalizado":

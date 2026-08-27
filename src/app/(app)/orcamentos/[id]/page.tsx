@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClipboardList, FileSignature, FileText } from "lucide-react";
+import {
+  ClipboardList,
+  FileSignature,
+  FileText,
+  ListPlus,
+  MessageCircle,
+} from "lucide-react";
 import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,14 +34,14 @@ import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { podeComercial } from "@/lib/auth";
 import { EMPRESA } from "@/lib/empresa";
-import { MONTAGEM_COBERTURA } from "@/lib/proposta";
+import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
-import { duplicarOrcamento } from "../actions";
 import { gerarContratoDoOrcamento } from "../../contratos/actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
-import { ExcluirOrcamentoButton } from "./excluir-orcamento-button";
+import { AcoesOrcamento } from "./acoes-orcamento";
+import { TarefaDialog } from "../../tarefas/tarefa-dialog";
 
 export const metadata = { title: "Orçamento" };
 
@@ -146,6 +152,30 @@ export default async function OrcamentoPage({
       : orcamento.modeloNome
     : null;
 
+  // O que fazer agora, escrito em uma frase. A tela inteira gira em torno
+  // disso — o resto das ações vai para o menu.
+  const proximoPasso: { texto: string; acao: "enviar" | "fechar" | "produzir" | "nenhuma" } =
+    orc.status === "rascunho"
+      ? {
+          texto: "Rascunho: revise os valores e mande a proposta ao cliente.",
+          acao: "enviar",
+        }
+      : orc.status === "enviado"
+        ? {
+            texto: fichaLiberada
+              ? "Negócio fechado no funil — confirme o desfecho deste orçamento."
+              : "Proposta com o cliente. Cobre o retorno ou registre a resposta no funil.",
+            acao: "fechar",
+          }
+        : orc.status === "aprovado"
+          ? {
+              texto: fichaLiberada
+                ? "Aprovado: preencha a ficha de instalação e, se o cliente pedir, gere o contrato."
+                : "Aprovado. Mova o atendimento para uma fase de negócio fechado para liberar ficha e contrato.",
+              acao: fichaLiberada ? "produzir" : "nenhuma",
+            }
+          : { texto: "Orçamento recusado. Nada pendente por aqui.", acao: "nenhuma" };
+
   const secoes: Array<{ titulo: string; texto: string | null }> = [
     { titulo: "MODELO", texto: modeloTexto },
     { titulo: "DESCRIÇÃO DO MATERIAL", texto: orc.descricaoMaterial },
@@ -183,91 +213,132 @@ export default async function OrcamentoPage({
           {podeEditar && (
             <StatusSelect orcamentoId={orc.id} status={orc.status} />
           )}
-          {podeEditar && (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/orcamentos/${orc.id}/editar`} />}
-            >
-              Editar
-            </Button>
-          )}
-          <form action={duplicarOrcamento}>
-            <input type="hidden" name="orcamentoId" value={orc.id} />
-            <Button type="submit" variant="outline" disabled={!podeEditar}>
-              Duplicar
-            </Button>
-          </form>
           <Button
             variant="outline"
             nativeButton={false}
             render={<Link href={`/orcamentos/${orc.id}/imprimir`} target="_blank" />}
           >
-            <FileText className="size-4" /> Ver orçamento
+            <FileText className="size-4" /> Ver proposta
           </Button>
-          {fichaLiberada && (
+          <AcoesOrcamento
+            orcamentoId={orc.id}
+            numero={orc.numero}
+            status={orc.status}
+            podeEditar={podeEditar}
+            linkProposta={linkProposta}
+          />
+        </div>
+      </div>
+
+      {/* Próximo passo: uma linha que responde "e agora?" em vez de deixar o
+          usuário escolher entre dez botões iguais. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-secondary/40 p-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Próximo passo
+          </p>
+          <p className="text-sm">{proximoPasso.texto}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {proximoPasso.acao === "enviar" && (
             <Button
-              variant="outline"
               nativeButton={false}
-              render={<Link href={`/orcamentos/${orc.id}/ficha`} />}
+              render={
+                <a
+                  href={linkWhatsApp(
+                    cliente.telefone,
+                    cliente.nome,
+                    orc.numero,
+                    linkProposta
+                  )}
+                  target="_blank"
+                  rel="noopener"
+                />
+              }
             >
-              <ClipboardList className="size-4" /> Ficha de Instalação
+              <MessageCircle className="size-4" /> Enviar no WhatsApp
             </Button>
           )}
-          {/* Contrato é opcional (nem todo cliente pede) e só faz sentido com o
-              negócio fechado — mesma regra da ficha de instalação. */}
-          {fichaLiberada &&
-            (contratoExistente ? (
+          {proximoPasso.acao === "fechar" && (
+            <>
               <Button
                 variant="outline"
                 nativeButton={false}
-                render={<Link href={`/contratos/${contratoExistente.id}`} />}
+                render={
+                  <a
+                    href={linkWhatsApp(
+                      cliente.telefone,
+                      cliente.nome,
+                      orc.numero,
+                      linkProposta
+                    )}
+                    target="_blank"
+                    rel="noopener"
+                  />
+                }
               >
-                <FileSignature className="size-4" /> Ver contrato
+                <MessageCircle className="size-4" /> Cobrar retorno
               </Button>
-            ) : (
-              podeEditar && (
-                <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
-                  <Button type="submit" variant="outline">
-                    <FileSignature className="size-4" /> Gerar contrato
-                  </Button>
-                </form>
-              )
-            ))}
-          {linkProposta && (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={
-                <a href={linkProposta} target="_blank" rel="noopener" />
-              }
-            >
-              Link do cliente
-            </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <Link href={`/atendimentos/${orcamento.atendimentoId}`} />
+                }
+              >
+                Marcar desfecho no funil
+              </Button>
+            </>
           )}
-          <Button
-            className="w-full sm:w-auto"
-            nativeButton={false}
-            render={
-              <a
-                href={linkWhatsApp(
-                  cliente.telefone,
-                  cliente.nome,
-                  orc.numero,
-                  linkProposta
-                )}
-                target="_blank"
-                rel="noopener"
-              />
+          {proximoPasso.acao === "produzir" && (
+            <>
+              <Button
+                nativeButton={false}
+                render={<Link href={`/orcamentos/${orc.id}/ficha`} />}
+              >
+                <ClipboardList className="size-4" /> Ficha de instalação
+              </Button>
+              {contratoExistente ? (
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href={`/contratos/${contratoExistente.id}`} />}
+                >
+                  <FileSignature className="size-4" /> Ver contrato
+                </Button>
+              ) : (
+                podeEditar && (
+                  <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
+                    <Button type="submit" variant="outline">
+                      <FileSignature className="size-4" /> Gerar contrato
+                    </Button>
+                  </form>
+                )
+              )}
+            </>
+          )}
+          <TarefaDialog
+            atendimentoId={orcamento.atendimentoId}
+            orcamentoId={orc.id}
+            trigger={
+              <Button variant="ghost" size="sm">
+                <ListPlus className="size-4" /> Criar tarefa
+              </Button>
             }
-          >
-            Enviar no WhatsApp
-          </Button>
-          {orc.status === "rascunho" && podeEditar && (
-            <ExcluirOrcamentoButton orcamentoId={orc.id} numero={orc.numero} />
-          )}
+          />
         </div>
       </div>
+
+      {orc.observacoesInternas && (
+        <div className="rounded-lg border border-dashed p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Anotação interna — o cliente não vê
+          </p>
+          <p className="mt-1 whitespace-pre-line text-sm">
+            {orc.observacoesInternas}
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -277,12 +348,16 @@ export default async function OrcamentoPage({
           <p className="text-sm text-muted-foreground">
             Belo Horizonte,{" "}
             {format(orc.criadoEm, "d 'de' MMMM 'de' yyyy", { locale: ptBR })} ·
-            A/c de {cliente.nome} {cliente.telefone}
+            A/c de {aosCuidados(orc.aosCuidadosDe, cliente.nome)}{" "}
+            {cliente.telefone}
             {cliente.endereco ? ` · ${cliente.endereco}` : ""}
             {cliente.cidade ? ` — ${cliente.cidade}` : ""}
           </p>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
+          {orc.introducao && (
+            <p className="text-justify">{orc.introducao}</p>
+          )}
           {secoes.map(
             (secao) =>
               secao.texto && (
@@ -334,6 +409,11 @@ export default async function OrcamentoPage({
               <h3 className="font-semibold text-primary">PRAZO DE ENTREGA</h3>
               <p className="whitespace-pre-line">{orc.prazoEntrega}</p>
             </div>
+          )}
+          {textoValidade(orc.validadeDias, orc.enviadoEm ?? orc.criadoEm) && (
+            <p className="font-semibold text-primary">
+              {textoValidade(orc.validadeDias, orc.enviadoEm ?? orc.criadoEm)}
+            </p>
           )}
 
           {vendedor && (

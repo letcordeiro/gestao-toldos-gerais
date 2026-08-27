@@ -148,6 +148,13 @@
       "when": 1783599210000,
       "tag": "0020_contrato_opcoes",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1783599220000,
+      "tag": "0021_tarefas_gatilhos",
+      "breakpoints": true
     }
   ]
 }

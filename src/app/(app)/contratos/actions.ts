@@ -21,6 +21,7 @@ import {
 } from "@/db/schema";
 import { exigirComercial, exigirUsuario, podeComercial } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
+import { dispararGatilhos, type EventoGatilho } from "@/lib/gatilhos";
 import {
   calcularRetencao,
   gerarPreset,
@@ -31,6 +32,7 @@ import {
   proximoNumeroAditivo,
   proximoNumeroContrato,
   validarPlanoPagamento,
+  type OpcoesPreset,
   type PresetPlano,
   type SnapshotContrato,
   type StatusContrato,
@@ -252,6 +254,7 @@ const dadosSchema = z.object({
   ]),
   localInstalacao: z.string().trim().max(500),
   observacoesTecnicas: z.string().trim().max(3000).optional(),
+  observacoesInternas: z.string().trim().max(4000).optional(),
   valorTotal: z.coerce.number().int().min(0),
   prazoDiasUteis: z.coerce.number().int().min(0).max(365),
   garantiaMeses: z.coerce.number().int().min(0).max(120),
@@ -278,6 +281,7 @@ export async function salvarDadosContrato(
     escopo: formData.get("escopo"),
     localInstalacao: formData.get("localInstalacao") ?? "",
     observacoesTecnicas: formData.get("observacoesTecnicas") ?? "",
+    observacoesInternas: formData.get("observacoesInternas") ?? "",
     valorTotal: formData.get("valorTotal"),
     prazoDiasUteis: formData.get("prazoDiasUteis"),
     garantiaMeses: formData.get("garantiaMeses"),
@@ -309,6 +313,7 @@ export async function salvarDadosContrato(
       escopo: d.escopo,
       localInstalacao: d.localInstalacao,
       observacoesTecnicas: d.observacoesTecnicas || null,
+      observacoesInternas: d.observacoesInternas || null,
       valorTotal: d.valorTotal,
       prazoDiasUteis: d.prazoDiasUteis,
       garantiaMeses: d.garantiaMeses,
@@ -499,7 +504,7 @@ export async function salvarPlanoPagamento(
 export async function aplicarPresetPlano(
   contratoId: number,
   preset: PresetPlano,
-  opcoes: { entradaPercent?: number; parcelas?: number } = {}
+  opcoes: OpcoesPreset = {}
 ): Promise<{ erro?: string }> {
   const id = z.coerce.number().int().positive().parse(contratoId);
   const acesso = await exigirAcesso(id);
@@ -615,6 +620,7 @@ export async function emitirContrato(
     `Contrato emitido sob o nº ${numero}`,
     nomeUsuario(acesso.usuario)
   );
+  await dispararGatilhoDoContrato(id, "contrato_emitido");
   revalidatePath("/contratos");
   revalidatePath(`/contratos/${id}`);
   return {};
@@ -643,6 +649,7 @@ export async function marcarAssinado(
     `Assinatura registrada em ${data.toLocaleDateString("pt-BR")}`,
     nomeUsuario(acesso.usuario)
   );
+  await dispararGatilhoDoContrato(id, "contrato_assinado");
   revalidatePath("/contratos");
   revalidatePath(`/contratos/${id}`);
   return {};
@@ -678,6 +685,7 @@ export async function criarNovaVersao(
       escopo: antigo.escopo,
       localInstalacao: antigo.localInstalacao,
       observacoesTecnicas: antigo.observacoesTecnicas,
+      observacoesInternas: antigo.observacoesInternas,
       prazoDiasUteis: antigo.prazoDiasUteis,
       garantiaMeses: antigo.garantiaMeses,
       retencaoPercent: antigo.retencaoPercent,
@@ -910,4 +918,26 @@ export async function conferirPlano(contratoId: number) {
     .from(contratoPagamentos)
     .where(eq(contratoPagamentos.contratoId, id));
   return validarPlanoPagamento(linhas, acesso.contrato.valorTotal);
+}
+
+/**
+ * Ponte entre o contrato e as automações: descobre de qual atendimento ele
+ * veio (contrato → orçamento → atendimento) e dispara o evento.
+ */
+async function dispararGatilhoDoContrato(
+  contratoId: number,
+  evento: EventoGatilho
+) {
+  const [linha] = await db
+    .select({ atendimentoId: orcamentos.atendimentoId })
+    .from(contratos)
+    .innerJoin(orcamentos, eq(contratos.orcamentoId, orcamentos.id))
+    .where(eq(contratos.id, contratoId));
+  if (!linha) return;
+  await dispararGatilhos(evento, {
+    atendimentoId: linha.atendimentoId,
+    contratoId,
+  });
+  revalidatePath("/tarefas");
+  revalidatePath("/painel");
 }

@@ -12,37 +12,53 @@ import {
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { pendenciasDoAviso } from "@/lib/avisos";
 import { formatarCentavos } from "@/lib/format";
+import { buscarTarefas } from "@/lib/tarefas-consulta";
+import { gavetaDaTarefa, textoPrazo } from "@/lib/tarefas";
+import {
+  atendimentosParados,
+  metricasDoFunil,
+  perdasPorMotivo,
+} from "@/lib/metricas";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TutorialInicial } from "./tutorial-inicial";
 
 export const metadata = { title: "Painel" };
-
-
-const FASES_TERMINAIS = ["Concluído", "Perdido"];
 
 export default async function PainelPage() {
   const usuario = await exigirUsuario();
   // Gestor e atendente veem os números do negócio inteiro.
   const veTudo = veFunilInteiro(usuario.papel);
+  const escopoVendedorId = !veTudo ? usuario.vendedorId ?? null : null;
   const escopoAt =
-    !veTudo && usuario.vendedorId != null
-      ? eq(atendimentos.vendedorId, usuario.vendedorId)
+    escopoVendedorId != null
+      ? eq(atendimentos.vendedorId, escopoVendedorId)
       : undefined;
   const escopoOrc =
-    !veTudo && usuario.vendedorId != null
-      ? eq(orcamentos.vendedorId, usuario.vendedorId)
+    escopoVendedorId != null
+      ? eq(orcamentos.vendedorId, escopoVendedorId)
       : undefined;
 
-  // Atendimentos por fase (para o funil e o total em aberto)
-  const todasFases = await db
-    .select()
-    .from(fases)
-    .orderBy(asc(fases.ordem));
+  // ---- O dia: tarefas vencidas e de hoje -----------------------------------
+  const minhasTarefas = await buscarTarefas({
+    vendedorId: escopoVendedorId,
+    apenasPendentes: true,
+  });
+  const doDia = minhasTarefas.filter((t) => {
+    const g = gavetaDaTarefa(t.previstaEm);
+    return g === "atrasada" || g === "hoje";
+  });
+  const atrasadas = doDia.filter(
+    (t) => gavetaDaTarefa(t.previstaEm) === "atrasada"
+  ).length;
+
+  // ---- Contagens do funil ---------------------------------------------------
+  const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
   const contagensFase = await db
     .select({ faseId: atendimentos.faseId, total: sql<number>`count(*)` })
     .from(atendimentos)
@@ -50,7 +66,7 @@ export default async function PainelPage() {
     .groupBy(atendimentos.faseId);
   const totalPorFase = new Map(contagensFase.map((c) => [c.faseId, c.total]));
   const idsTerminais = new Set(
-    todasFases.filter((f) => FASES_TERMINAIS.includes(f.nome)).map((f) => f.id)
+    todasFases.filter((f) => f.terminal).map((f) => f.id)
   );
   const totalAtendimentos = contagensFase.reduce((s, c) => s + c.total, 0);
   const emAberto = contagensFase
@@ -74,7 +90,7 @@ export default async function PainelPage() {
   const aprovados = stat("aprovado");
 
   // A cobrar retorno: mesmos critérios do aviso configurável na tela de
-  // Atendimentos (Cadastros → Avisos). Usa o primeiro aviso ativo desse tipo.
+  // Atendimentos (Configurações → Avisos). Usa o primeiro aviso ativo do tipo.
   const avisoCobranca = await db.query.avisos.findFirst({
     where: and(
       eq(avisos.gatilho, "orcamento_sem_resposta"),
@@ -83,15 +99,16 @@ export default async function PainelPage() {
     orderBy: asc(avisos.id),
   });
   const nCobrar = avisoCobranca
-    ? (
-        await pendenciasDoAviso(
-          avisoCobranca,
-          !veTudo && usuario.vendedorId != null ? usuario.vendedorId : null
-        )
-      ).length
+    ? (await pendenciasDoAviso(avisoCobranca, escopoVendedorId)).length
     : 0;
 
-  // Desempenho por vendedor (só gestor)
+  // ---- Métricas, perdas e esquecidos ---------------------------------------
+  const metricas = await metricasDoFunil(escopoVendedorId);
+  const perdas = await perdasPorMotivo(escopoVendedorId);
+  const parados = await atendimentosParados(escopoVendedorId);
+  const nuncaTrabalhados = parados.filter((p) => p.nuncaTrabalhado);
+
+  // Desempenho por vendedor (só quem vê o funil inteiro)
   const porVendedor = veTudo
     ? await db
         .select({
@@ -107,7 +124,11 @@ export default async function PainelPage() {
     : [];
 
   const kpis = [
-    { label: "Atendimentos em aberto", valor: String(emAberto), href: "/atendimentos" },
+    {
+      label: "Atendimentos em aberto",
+      valor: String(emAberto),
+      href: "/atendimentos",
+    },
     {
       label: "Orçamentos aguardando",
       valor: String(enviados.n),
@@ -131,7 +152,11 @@ export default async function PainelPage() {
     },
   ];
 
-  const maxFase = Math.max(1, ...todasFases.map((f) => totalPorFase.get(f.id) ?? 0));
+  const maxFase = Math.max(
+    1,
+    ...todasFases.map((f) => totalPorFase.get(f.id) ?? 0)
+  );
+  const totalPerdas = perdas.reduce((s, p) => s + p.n, 0);
 
   return (
     <div className="space-y-5">
@@ -149,6 +174,83 @@ export default async function PainelPage() {
         </p>
       </div>
 
+      {/* O dia vem antes dos números: o painel abre dizendo o que fazer, não
+          só como o negócio está. */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-base">
+            Para hoje
+            {atrasadas > 0 && (
+              <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                {atrasadas} atrasada{atrasadas > 1 ? "s" : ""}
+              </span>
+            )}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/tarefas" />}
+          >
+            Ver todas
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {doDia.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nada vencendo hoje.{" "}
+              {minhasTarefas.length > 0
+                ? `${minhasTarefas.length} tarefa(s) para os próximos dias.`
+                : "Nenhuma tarefa em aberto."}
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {doDia.slice(0, 6).map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between gap-3 py-2 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {t.titulo}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {t.clienteNome ?? "sem cliente"} ·{" "}
+                      <span
+                        className={
+                          gavetaDaTarefa(t.previstaEm) === "atrasada"
+                            ? "font-medium text-destructive"
+                            : ""
+                        }
+                      >
+                        {textoPrazo(t.previstaEm)}
+                      </span>
+                    </span>
+                  </span>
+                  {t.atendimentoId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      nativeButton={false}
+                      render={
+                        <Link href={`/atendimentos/${t.atendimentoId}`} />
+                      }
+                    >
+                      Abrir
+                    </Button>
+                  )}
+                </li>
+              ))}
+              {doDia.length > 6 && (
+                <li className="pt-2 text-xs text-muted-foreground">
+                  e mais {doDia.length - 6}…
+                </li>
+              )}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (
           <Link key={k.label} href={k.href}>
@@ -156,19 +258,63 @@ export default async function PainelPage() {
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">{k.label}</p>
                 <p
-                  className={`mt-1 text-3xl font-semibold tracking-tight ${
+                  className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
                     k.alerta ? "text-brand-orange-dark" : ""
                   }`}
                 >
                   {k.valor}
                 </p>
                 {k.sub && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{k.sub}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {k.sub}
+                  </p>
                 )}
               </CardContent>
             </Card>
           </Link>
         ))}
+      </div>
+
+      {/* Como o funil se comporta — não quantos estão nele, mas o que ele
+          entrega: quanto fecha, por quanto, em quanto tempo. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Conversão</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {metricas.conversao == null ? "—" : `${metricas.conversao}%`}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {metricas.ganhos} fechado(s) · {metricas.perdidos} perdido(s)
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Ticket médio</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {metricas.ticketMedio == null
+                ? "—"
+                : formatarCentavos(metricas.ticketMedio)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              por orçamento aprovado
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="col-span-2 lg:col-span-1">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Ciclo de venda</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {metricas.cicloMedioDias == null
+                ? "—"
+                : `${metricas.cicloMedioDias} dias`}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              do primeiro contato ao fechamento
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -207,7 +353,7 @@ export default async function PainelPage() {
                         }}
                       />
                     </span>
-                    <span className="w-6 shrink-0 text-right font-medium">
+                    <span className="w-6 shrink-0 text-right font-medium tabular-nums">
                       {n}
                     </span>
                   </Link>
@@ -216,6 +362,93 @@ export default async function PainelPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Quem está esquecido. Sem isso, o negócio parado só some da vista. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Precisam de atenção
+              {parados.length > 0 && (
+                <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {parados.length}
+                </span>
+              )}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Sem tarefa marcada e parados há 30 dias ou mais
+              {nuncaTrabalhados.length > 0
+                ? ` · ${nuncaTrabalhados.length} nunca trabalhado(s)`
+                : ""}
+              .
+            </p>
+          </CardHeader>
+          <CardContent>
+            {parados.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum atendimento esquecido. 👌
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {parados.slice(0, 8).map((a) => (
+                  <li key={a.id} className="py-2 text-sm">
+                    <Link
+                      href={`/atendimentos/${a.id}`}
+                      className="flex items-center justify-between gap-3 hover:opacity-80"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">
+                          {a.clienteNome}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: a.faseCor }}
+                          />
+                          {a.faseNome}
+                          {a.vendedorNome ? ` · ${a.vendedorNome}` : ""}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {a.nuncaTrabalhado
+                          ? "nunca trabalhado"
+                          : `parado há ${a.diasParado} dias`}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+                {parados.length > 8 && (
+                  <li className="pt-2 text-xs text-muted-foreground">
+                    e mais {parados.length - 8}…
+                  </li>
+                )}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {totalPerdas > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Por que perdemos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {perdas.map((p) => (
+                <div key={p.motivo} className="flex items-center gap-3 text-sm">
+                  <span className="w-44 shrink-0 truncate">{p.motivo}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
+                    <span
+                      className="block h-full rounded-full bg-destructive/70"
+                      style={{ width: `${(p.n / totalPerdas) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-6 shrink-0 text-right font-medium tabular-nums">
+                    {p.n}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {veTudo && (
           <Card>

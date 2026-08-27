@@ -25,6 +25,10 @@ import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { buscarTarefas } from "@/lib/tarefas-consulta";
+import { motivosPerda } from "@/db/schema";
+import { ListaTarefas } from "../../tarefas/lista-tarefas";
+import { TarefaDialog } from "../../tarefas/tarefa-dialog";
 import { ObservacoesForm } from "./observacoes-form";
 import { AtribuirVendedor } from "./atribuir-vendedor";
 
@@ -56,6 +60,8 @@ export default async function AtendimentoPage({
       criadoEm: atendimentos.criadoEm,
       faseId: atendimentos.faseId,
       vendedorId: atendimentos.vendedorId,
+      motivoPerdaId: atendimentos.motivoPerdaId,
+      motivoPerdaObs: atendimentos.motivoPerdaObs,
       cliente: clientes,
     })
     .from(atendimentos)
@@ -122,6 +128,18 @@ export default async function AtendimentoPage({
 
   const { cliente } = atendimento;
 
+  // Tarefas deste atendimento — é a resposta para "e agora?".
+  const tarefas = await buscarTarefas({ atendimentoId });
+  const pendentes = tarefas.filter((t) => t.status === "pendente");
+
+  // Motivo da perda, quando o atendimento está numa fase de negócio perdido.
+  const faseAtual = todasFases.find((f) => f.id === atendimento.faseId);
+  const motivo = atendimento.motivoPerdaId
+    ? await db.query.motivosPerda.findFirst({
+        where: eq(motivosPerda.id, atendimento.motivoPerdaId),
+      })
+    : null;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -142,6 +160,11 @@ export default async function AtendimentoPage({
             faseId={atendimento.faseId}
             fases={todasFases}
           />
+          <TarefaDialog
+            atendimentoId={atendimento.id}
+            responsaveis={listaVendedores}
+            trigger={<Button variant="outline">Nova tarefa</Button>}
+          />
           <Button
             nativeButton={false}
             render={<Link href={`/orcamentos/novo?atendimento=${atendimento.id}`} />}
@@ -150,6 +173,50 @@ export default async function AtendimentoPage({
           </Button>
         </div>
       </div>
+
+      {faseAtual?.ehPerdido && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-destructive">
+            Negócio perdido
+          </p>
+          <p className="mt-1 text-sm">
+            {motivo?.nome ?? "Motivo não informado"}
+            {atendimento.motivoPerdaObs
+              ? ` — ${atendimento.motivoPerdaObs}`
+              : ""}
+          </p>
+        </div>
+      )}
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-base">
+            Tarefas
+            {pendentes.length > 0 && (
+              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {pendentes.length} pendente{pendentes.length > 1 ? "s" : ""}
+              </span>
+            )}
+          </CardTitle>
+          <TarefaDialog
+            atendimentoId={atendimento.id}
+            responsaveis={listaVendedores}
+            trigger={
+              <Button variant="ghost" size="sm">
+                + Tarefa
+              </Button>
+            }
+          />
+        </CardHeader>
+        <CardContent>
+          <ListaTarefas
+            tarefas={tarefas}
+            responsaveis={listaVendedores}
+            mostrarCliente={false}
+            vazio="Nenhuma tarefa combinada para este cliente."
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

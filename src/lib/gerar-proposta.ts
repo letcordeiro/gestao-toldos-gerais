@@ -19,6 +19,7 @@ import {
   vendedores,
 } from "@/db/schema";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
+import { aosCuidados, textoValidade } from "@/lib/proposta";
 import { enderecoCompleto } from "@/lib/endereco";
 import { contentTypeFoto, lerFoto } from "@/lib/uploads";
 import {
@@ -136,6 +137,12 @@ export async function gerarProposta(
     },
     modeloNome: linha.modeloNome,
     formatoLabel: linha.orc.formato ? rotuloFormato(linha.orc.formato) : null,
+    introducao: linha.orc.introducao,
+    aosCuidadosDe: aosCuidados(linha.orc.aosCuidadosDe, linha.cliente.nome),
+    validadeTexto: textoValidade(
+      linha.orc.validadeDias,
+      linha.orc.enviadoEm ?? linha.orc.criadoEm
+    ),
     descricaoMaterial: linha.orc.descricaoMaterial,
     estruturaLabel: rotuloEstrutura(linha.orc.tipoEstrutura) || null,
     fixacaoVedacao: linha.orc.fixacaoVedacao,

@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CheckSquare,
   Contact,
   FileSignature,
   FileText,
   Home,
   ListChecks,
+  MoreHorizontal,
   Package,
   Settings,
   Tag,
@@ -22,6 +24,8 @@ type Grupo = { label: string; curto?: string; icon: string; itens: Item[] };
 
 const ICONS: Record<string, LucideIcon> = {
   painel: Home,
+  tarefas: CheckSquare,
+  config: Settings,
   atendimentos: ListChecks,
   orcamentos: FileText,
   contratos: FileSignature,
@@ -29,7 +33,7 @@ const ICONS: Record<string, LucideIcon> = {
   modelos: Package,
   usuarios: Users,
   fases: Tag,
-  gestor: Settings,
+  gestor: MoreHorizontal,
 };
 
 // Barra de navegação fixa no rodapé (só mobile) — mais fácil de alcançar com o polegar.
@@ -58,7 +62,7 @@ export function BottomNav({
             onClick={() => setAberto(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="absolute inset-x-3 bottom-full z-50 mb-2 overflow-hidden rounded-xl border bg-card shadow-xl">
+          <div className="absolute inset-x-3 bottom-full z-50 mb-2 max-h-[70vh] overflow-y-auto rounded-xl border bg-card shadow-xl">
             {grupo.itens.map((item) => {
               const Icon = ICONS[item.icon] ?? Home;
               return (

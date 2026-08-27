@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, like, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, notInArray, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import {
@@ -16,7 +16,6 @@ import type { Aviso, PendenciaAviso } from "@/lib/avisos";
 import { LinhaPendencia } from "./linha-pendencia";
 import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { ordenarLista } from "@/lib/ordenacao";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -88,7 +87,9 @@ export default async function AtendimentosPage({
     .filter((v) => v.linkToken && (veTudo || v.id === usuario.vendedorId))
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
 
-  const fasePerdido = todasFases.find((f) => f.nome === "Perdido");
+  // Fases escondidas da visão padrão (flag "exibir na listagem" na tela de
+  // Fases). Era uma regra fixa para "Perdido"; agora vale para qualquer fase.
+  const fasesOcultas = todasFases.filter((f) => !f.exibirNaListagem);
 
   const filtros = [];
   // Cliente inativo sai do funil — o histórico dele fica em
@@ -96,8 +97,13 @@ export default async function AtendimentosPage({
   filtros.push(eq(clientes.ativo, true));
   if (escopoVendedor) filtros.push(escopoVendedor);
   if (fase) filtros.push(eq(atendimentos.faseId, Number(fase)));
-  // Perdido não aparece na visão padrão — só clicando no chip "Perdido".
-  else if (fasePerdido) filtros.push(ne(atendimentos.faseId, fasePerdido.id));
+  else if (fasesOcultas.length)
+    filtros.push(
+      notInArray(
+        atendimentos.faseId,
+        fasesOcultas.map((f) => f.id)
+      )
+    );
   if (q) {
     filtros.push(
       or(like(clientes.nome, `%${q}%`), like(clientes.telefone, `%${q}%`))
@@ -158,9 +164,10 @@ export default async function AtendimentosPage({
     .where(and(eq(clientes.ativo, true), escopoVendedor))
     .groupBy(atendimentos.faseId);
   const totalPorFase = new Map(contagens.map((c) => [c.faseId, c.total]));
-  // "Todos" conta o que a visão padrão mostra — sem os perdidos.
+  // "Todos" conta o que a visão padrão mostra — sem as fases ocultas.
+  const idsOcultas = new Set(fasesOcultas.map((f) => f.id));
   const totalGeral = contagens
-    .filter((c) => c.faseId !== fasePerdido?.id)
+    .filter((c) => !idsOcultas.has(c.faseId))
     .reduce((s, c) => s + c.total, 0);
 
   // Avisos configuráveis (Cadastros → Avisos): pendências de cada aviso ativo.
@@ -281,24 +288,8 @@ export default async function AtendimentosPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Atendimentos</h1>
         <div className="flex flex-wrap gap-2">
-          {veTudo && (
-            <>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/cadastros/avisos" />}
-              >
-                Avisos
-              </Button>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/cadastros/fases" />}
-              >
-                Fases
-              </Button>
-            </>
-          )}
+          {/* Avisos e Fases saíram daqui: agora moram na engrenagem de
+              Configurações, junto com o resto do que se configura uma vez. */}
           <GerarLinkDialog links={linksCadastro} />
           <NovoAtendimentoDialog
             clientes={todosClientes}

@@ -42,6 +42,15 @@ const TIPOS: { valor: TipoPagamento; rotulo: string }[] = [
 
 const MEIOS = Object.keys(MEIO_LABEL) as MeioPagamento[];
 
+// O que o gerador manda para a action (subconjunto de OpcoesPreset).
+type OpcoesPresetUI = {
+  entradaPercent?: number;
+  parcelas?: number;
+  intervaloDias?: number;
+  dataBase?: string;
+  meio?: MeioPagamento;
+};
+
 export function PlanoPagamento({
   contratoId,
   valorTotal,
@@ -58,6 +67,13 @@ export function PlanoPagamento({
 }) {
   const [linhas, setLinhas] = useState<LinhaPagamento[]>(linhasIniciais);
   const [pending, startTransition] = useTransition();
+  // Painel do gerador "N parcelas a cada X dias" — só abre quando pedido.
+  const [gerador, setGerador] = useState<{
+    parcelas: number;
+    intervaloDias: number;
+    dataBase: string;
+    meio: MeioPagamento;
+  } | null>(null);
 
   const validacaoValor = validarPlanoPagamento(linhas, valorTotal);
   const validacaoPercent = validarPlanoPercentual(linhas);
@@ -133,9 +149,9 @@ export function PlanoPagamento({
     });
   };
 
-  const usarPreset = (preset: PresetPlano) => {
+  const usarPreset = (preset: PresetPlano, opcoes: OpcoesPresetUI = {}) => {
     startTransition(async () => {
-      const r = await aplicarPresetPlano(contratoId, preset);
+      const r = await aplicarPresetPlano(contratoId, preset, opcoes);
       if (r.erro) {
         toast.error(r.erro);
         return;
@@ -146,10 +162,11 @@ export function PlanoPagamento({
       );
       setLinhas(
         modoOpcoes
-          ? gerarPresetPercentual(preset)
-          : gerarPreset(preset, valorTotal)
+          ? gerarPresetPercentual(preset, opcoes)
+          : gerarPreset(preset, valorTotal, opcoes)
       );
-      toast.success("Preset aplicado");
+      setGerador(null);
+      toast.success("Plano gerado");
     });
   };
 
@@ -165,11 +182,136 @@ export function PlanoPagamento({
               size="sm"
               disabled={pending}
               title={p.descricao}
-              onClick={() => usarPreset(p.chave)}
+              onClick={() =>
+                p.chave === "intervalo_dias"
+                  ? setGerador((g) =>
+                      g
+                        ? null
+                        : {
+                            parcelas: 3,
+                            intervaloDias: 30,
+                            dataBase: new Date().toISOString().slice(0, 10),
+                            meio: "pix",
+                          }
+                    )
+                  : usarPreset(p.chave)
+              }
             >
               {p.nome}
             </Button>
           ))}
+        </div>
+      )}
+
+      {editavel && gerador && (
+        <div className="space-y-3 rounded-lg border bg-secondary/40 p-3">
+          <p className="text-sm font-medium">
+            Gerar parcelas com data fixa
+            <span className="ml-2 font-normal text-muted-foreground">
+              divide o total em partes iguais
+            </span>
+          </p>
+          <div className="grid gap-2 sm:grid-cols-4">
+            <div className="space-y-1">
+              <Label htmlFor="ger-parcelas" className="text-xs">
+                Parcelas
+              </Label>
+              <Input
+                id="ger-parcelas"
+                type="number"
+                min={1}
+                max={60}
+                value={gerador.parcelas}
+                onChange={(e) =>
+                  setGerador((g) =>
+                    g ? { ...g, parcelas: Number(e.target.value) } : g
+                  )
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ger-intervalo" className="text-xs">
+                A cada (dias)
+              </Label>
+              <Input
+                id="ger-intervalo"
+                type="number"
+                min={1}
+                max={365}
+                value={gerador.intervaloDias}
+                onChange={(e) =>
+                  setGerador((g) =>
+                    g ? { ...g, intervaloDias: Number(e.target.value) } : g
+                  )
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ger-data" className="text-xs">
+                1ª parcela em
+              </Label>
+              <Input
+                id="ger-data"
+                type="date"
+                value={gerador.dataBase}
+                onChange={(e) =>
+                  setGerador((g) =>
+                    g ? { ...g, dataBase: e.target.value } : g
+                  )
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ger-meio" className="text-xs">
+                Meio
+              </Label>
+              <select
+                id="ger-meio"
+                className={SELECT}
+                value={gerador.meio}
+                onChange={(e) =>
+                  setGerador((g) =>
+                    g ? { ...g, meio: e.target.value as MeioPagamento } : g
+                  )
+                }
+              >
+                {MEIOS.map((m) => (
+                  <option key={m} value={m}>
+                    {MEIO_LABEL[m]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                usarPreset("intervalo_dias", {
+                  parcelas: gerador.parcelas,
+                  intervaloDias: gerador.intervaloDias,
+                  dataBase: gerador.dataBase,
+                  meio: gerador.meio,
+                })
+              }
+            >
+              Gerar {gerador.parcelas} parcela
+              {gerador.parcelas > 1 ? "s" : ""}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setGerador(null)}
+            >
+              Cancelar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Substitui o plano atual. Depois dá para ajustar cada linha na mão.
+          </p>
         </div>
       )}
 
