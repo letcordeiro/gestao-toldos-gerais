@@ -815,3 +815,16 @@ export const instalacaoEquipe = sqliteTable("instalacao_equipe", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Formato do número de cada documento. O SEQUENCIAL não mora aqui: ele sai
+// dos números já existentes (ver lib/numeracao.ts) — contador guardado
+// desencontra do banco depois de um backup restaurado.
+export const numeracoes = sqliteTable("numeracoes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  documento: text("documento", { enum: ["orcamento", "contrato"] })
+    .notNull()
+    .unique(),
+  prefixo: text("prefixo").notNull().default(""),
+  incluiAno: integer("inclui_ano", { mode: "boolean" }).notNull().default(true),
+  digitos: integer("digitos").notNull().default(3),
+});

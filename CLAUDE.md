@@ -449,6 +449,78 @@ rodava na pasta, e o `.next` compartilhado começou a dar `ENOENT` em
 subir servidor, use `NEXT_DIST_DIR=.next-verify npx next build` — o padrão
 `/.next-*/` já está no `.gitignore`.
 
+## Pesquisa, chamados, cotação, comissão e numeração (27/08/2026)
+
+### Pesquisa de satisfação
+
+Tabela `pesquisas` (0024): **uma por atendimento**, com token próprio. Nasce da
+variável **`{pesquisa}`** numa automação — que resolve o link na hora. Fica no
+gatilho (escrita) e não no aviso (leitura): aviso é lido a cada carregamento de
+tela e não pode criar registro. Página pública `/pesquisa/[token]` com nota
+0–10 e comentário; responder de novo sobrescreve. `/pesquisas` mostra NPS, nota
+média, distribuição e quem não respondeu (`src/lib/pesquisa.ts`, puro).
+
+**Sem `APP_URL` não há link**: nesse caso a variável sai da mensagem junto com
+os dois-pontos que a antecediam — mandar "ajuda muito a gente: " é pior do que
+mandar a frase sem o convite.
+
+### Chamados (pós-venda e garantia)
+
+Tabelas `chamados` + `chamado_interacoes` (0025). O chamado é preso ao
+**atendimento**, então o histórico do cliente continua num lugar só.
+
+A tela abre pela **garantia** — é a primeira pergunta de todo chamado, porque
+decide quem paga a visita. `avaliarGarantia()` conta a partir da **conclusão da
+instalação** (`orcamento_instalacao.dataEntrega`), com o prazo do contrato
+quando existe. Sem data de entrega o status é **"indefinida"**, nunca
+"expirada". Mudar a situação grava linha no histórico sozinha.
+
+### Cotação de fornecedor
+
+Tabelas `fornecedores`, `cotacoes`, `cotacao_itens`, `cotacao_fornecedores`,
+`cotacao_respostas` (0026). Cada fornecedor tem **link próprio**
+(`/cotacao/[token]`) e não vê o preço dos outros.
+
+- Item em branco = "não trabalho com isso", **diferente de cotar zero**.
+- Na comparação, `totalCompleto` separa quem cotou a lista inteira: somar
+  cotação parcial faria quem cotou menos parecer o mais barato.
+- **Editar a lista de material apaga as respostas** (cascade). É o certo — o
+  preço de antes não vale para outra lista — e o aviso está na tela.
+
+### Equipe de instalação e comissão
+
+Tabelas `instaladores` + `instalacao_equipe` (0027). Instalador **não é usuário
+do sistema**: é quem trabalha na obra, e tem cadastro próprio. Comissão em
+percentual (sobre a soma dos itens do orçamento) ou valor fixo.
+
+`valorDaComissao()` devolve **`null`, nunca zero**, quando o percentual não tem
+valor de orçamento para incidir: "ainda não dá para calcular" é diferente de
+"não deve nada". `/instalacoes/comissoes` agrupa **por instalador**, porque a
+pergunta é "quanto devo pro Zé", não "quanto devo nesta obra".
+
+### Numerações configuráveis
+
+Tabela `numeracoes` (0028) guarda **só o formato** (prefixo, incluir ano,
+dígitos). O **sequencial continua saindo dos números que já existem** — contador
+guardado em tabela desencontra do banco depois de um registro apagado ou de um
+backup restaurado. Trocar o prefixo recomeça a contagem, e o documento antigo
+mantém o número que já saiu no papel.
+
+`src/lib/numeracao.ts` é puro; `numeracao-consulta.ts` lê a config e cai no
+formato histórico (`2026-001`, `CT-2026-0001`) se a tabela vier vazia.
+
+## Navegação: barra, "Mais" e engrenagem (27/08/2026)
+
+- **Barra principal — só o que se abre TODO DIA**: Painel · Tarefas ·
+  Atendimentos · Orçamentos · Instalações.
+- **Menu "Mais"** (uso semanal): Chamados, Contratos, Clientes, Cotações,
+  Satisfação.
+- **Engrenagem "Configurações"** (gestor): Fases, Automações, Avisos, Motivos
+  de perda, Resumo por e-mail, Modelos, Fornecedores, Instaladores, Numerações,
+  Usuários.
+- No mobile, a barra de baixo tem quatro itens + "Mais", que junta tudo.
+- `MenuSuspenso` (`menu-config.tsx`) serve os dois menus.
+
 ## Diálogos: altura da tela (26/08/2026)
 
 `DialogContent` tem `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto`. Antes, um

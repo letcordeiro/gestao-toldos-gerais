@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, like, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
@@ -16,6 +16,8 @@ import {
 } from "@/db/schema";
 import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
+import { configNumeracao } from "@/lib/numeracao-consulta";
+import { proximoNumero as proximoNumeroFormatado } from "@/lib/numeracao";
 import { dispararGatilhos } from "@/lib/gatilhos-executor";
 import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
@@ -83,16 +85,17 @@ function converterItens(
 
 async function proximoNumero(): Promise<string> {
   const ano = new Date().getFullYear();
+  const config = await configNumeracao("orcamento");
+  // Traz todos e filtra pelo prefixo em memória: o prefixo é configurável e
+  // pode ter mudado no meio do ano.
   const linhas = await db
     .select({ numero: orcamentos.numero })
-    .from(orcamentos)
-    .where(like(orcamentos.numero, `${ano}-%`));
-  // Maior sequência numérica do ano (ignora sufixos não numéricos)
-  const maxSeq = linhas.reduce((max, { numero }) => {
-    const n = parseInt(numero.split("-")[1] ?? "", 10);
-    return Number.isFinite(n) ? Math.max(max, n) : max;
-  }, 0);
-  return `${ano}-${String(maxSeq + 1).padStart(3, "0")}`;
+    .from(orcamentos);
+  return proximoNumeroFormatado(
+    linhas.map((l) => l.numero),
+    config,
+    ano
+  );
 }
 
 async function moverParaOrcamentoEnviado(atendimentoId: number) {

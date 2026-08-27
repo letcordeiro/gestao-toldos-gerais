@@ -103,6 +103,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         ajuda: "Quem vai na obra e a comissão de cada um",
       },
       {
+        href: "/cadastros/numeracoes",
+        label: "Numerações",
+        ajuda: "Formato do número de orçamento e contrato",
+      },
+      {
         href: "/cadastros/usuarios",
         label: "Usuários",
         ajuda: "Quem entra e o que pode fazer",

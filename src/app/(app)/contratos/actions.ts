@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, desc, eq, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
@@ -21,6 +21,8 @@ import {
 } from "@/db/schema";
 import { exigirComercial, exigirUsuario, podeComercial } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
+import { configNumeracao } from "@/lib/numeracao-consulta";
+import { proximoNumero as proximoNumeroFormatado } from "@/lib/numeracao";
 import { dispararGatilhos } from "@/lib/gatilhos-executor";
 import type { EventoGatilho } from "@/lib/gatilhos";
 import {
@@ -31,7 +33,6 @@ import {
   pendenciasParaEmitir,
   podeFazer,
   proximoNumeroAditivo,
-  proximoNumeroContrato,
   validarPlanoPagamento,
   type OpcoesPreset,
   type PresetPlano,
@@ -593,12 +594,14 @@ export async function emitirContrato(
   });
   if (faltas.length > 0) return { pendencias: faltas };
 
-  const numerosDoAno = await db
+  // Prefixo é configurável (Configurações → Numerações), então traz todos e
+  // deixa o formatador filtrar pelo prefixo em vigor.
+  const todosNumeros = await db
     .select({ numero: contratos.numero })
-    .from(contratos)
-    .where(like(contratos.numero, `CT-${new Date().getFullYear()}-%`));
-  const numero = proximoNumeroContrato(
-    numerosDoAno.map((n) => n.numero),
+    .from(contratos);
+  const numero = proximoNumeroFormatado(
+    todosNumeros.map((n) => n.numero),
+    await configNumeracao("contrato"),
     new Date().getFullYear()
   );
 
