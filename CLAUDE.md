@@ -521,6 +521,29 @@ formato histórico (`2026-001`, `CT-2026-0001`) se a tabela vier vazia.
 - No mobile, a barra de baixo tem quatro itens + "Mais", que junta tudo.
 - `MenuSuspenso` (`menu-config.tsx`) serve os dois menus.
 
+## A lista de contratos foi absorvida pela de orçamentos (27/08/2026)
+
+As duas listas eram a mesma tabela — Número, Cliente, Status, Valor, Data — e a
+de contratos ainda trazia uma coluna "Orçamento" que só apontava de volta.
+
+- **A lista sumiu; o documento não.** `/contratos/[id]` continua sendo tela
+  própria, com emissão, versões, aditivos, plano de pagamento e recebimentos.
+  Juntar os detalhes enterraria um documento de valor jurídico (e de **outro
+  emitente** — Comercial Mari) atrás do status de uma proposta.
+- `/orcamentos` ganhou a coluna **Contrato** (selo + número) e uma barra de
+  filtros — "com contrato", "minuta", "aguardando assinatura", "assinado" —
+  que responde o que a lista antiga respondia.
+- O join do contrato **ignora cancelado**: na lista importa o documento que
+  vale hoje.
+- `CelulaContrato` é componente de cliente por causa do `stopPropagation`: sem
+  ele o clique no selo dispara junto o clique da linha (que abre o orçamento),
+  e o orçamento ganha a corrida.
+- `/contratos` virou **redirect** para `/orcamentos?contrato=com` — link antigo
+  em favorito ou WhatsApp não pode virar erro. O "← Contratos" da tela do
+  contrato virou "← Orçamento {número}".
+- **Criar contrato nunca passou pela lista**: sai do botão "Gerar contrato" na
+  tela do orçamento, liberado pela fase de negócio fechado. Nada mudou aí.
+
 ## Diálogos: altura da tela (26/08/2026)
 
 `DialogContent` tem `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto`. Antes, um

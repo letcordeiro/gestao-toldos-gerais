@@ -39,11 +39,6 @@ const MAIS = [
         ajuda: "Pós-venda e garantia depois da instalação",
       },
       {
-        href: "/contratos",
-        label: "Contratos",
-        ajuda: "Minutas, assinaturas e recebimentos",
-      },
-      {
         href: "/cadastros/clientes",
         label: "Clientes",
         ajuda: "Cadastro e histórico de cada um",

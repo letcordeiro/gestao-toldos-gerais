@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   atendimentos,
   clientes,
+  contratos,
   fases,
   orcamentoItens,
   orcamentos,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { formatarCentavos } from "@/lib/format";
 import { LinhaClicavel } from "./linha-clicavel";
+import { CelulaContrato } from "./celula-contrato";
 
 export const metadata = { title: "Orçamentos" };
 
@@ -39,6 +41,16 @@ const STATUS_BADGE: Record<
   recusado: { label: "Recusado", variant: "destructive" },
 };
 
+// Filtros por situação do CONTRATO. A lista de contratos deixou de existir
+// como tela própria (27/08/2026): ela repetia cliente, valor e data da lista
+// de orçamentos e trazia uma coluna que só apontava de volta para cá.
+const FILTROS_CONTRATO: { chave: string; label: string }[] = [
+  { chave: "com", label: "Com contrato" },
+  { chave: "rascunho", label: "Minuta" },
+  { chave: "emitido", label: "Aguardando assinatura" },
+  { chave: "assinado", label: "Assinado" },
+];
+
 // Ordem de exibição dos cards e cor de identificação de cada status.
 const STATUS_CARDS: { chave: string; label: string; cor: string }[] = [
   { chave: "rascunho", label: "Rascunho", cor: "#9CA3AF" },
@@ -50,9 +62,18 @@ const STATUS_CARDS: { chave: string; label: string; cor: string }[] = [
 export default async function OrcamentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; ordem?: string; dir?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    contrato?: string;
+    ordem?: string;
+    dir?: string;
+  }>;
 }) {
-  const { status: statusParam, ordem, dir } = await searchParams;
+  const { status: statusParam, contrato: contratoParam, ordem, dir } =
+    await searchParams;
+  const contratoFiltro = FILTROS_CONTRATO.some((f) => f.chave === contratoParam)
+    ? contratoParam
+    : undefined;
   const statusFiltro =
     statusParam && statusParam in STATUS_BADGE ? statusParam : undefined;
 
@@ -79,12 +100,24 @@ export default async function OrcamentosPage({
         from ${orcamentoItens}
         where ${orcamentoItens.orcamentoId} = ${orcamentos.id}
       )`,
+      contratoId: contratos.id,
+      contratoNumero: contratos.numero,
+      contratoStatus: contratos.status,
     })
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
     .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .leftJoin(vendedores, eq(orcamentos.vendedorId, vendedores.id))
+    // Contrato vivo do orçamento. Cancelado fica de fora: o que interessa na
+    // lista é o documento que vale hoje.
+    .leftJoin(
+      contratos,
+      and(
+        eq(contratos.orcamentoId, orcamentos.id),
+        ne(contratos.status, "cancelado")
+      )
+    )
     // Cliente inativo e atendimento concluído saem daqui — ficam visíveis
     // apenas no histórico do cliente (/cadastros/clientes/[id]).
     .where(
@@ -108,9 +141,18 @@ export default async function OrcamentosPage({
 
   // Visão padrão mostra só o que está em jogo: recusado sai da lista e fica
   // atrás do card "Recusados" (contagem e valor continuam visíveis nele).
-  const emJogo = statusFiltro
+  const porStatus = statusFiltro
     ? todos.filter((o) => o.status === statusFiltro)
     : todos.filter((o) => o.status !== "recusado");
+  const emJogo = contratoFiltro
+    ? porStatus.filter((o) =>
+        contratoFiltro === "com"
+          ? o.contratoId != null
+          : contratoFiltro === "assinado"
+            ? o.contratoStatus === "assinado" || o.contratoStatus === "aditivado"
+            : o.contratoStatus === contratoFiltro
+      )
+    : porStatus;
   // Status ordena pelo andamento (rascunho → enviado → aprovado → recusado),
   // não pelo nome.
   const ORDEM_STATUS: Record<string, number> = {
@@ -123,6 +165,7 @@ export default async function OrcamentosPage({
     status: (o) => ORDEM_STATUS[o.status] ?? 99,
     total: (o) => o.total ?? 0,
     data: (o) => o.criadoEm,
+    contrato: (o) => o.contratoNumero ?? "",
   });
   const Coluna = ({
     chave,
@@ -138,7 +181,7 @@ export default async function OrcamentosPage({
       chave={chave}
       ordem={ordem}
       dir={dir}
-      extras={{ status: statusParam }}
+      extras={{ status: statusParam, contrato: contratoParam }}
       className={className}
     >
       {children}
@@ -188,6 +231,36 @@ export default async function OrcamentosPage({
         })}
       </div>
 
+      {/* Filtro por contrato: é a pergunta que a tela de Contratos respondia
+          ("quais estão esperando assinatura"), agora sem uma lista à parte. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          Contrato:
+        </span>
+        {FILTROS_CONTRATO.map((f) => {
+          const ativo = contratoFiltro === f.chave;
+          const params = new URLSearchParams();
+          if (statusParam) params.set("status", statusParam);
+          if (!ativo) params.set("contrato", f.chave);
+          const query = params.toString();
+          return (
+            <Link
+              key={f.chave}
+              href={query ? `/orcamentos?${query}` : "/orcamentos"}
+              scroll={false}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                ativo
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              {f.label}
+            </Link>
+          );
+        })}
+      </div>
+
       {statusFiltro && (
         <p className="text-sm text-muted-foreground">
           Mostrando só{" "}
@@ -213,6 +286,7 @@ export default async function OrcamentosPage({
                 </Coluna>
               )}
               <Coluna chave="status">Status</Coluna>
+              <Coluna chave="contrato">Contrato</Coluna>
               <Coluna chave="total" className="hidden md:table-cell">
                 Total (a partir de)
               </Coluna>
@@ -225,7 +299,7 @@ export default async function OrcamentosPage({
             {linhas.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={veTudo ? 6 : 5}
+                  colSpan={veTudo ? 7 : 6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {statusFiltro
@@ -252,6 +326,13 @@ export default async function OrcamentosPage({
                   <TableCell>
                     <Badge variant={badge.variant}>{badge.label}</Badge>
                   </TableCell>
+                  {/* O contrato é outro documento e tem tela própria: o selo
+                      leva direto para ela, sem passar por uma lista. */}
+                  <CelulaContrato
+                    contratoId={linha.contratoId}
+                    numero={linha.contratoNumero}
+                    status={linha.contratoStatus}
+                  />
                   <TableCell className="hidden text-muted-foreground md:table-cell">
                     {linha.total != null ? formatarCentavos(linha.total) : "—"}
                   </TableCell>

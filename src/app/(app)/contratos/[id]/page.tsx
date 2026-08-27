@@ -170,11 +170,13 @@ export default async function ContratoPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
+          {/* Volta para o orçamento de origem, não para uma lista de
+              contratos — ela não existe mais. */}
           <Link
-            href="/contratos"
+            href={`/orcamentos/${contrato.orcamentoId}`}
             className="text-sm text-muted-foreground hover:underline"
           >
-            ← Contratos
+            ← Orçamento {orcamento.numero}
           </Link>
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
             {contrato.numero ?? "Contrato (minuta)"}
