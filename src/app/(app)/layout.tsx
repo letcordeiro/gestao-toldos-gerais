@@ -98,6 +98,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         ajuda: "Quem recebe os pedidos de cotação",
       },
       {
+        href: "/cadastros/instaladores",
+        label: "Instaladores",
+        ajuda: "Quem vai na obra e a comissão de cada um",
+      },
+      {
         href: "/cadastros/usuarios",
         label: "Usuários",
         ajuda: "Quem entra e o que pode fazer",

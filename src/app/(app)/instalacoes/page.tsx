@@ -45,12 +45,23 @@ export default async function InstalacoesPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Instalações</h1>
-        <p className="text-sm text-muted-foreground">
-          Negócios fechados que ainda não tiveram a entrega registrada. O prazo
-          é a previsão de entrega da ficha de instalação.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Instalações</h1>
+          <p className="text-sm text-muted-foreground">
+            Negócios fechados que ainda não tiveram a entrega registrada. O
+            prazo é a previsão de entrega da ficha de instalação.
+          </p>
+        </div>
+        {veTudo && (
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/instalacoes/comissoes" />}
+          >
+            Comissões
+          </Button>
+        )}
       </div>
 
       {/* Contadores por prazo: é a pergunta "o que vence quando", que o funil

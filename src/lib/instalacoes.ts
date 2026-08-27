@@ -1,9 +1,11 @@
-import { and, asc, eq, isNull, or, type SQL } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
   fases,
+  instalacaoEquipe,
+  instaladores,
   orcamentoInstalacao,
   orcamentos,
   vendedores,
@@ -114,4 +116,56 @@ export function contarPorGaveta(
  */
 export function semFicha(instalacoes: Instalacao[]): Instalacao[] {
   return instalacoes.filter((i) => !i.temFicha);
+}
+
+export type ComissaoLinha = {
+  linhaId: number;
+  instaladorNome: string;
+  orcamentoId: number;
+  numero: string;
+  clienteNome: string;
+  papel: "responsavel" | "ajudante";
+  tipo: "percentual" | "fixo";
+  percentual: number | null;
+  valorFixo: number | null;
+  pagoEm: Date | null;
+  valorOrcamento: number | null;
+  dataEntrega: Date | null;
+};
+
+/**
+ * Comissões de instalação, uma linha por pessoa por obra. Serve tanto para o
+ * "quanto devo" quanto para a baixa de pagamento.
+ */
+export async function buscarComissoes(): Promise<ComissaoLinha[]> {
+  const linhas = await db
+    .select({
+      linhaId: instalacaoEquipe.id,
+      instaladorNome: instaladores.nome,
+      orcamentoId: orcamentos.id,
+      numero: orcamentos.numero,
+      clienteNome: clientes.nome,
+      papel: instalacaoEquipe.papel,
+      tipo: instalacaoEquipe.tipo,
+      percentual: instalacaoEquipe.percentual,
+      valorFixo: instalacaoEquipe.valorFixo,
+      pagoEm: instalacaoEquipe.pagoEm,
+      dataEntrega: orcamentoInstalacao.dataEntrega,
+      valorOrcamento: sql<number | null>`(
+        select sum(oi.valor_min) from orcamento_itens oi
+        where oi.orcamento_id = orcamentos.id
+      )`,
+    })
+    .from(instalacaoEquipe)
+    .innerJoin(instaladores, eq(instalacaoEquipe.instaladorId, instaladores.id))
+    .innerJoin(orcamentos, eq(instalacaoEquipe.orcamentoId, orcamentos.id))
+    .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
+    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .leftJoin(
+      orcamentoInstalacao,
+      eq(orcamentoInstalacao.orcamentoId, orcamentos.id)
+    )
+    .orderBy(asc(instaladores.nome), asc(orcamentos.numero));
+
+  return linhas;
 }

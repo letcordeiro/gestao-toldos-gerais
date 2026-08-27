@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import { db } from "@/db";
 import {
   atendimentos,
   clientes,
   fases,
+  instalacaoEquipe,
   instalacaoItens,
+  instaladores,
   orcamentoInstalacao,
+  orcamentoItens,
   orcamentos,
 } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
@@ -19,6 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EquipeInstalacao } from "../equipe-instalacao";
+import { instaladoresAtivos } from "../equipe-actions";
 import {
   InstalacaoForm,
   type DadosInstalacao,
@@ -110,6 +115,32 @@ export default async function FichaInstalacaoPage({
   const endereco = enderecoCompleto(linha.cliente);
   const pdfUrl = `/orcamentos/${linha.orc.id}/ficha/pdf`;
 
+  // Equipe da obra e base do percentual de comissão (soma dos itens).
+  const equipe = await db
+    .select({
+      id: instalacaoEquipe.id,
+      instaladorId: instalacaoEquipe.instaladorId,
+      instaladorNome: instaladores.nome,
+      papel: instalacaoEquipe.papel,
+      tipo: instalacaoEquipe.tipo,
+      percentual: instalacaoEquipe.percentual,
+      valorFixo: instalacaoEquipe.valorFixo,
+      pagoEm: instalacaoEquipe.pagoEm,
+    })
+    .from(instalacaoEquipe)
+    .innerJoin(instaladores, eq(instalacaoEquipe.instaladorId, instaladores.id))
+    .where(eq(instalacaoEquipe.orcamentoId, orcamentoId))
+    .orderBy(asc(instalacaoEquipe.id));
+
+  const [{ valorOrcamento }] = await db
+    .select({
+      valorOrcamento: sql<number | null>`sum(${orcamentoItens.valorMin})`,
+    })
+    .from(orcamentoItens)
+    .where(eq(orcamentoItens.orcamentoId, orcamentoId));
+
+  const listaInstaladores = await instaladoresAtivos();
+
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
@@ -133,6 +164,25 @@ export default async function FichaInstalacaoPage({
         pdfUrl={pdfUrl}
         nomeArquivo={`ficha-instalacao-${linha.orc.numero}.pdf`}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Equipe da obra</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Quem foi na instalação e quanto a empresa deve por ela. A comissão
+            em percentual usa o valor do orçamento como base.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <EquipeInstalacao
+            orcamentoId={orcamentoId}
+            valorOrcamento={valorOrcamento ?? null}
+            equipe={equipe}
+            instaladores={listaInstaladores}
+            editavel
+          />
+        </CardContent>
+      </Card>
 
       {/* Dados que vêm do cadastro — não se digita aqui */}
       <Card>

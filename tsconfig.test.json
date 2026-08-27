@@ -22,7 +22,8 @@
     "src/lib/resumo.ts",
     "src/lib/pesquisa.ts",
     "src/lib/chamados.ts",
-    "src/lib/cotacoes.ts"
+    "src/lib/cotacoes.ts",
+    "src/lib/comissoes.ts"
   ],
   "files": [
     "src/lib/valor-extenso.test.ts",
@@ -36,6 +37,7 @@
     "src/lib/resumo.test.ts",
     "src/lib/pesquisa.test.ts",
     "src/lib/chamados.test.ts",
-    "src/lib/cotacoes.test.ts"
+    "src/lib/cotacoes.test.ts",
+    "src/lib/comissoes.test.ts"
   ]
 }

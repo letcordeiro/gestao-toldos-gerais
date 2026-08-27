@@ -770,3 +770,48 @@ export const cotacaoRespostas = sqliteTable("cotacao_respostas", {
   // Centavos, como todo valor do sistema. Null = fornecedor não cotou o item.
   valorUnitario: integer("valor_unitario"),
 });
+
+// ---------------------------------------------------------------------------
+// EQUIPE DE INSTALAÇÃO E COMISSÃO
+// Quem foi na obra e quanto a empresa deve por ela. Instalador não é usuário
+// do sistema — é gente que trabalha, e por isso tem cadastro próprio.
+// ---------------------------------------------------------------------------
+
+export const instaladores = sqliteTable("instaladores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  telefone: text("telefone"),
+  // Sugestão que aparece preenchida ao montar a equipe. Percentual do valor
+  // do orçamento; a linha pode ser trocada por valor fixo depois.
+  comissaoPadraoPercent: real("comissao_padrao_percent"),
+  observacoes: text("observacoes"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const instalacaoEquipe = sqliteTable("instalacao_equipe", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orcamentoId: integer("orcamento_id")
+    .notNull()
+    .references(() => orcamentos.id),
+  instaladorId: integer("instalador_id")
+    .notNull()
+    .references(() => instaladores.id),
+  papel: text("papel", { enum: ["responsavel", "ajudante"] })
+    .notNull()
+    .default("ajudante"),
+  // Percentual do valor do orçamento OU valor fixo em centavos. Guardar os
+  // dois seria ambíguo: `tipo` diz qual vale.
+  tipo: text("tipo", { enum: ["percentual", "fixo"] })
+    .notNull()
+    .default("percentual"),
+  percentual: real("percentual"),
+  valorFixo: integer("valor_fixo"),
+  // Quando a comissão foi paga. Null = ainda a pagar.
+  pagoEm: integer("pago_em", { mode: "timestamp" }),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
