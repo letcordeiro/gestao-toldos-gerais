@@ -6,7 +6,7 @@ import { exigirUsuario, encerrarSessao, PAPEL_LABEL } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
 import { BottomNav } from "./bottom-nav";
-import { MenuConfiguracoes, MenuSuspenso } from "./menu-config";
+import { MenuSuspenso } from "./menu-config";
 
 async function sair() {
   "use server";
@@ -28,10 +28,11 @@ const NAV = [
 ];
 
 // Telas de uso semanal: entram no menu "Mais" em vez de disputar espaço na
-// barra com o que se abre todo dia.
+// barra com o que se abre todo dia. As configurações entram no MESMO menu,
+// como um grupo separado — um botão só para tudo que não é do dia a dia.
 const MAIS = [
   {
-    titulo: "",
+    titulo: "Telas",
     itens: [
       {
         href: "/chamados",
@@ -43,11 +44,21 @@ const MAIS = [
         label: "Clientes",
         ajuda: "Cadastro e histórico de cada um",
       },
+      {
+        href: "/cotacoes",
+        label: "Cotações",
+        ajuda: "Preço de material com vários fornecedores",
+      },
+      {
+        href: "/pesquisas",
+        label: "Satisfação",
+        ajuda: "Respostas da pesquisa de pós-venda",
+      },
     ],
   },
 ];
 
-// Menu da engrenagem (desktop) e da aba "Mais" (mobile). Só o gestor vê.
+// Grupos de configuração, dentro do menu "Mais". Só o gestor vê.
 const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: string }[] }[] = [
   {
     titulo: "Como o funil funciona",
@@ -174,8 +185,10 @@ export default async function AppLayout({
             {/* Nav inline no desktop */}
             <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
               <NavLinks itens={navItens} />
-              <MenuSuspenso rotulo="Mais" grupos={MAIS} />
-              {ehGestor && <MenuConfiguracoes grupos={CONFIG} />}
+              <MenuSuspenso
+                rotulo="Mais"
+                grupos={ehGestor ? [...MAIS, ...CONFIG] : MAIS}
+              />
             </nav>
             <div className="flex shrink-0 items-center gap-1">
               {usuario.vendedorId != null ? (

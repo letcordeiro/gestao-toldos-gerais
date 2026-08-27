@@ -513,13 +513,22 @@ formato histórico (`2026-001`, `CT-2026-0001`) se a tabela vier vazia.
 
 - **Barra principal — só o que se abre TODO DIA**: Painel · Tarefas ·
   Atendimentos · Orçamentos · Instalações.
-- **Menu "Mais"** (uso semanal): Chamados, Contratos, Clientes, Cotações,
-  Satisfação.
-- **Engrenagem "Configurações"** (gestor): Fases, Automações, Avisos, Motivos
-  de perda, Resumo por e-mail, Modelos, Fornecedores, Instaladores, Numerações,
-  Usuários.
-- No mobile, a barra de baixo tem quatro itens + "Mais", que junta tudo.
-- `MenuSuspenso` (`menu-config.tsx`) serve os dois menus.
+- **Um único menu "Mais"**, com dois blocos:
+  - *Telas* (uso semanal): Chamados, Clientes, Cotações, Satisfação.
+  - *Configurações* (só gestor): Fases, Automações, Avisos, Motivos de perda,
+    Resumo por e-mail · Modelos, Fornecedores, Instaladores, Numerações,
+    Usuários.
+- A engrenagem separada foi removida: um botão só para tudo que não é do dia a
+  dia. No mobile já era assim.
+- `MenuSuspenso` (`menu-config.tsx`) monta o menu a partir de grupos.
+
+### `npm run test:menu` — toda tela precisa ter caminho
+
+Cotações e Satisfação **sumiram do menu** numa edição de texto e ninguém
+percebeu: as telas continuavam funcionando, só não havia como chegar nelas.
+`scripts/teste-menu.mjs` varre `src/app/(app)` e falha se alguma tela não
+estiver no menu nem na lista de exceções (alcançada por botão ou redirect) —
+e também se um item de menu apontar para tela que não existe.
 
 ## A lista de contratos foi absorvida pela de orçamentos (27/08/2026)
 

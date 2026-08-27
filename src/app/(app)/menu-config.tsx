@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Settings, type LucideIcon } from "lucide-react";
+import { ChevronDown, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -81,9 +81,3 @@ export function MenuSuspenso({
   );
 }
 
-/** Atalho para o menu de configurações, com a engrenagem. */
-export function MenuConfiguracoes({ grupos }: { grupos: GrupoMenu[] }) {
-  return (
-    <MenuSuspenso rotulo="Configurações" grupos={grupos} icone={Settings} />
-  );
-}
