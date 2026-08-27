@@ -53,6 +53,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         label: "Motivos de perda",
         ajuda: "O que responder quando o negócio cai",
       },
+      {
+        href: "/cadastros/resumos",
+        label: "Resumo por e-mail",
+        ajuda: "O sistema te manda notícia sem você abrir",
+      },
     ],
   },
   {

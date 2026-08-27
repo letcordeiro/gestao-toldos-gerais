@@ -14,11 +14,15 @@ export function emailConfigurado(): boolean {
 
 export async function enviarEmail({
   para,
+  copia,
+  copiaOculta,
   assunto,
   html,
   texto,
 }: {
-  para: string;
+  para: string | string[];
+  copia?: string[];
+  copiaOculta?: string[];
   assunto: string;
   html: string;
   texto: string;
@@ -40,6 +44,8 @@ export async function enviarEmail({
   await transporte.sendMail({
     from: process.env.EMAIL_FROM ?? process.env.SMTP_USER,
     to: para,
+    cc: copia?.length ? copia : undefined,
+    bcc: copiaOculta?.length ? copiaOculta : undefined,
     subject: assunto,
     text: texto,
     html,

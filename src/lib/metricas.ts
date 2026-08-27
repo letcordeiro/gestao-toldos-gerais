@@ -72,9 +72,17 @@ export async function metricasDoFunil(
     );
 
   // Ciclo de venda: da abertura do atendimento até a entrada na fase que
-  // fecha o negócio. Só conta quem chegou lá.
+  // fecha o negócio.
+  //
+  // Conta SÓ quem está fechado agora — o mesmo conjunto de `ganhos`. Se
+  // olhasse o histórico inteiro, um negócio que passou por "Aguardando
+  // pagamento" e voltou para "Negociação" entraria no ciclo médio sem
+  // aparecer na conversão, e os dois números se contradiriam na mesma tela.
+  const idsGanhos = new Set(
+    linhas.filter((l) => idsFechamento.includes(l.faseId)).map((l) => l.id)
+  );
   let cicloMedioDias: number | null = null;
-  if (idsFechamento.length > 0) {
+  if (idsFechamento.length > 0 && idsGanhos.size > 0) {
     const fechamentos = await db
       .select({
         atendimentoId: historicoFases.atendimentoId,
@@ -91,6 +99,7 @@ export async function metricasDoFunil(
 
     const aberturaPorId = new Map(linhas.map((l) => [l.id, l.criadoEm]));
     const dias = fechamentos
+      .filter((f) => idsGanhos.has(f.atendimentoId))
       .map((f) => {
         const abertura = aberturaPorId.get(f.atendimentoId);
         if (!abertura) return null;

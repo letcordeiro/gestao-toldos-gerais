@@ -390,6 +390,65 @@ senão o relatório continuaria contando um negócio que voltou a andar.
   **"Próximo passo"** (que muda conforme o status) + `AcoesOrcamento`, um menu
   com editar, duplicar, link do cliente e excluir.
 
+## Instalações, cobrança e resumo por e-mail (27/08/2026)
+
+### Painel de instalações (`/instalacoes`)
+
+Entra na lista o orçamento cujo atendimento está numa fase de **negócio
+fechado** e que ainda não teve `dataEntrega` registrada na ficha. O prazo é a
+`prevEntrega` da ficha, e a gaveta é **a mesma das tarefas**
+(`gavetaDaTarefa`) — duas telas que falam de prazo contam do mesmo jeito.
+Alerta próprio para "negócio fechado sem ficha": é o furo mais caro do
+processo. O painel avisa quando há instalação vencida ou marcada para hoje.
+
+### Régua de cobrança
+
+- `contrato_pagamentos.pago_em` (migration `0022_cobranca`) guarda a baixa.
+- **`src/lib/cobranca.ts` é puro e testado**: `vencimentoEfetivo` traduz o
+  gatilho da parcela em data (assinatura, dias após instalação, data fixa…).
+  **Parcela presa a evento que ainda não aconteceu devolve `null`** — é o que
+  impede a régua de cobrar por algo que não era para ter acontecido.
+- A régua reaproveita os **avisos**: dois gatilhos novos, `parcela_vencida` e
+  `contrato_sem_assinatura`. Cada degrau (1, 7, 15 dias) é um aviso editável.
+  O alvo do "já contatei" é a **parcela**, não o contrato.
+- Cartão **Recebimentos** aparece no contrato assinado, separado do plano de
+  pagamento: o plano é o que foi combinado (e trava ao emitir); a baixa é
+  operação do dia.
+
+### Resumo por e-mail (`/cadastros/resumos` + `POST /api/resumos`)
+
+- Tabela `resumos` (migration `0023_resumos`), com blocos e destinatários em
+  JSON — lista curta que muda junto com o código.
+- `estaNaHora()` compara com o **último envio**, não com o calendário: cron que
+  falhou ontem manda hoje em vez de pular o período em silêncio. Margem de 2h
+  para a variação do cron.
+- `ultimoEnvioEm` só é gravado **depois** do envio dar certo.
+- Blocos vazios não entram no e-mail.
+- O envio é externo. Cron da VPS:
+  ```
+  0 7 * * * curl -fsS -X POST https://SEU-DOMINIO/api/resumos \
+    -H "Authorization: Bearer $RESUMO_TOKEN"
+  ```
+  Envs necessárias: `RESUMO_TOKEN` + o SMTP (`SMTP_HOST`, `SMTP_USER`,
+  `SMTP_PASS`, `EMAIL_FROM`). A rota confere a frequência, então chamar demais
+  não manda e-mail repetido.
+- `scripts/preview-resumo.mts` monta o e-mail com os dados reais e grava um
+  HTML, **sem enviar nada** — foi assim que apareceu a inconsistência abaixo.
+
+### Ciclo de venda × conversão contam a mesma população
+
+O ciclo médio olhava o histórico inteiro e a conversão olhava a fase atual.
+Resultado: "ciclo de 48 dias" com "0 fechados" na mesma tela. Agora os dois
+contam só quem está fechado **agora** (`idsGanhos` em `metricas.ts`).
+
+### Dois dev servers na mesma pasta corrompem o `.next`
+
+Aconteceu em 27/08: a sessão do Claude subiu um dev server enquanto outro já
+rodava na pasta, e o `.next` compartilhado começou a dar `ENOENT` em
+`build-manifest.json`. **Um dev server por pasta.** Para conferir código sem
+subir servidor, use `NEXT_DIST_DIR=.next-verify npx next build` — o padrão
+`/.next-*/` já está no `.gitignore`.
+
 ## Diálogos: altura da tela (26/08/2026)
 
 `DialogContent` tem `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto`. Antes, um

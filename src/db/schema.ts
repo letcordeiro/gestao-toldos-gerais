@@ -591,3 +591,31 @@ export const gatilhos = sqliteTable("gatilhos", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// ---------------------------------------------------------------------------
+// RESUMO POR E-MAIL
+// O sistema mandando notícia para fora, em vez de esperar alguém abrir a tela.
+// ---------------------------------------------------------------------------
+
+export const resumos = sqliteTable("resumos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  frequencia: text("frequencia", {
+    enum: ["diario", "semanal", "quinzenal", "mensal"],
+  })
+    .notNull()
+    .default("diario"),
+  // Blocos escolhidos, em JSON: ["tarefas_do_dia", "parcelas_vencidas", …].
+  // JSON num campo texto porque a lista é curta e muda junto com o código —
+  // uma tabela de ligação aqui só daria trabalho.
+  blocos: text("blocos").notNull().default("[]"),
+  // Destinatários em JSON: [{ email, tipo: "para" | "copia" | "oculta" }].
+  destinatarios: text("destinatarios").notNull().default("[]"),
+  mensagem: text("mensagem"),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+  // Última vez que este resumo saiu — é o que decide se já está na hora.
+  ultimoEnvioEm: integer("ultimo_envio_em", { mode: "timestamp" }),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
