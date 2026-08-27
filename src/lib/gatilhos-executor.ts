@@ -1,14 +1,17 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
+import { nanoid } from "nanoid";
 import {
   atendimentos,
   clientes,
   contratos,
   gatilhos,
   orcamentos,
+  pesquisas,
   tarefas,
   vendedores,
 } from "@/db/schema";
+import { urlBase } from "@/lib/url";
 import { renderMensagem } from "@/lib/avisos";
 import { dataDoPrazo } from "@/lib/tarefas";
 import type { EventoGatilho } from "@/lib/gatilhos";
@@ -89,6 +92,20 @@ export async function dispararGatilhos(
       });
       if (jaTem) continue;
 
+      // {pesquisa} na mensagem cria (ou reaproveita) o link de satisfação
+      // deste atendimento. Fica aqui e não no aviso porque isto é escrita:
+      // aviso é lido a cada carregamento de tela e não pode criar registro.
+      let mensagem = regra.mensagem;
+      if (mensagem?.includes("{pesquisa}")) {
+        const link = await linkDaPesquisa(ctx.atendimentoId);
+        // Sem APP_URL não há link. Aí a variável sai junto com os dois-pontos
+        // que a antecediam — mandar "ajuda muito a gente: " para o cliente é
+        // pior do que mandar a frase sem o convite.
+        mensagem = link
+          ? mensagem.replaceAll("{pesquisa}", link)
+          : mensagem.replace(/[\s:]*\{pesquisa\}/g, "");
+      }
+
       await db.insert(tarefas).values({
         tipo: regra.tarefaTipo,
         titulo: regra.tarefaTitulo,
@@ -99,8 +116,8 @@ export async function dispararGatilhos(
         responsavelId: dados.vendedorId ?? null,
         prioridade: regra.tarefaPrioridade,
         previstaEm: dataDoPrazo(regra.prazoDias),
-        mensagem: regra.mensagem
-          ? renderMensagem(regra.mensagem, {
+        mensagem: mensagem
+          ? renderMensagem(mensagem, {
               clienteNome: dados.clienteNome,
               vendedorNome: dados.vendedorNome,
               orcamentoNumero: numero,
@@ -112,8 +129,31 @@ export async function dispararGatilhos(
       criadas++;
     }
     return criadas;
-  } catch {
-    // Automação nunca quebra a ação principal.
+  } catch (e) {
+    // Automação nunca quebra a ação principal — mas some do log era pior:
+    // uma falha aqui ficava invisível e a tarefa simplesmente não nascia.
+    console.error("[gatilhos] falha ao executar automação:", e);
     return 0;
   }
+}
+
+
+/**
+ * Link público da pesquisa deste atendimento. Uma pesquisa por atendimento:
+ * se a automação rodar de novo, o cliente continua com o mesmo link (e a
+ * resposta que ele já deu não se perde).
+ */
+async function linkDaPesquisa(atendimentoId: number): Promise<string> {
+  let pesquisa = await db.query.pesquisas.findFirst({
+    where: eq(pesquisas.atendimentoId, atendimentoId),
+  });
+  if (!pesquisa) {
+    const [nova] = await db
+      .insert(pesquisas)
+      .values({ atendimentoId, token: nanoid(12) })
+      .returning();
+    pesquisa = nova;
+  }
+  const base = await urlBase();
+  return base ? `${base}/pesquisa/${pesquisa.token}` : "";
 }

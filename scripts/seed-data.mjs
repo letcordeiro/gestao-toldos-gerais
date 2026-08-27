@@ -103,11 +103,11 @@ export const GATILHOS = [
     evento: "entrou_na_fase",
     faseNome: "Concluído",
     tarefaTipo: "whatsapp",
-    tarefaTitulo: "Confirmar se ficou tudo certo e pedir avaliação",
+    tarefaTitulo: "Confirmar se ficou tudo certo e mandar a pesquisa",
     tarefaPrioridade: "media",
     prazoDias: 7,
     mensagem:
-      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. Ficou tudo certo com a instalação? Se puder deixar sua avaliação, ajuda muito a gente: {avaliacao}",
+      "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. Ficou tudo certo com a instalação? Se puder responder em 1 minuto, ajuda muito a gente: {pesquisa}",
   },
 ];
 

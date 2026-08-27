@@ -24,6 +24,7 @@ const VARIAVEIS = [
   ["{vendedor}", "primeiro nome do vendedor"],
   ["{orcamento}", "número do orçamento ou contrato"],
   ["{avaliacao}", "link de avaliação no Google"],
+  ["{pesquisa}", "link da pesquisa de satisfação (criado na hora)"],
 ] as const;
 
 type Gatilho = {

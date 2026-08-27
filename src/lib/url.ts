@@ -10,9 +10,16 @@ export async function urlBase(): Promise<string | null> {
   const configurada = process.env.APP_URL?.trim().replace(/\/$/, "");
   if (configurada) return configurada;
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (!host) return null;
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return `${proto}://${host}`;
+  // Fora de uma requisição (cron, script, job) `headers()` lança. Nesse caso
+  // não há URL a descobrir: quem precisa de link nesses caminhos configura a
+  // APP_URL. Deixar a exceção subir daqui derrubava a automação inteira.
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    if (!host) return null;
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`;
+  } catch {
+    return null;
+  }
 }

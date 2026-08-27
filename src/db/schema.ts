@@ -619,3 +619,24 @@ export const resumos = sqliteTable("resumos", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// ---------------------------------------------------------------------------
+// PESQUISA DE SATISFAÇÃO
+// Uma pesquisa por atendimento, com link público próprio. Nasce quando uma
+// automação usa a variável {pesquisa} na mensagem.
+// ---------------------------------------------------------------------------
+
+export const pesquisas = sqliteTable("pesquisas", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  atendimentoId: integer("atendimento_id")
+    .notNull()
+    .references(() => atendimentos.id),
+  token: text("token").notNull().unique(),
+  // Nota de 0 a 10 (NPS). Null enquanto o cliente não respondeu.
+  nota: integer("nota"),
+  comentario: text("comentario"),
+  respondidaEm: integer("respondida_em", { mode: "timestamp" }),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

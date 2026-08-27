@@ -10,6 +10,7 @@ const ROTAS_PUBLICAS = [
   /^\/cadastro-vendedor\/.+/,
   /^\/proposta\/.+/,
   /^\/contrato\/.+/,
+  /^\/pesquisa\/.+/,
   /^\/api\/cadastro(\/.*)?$/,
   /^\/manifest\.webmanifest$/,
 ];

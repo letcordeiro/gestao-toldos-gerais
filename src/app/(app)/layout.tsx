@@ -58,6 +58,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         label: "Resumo por e-mail",
         ajuda: "O sistema te manda notícia sem você abrir",
       },
+      {
+        href: "/pesquisas",
+        label: "Satisfação",
+        ajuda: "Respostas da pesquisa de pós-venda",
+      },
     ],
   },
   {

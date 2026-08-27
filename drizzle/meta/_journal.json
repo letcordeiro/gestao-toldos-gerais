@@ -169,6 +169,13 @@
       "when": 1783599240000,
       "tag": "0023_resumos",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1783599250000,
+      "tag": "0024_pesquisas",
+      "breakpoints": true
     }
   ]
 }
