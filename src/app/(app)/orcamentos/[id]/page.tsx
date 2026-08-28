@@ -31,7 +31,7 @@ import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
-import { duplicarOrcamento } from "../actions";
+import { duplicarOrcamento, mudarStatusOrcamento } from "../actions";
 import { gerarContratoDoOrcamento } from "../../contratos/actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
@@ -191,6 +191,17 @@ export default async function OrcamentoPage({
             >
               Editar
             </Button>
+          )}
+          {orc.status === "rascunho" && podeEditar && (
+            <form
+              action={mudarStatusOrcamento.bind(
+                null,
+                orc.id,
+                "agendado"
+              )}
+            >
+              <Button type="submit">Finalizar e enviar automaticamente</Button>
+            </form>
           )}
           <form action={duplicarOrcamento}>
             <input type="hidden" name="orcamentoId" value={orc.id} />
