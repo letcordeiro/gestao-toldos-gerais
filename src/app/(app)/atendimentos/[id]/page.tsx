@@ -196,6 +196,7 @@ export default async function AtendimentoPage({
           <VisitaDialog
             atendimentoId={atendimento.id}
             responsaveis={listaVendedores}
+            ehAtendente={usuario.papel === "atendente"}
             trigger={<Button variant="outline">Agendar visita</Button>}
           />
           <ChamadoDialog

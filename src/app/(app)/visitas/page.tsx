@@ -60,9 +60,13 @@ export default async function VisitasPage({
     .where(filtros.length ? and(...filtros) : undefined)
     .orderBy(asc(visitas.inicioEm));
 
-  const dias = agruparPorDia(
-    linhas.map((l) => ({ ...l, situacao: l.situacao as SituacaoVisita }))
-  );
+  // O tipo da coluna vem como string do Drizzle; fixar aqui evita `any` ao
+  // indexar os mapas de rótulo e cor lá embaixo.
+  const paraAgenda = linhas.map((l) => ({
+    ...l,
+    situacao: l.situacao as SituacaoVisita,
+  }));
+  const dias = agruparPorDia<(typeof paraAgenda)[number]>(paraAgenda);
   const hoje = new Date();
 
   return (

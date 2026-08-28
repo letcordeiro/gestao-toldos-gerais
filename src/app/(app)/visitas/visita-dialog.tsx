@@ -41,11 +41,14 @@ export function VisitaDialog({
   visita,
   atendimentoId,
   responsaveis = [],
+  ehAtendente = false,
   trigger,
 }: {
   visita?: VisitaEdicao;
   atendimentoId: number;
   responsaveis?: { id: number; nome: string }[];
+  /** Atendente marca a agenda dos outros: precisa dizer quem vai. */
+  ehAtendente?: boolean;
   trigger: React.ReactElement<Record<string, unknown>>;
 }) {
   const router = useRouter();
@@ -136,14 +139,18 @@ export function VisitaDialog({
 
           {responsaveis.length > 0 && (
             <div className="space-y-1.5">
-              <Label htmlFor="vendedorId">Quem vai</Label>
+              <Label htmlFor="vendedorId">
+                Quem vai {ehAtendente && "*"}
+              </Label>
               <select
                 id="vendedorId"
                 name="vendedorId"
                 defaultValue={visita?.vendedorId ?? ""}
                 className={SELECT}
               >
-                <option value="">Eu mesma</option>
+                <option value="">
+                  {ehAtendente ? "Selecione…" : "Eu mesma"}
+                </option>
                 {responsaveis.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.nome}

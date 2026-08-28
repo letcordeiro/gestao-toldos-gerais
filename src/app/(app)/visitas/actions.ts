@@ -39,6 +39,7 @@ export async function salvarVisita(
   formData: FormData
 ): Promise<VisitaFormState> {
   const usuario = await exigirUsuario();
+  const ehAtendente = usuario.papel === "atendente";
 
   const parsed = visitaSchema.safeParse({
     id: formData.get("id") || undefined,
@@ -52,12 +53,20 @@ export async function salvarVisita(
   if (!parsed.success) return { erro: parsed.error.issues[0].message };
   const d = parsed.data;
 
+  // Quem VAI na visita. O atendente marca a agenda dos outros: ele não é
+  // responsável por visita nenhuma, então precisa dizer quem vai — cair no
+  // "eu mesma" colocaria a visita no nome de quem não sai da mesa.
+  const responsavel = d.vendedorId ?? (ehAtendente ? null : usuario.vendedorId ?? null);
+  if (responsavel == null && ehAtendente) {
+    return { erro: "Escolha quem vai na visita." };
+  }
+
   const valores = {
     inicioEm: paraData(d.inicio),
     duracaoMin: d.duracaoMin,
     endereco: d.endereco,
     observacoes: d.observacoes,
-    vendedorId: d.vendedorId ?? usuario.vendedorId ?? null,
+    vendedorId: responsavel,
   };
 
   if (d.id) {
@@ -115,6 +124,10 @@ export async function enderecoDoAtendimento(
 }
 
 /** Responsáveis que podem receber uma visita. */
+/**
+ * Quem pode receber uma visita. Vazio para o vendedor (a visita é dele
+ * mesmo); preenchido para gestor e atendente, que agendam para os outros.
+ */
 export async function responsaveisDeVisita() {
   const usuario = await exigirUsuario();
   if (!veFunilInteiro(usuario.papel)) return [];
