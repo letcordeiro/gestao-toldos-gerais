@@ -23,9 +23,12 @@ import {
 export function FormCadastro({
   token,
   vendedorNome,
+  canais = [],
 }: {
   token?: string;
   vendedorNome?: string;
+  /** Canais que fazem sentido perguntar ao próprio cliente. */
+  canais?: { id: number; nome: string }[];
 }) {
   const [state, formAction, pending] = useActionState<
     CadastroPublicoState,
@@ -82,6 +85,24 @@ export function FormCadastro({
                 <Input id="email" name="email" type="email" />
               </div>
               <CamposEndereco obrigatorio />
+              {canais.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="canalId">Como você nos conheceu?</Label>
+                  <select
+                    id="canalId"
+                    name="canalId"
+                    defaultValue=""
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  >
+                    <option value="">Prefiro não dizer</option>
+                    {canais.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="descricao">Descreva o que precisa</Label>
                 <Textarea

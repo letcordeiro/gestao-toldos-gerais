@@ -148,3 +148,17 @@ export const AVISOS_COBRANCA = [
       "Olá, {cliente}! Aqui é {vendedor}, da Toldos Gerais. O contrato {orcamento} foi enviado e ainda não voltou assinado. Ficou alguma dúvida no documento?",
   },
 ];
+
+// Canais de origem do lead. Nascem preenchidos porque a pergunta "como nos
+// conheceu?" precisa ter opção na primeira vez que alguém abre um atendimento.
+// noCadastroPublico=false: canal que só a equipe sabe informar.
+export const CANAIS = [
+  { nome: "Indicação de cliente", ordem: 1, noCadastroPublico: true },
+  { nome: "Instagram", ordem: 2, noCadastroPublico: true },
+  { nome: "Google / site", ordem: 3, noCadastroPublico: true },
+  { nome: "Placa na obra", ordem: 4, noCadastroPublico: true },
+  { nome: "Passou em frente / loja", ordem: 5, noCadastroPublico: true },
+  { nome: "Cliente antigo", ordem: 6, noCadastroPublico: false },
+  { nome: "Parceiro / arquiteto", ordem: 7, noCadastroPublico: true },
+  { nome: "Outro", ordem: 8, noCadastroPublico: true },
+];

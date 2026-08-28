@@ -26,7 +26,7 @@ import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { buscarTarefas } from "@/lib/tarefas-consulta";
-import { chamados, motivosPerda } from "@/db/schema";
+import { canais, chamados, motivosPerda } from "@/db/schema";
 import {
   SITUACAO_CHAMADO_COR,
   SITUACAO_CHAMADO_LABEL,
@@ -34,8 +34,10 @@ import {
   type SituacaoChamado,
 } from "@/lib/chamados";
 import { ChamadoDialog } from "../../chamados/chamado-dialog";
+import { VisitaDialog } from "../../visitas/visita-dialog";
 import { ListaTarefas } from "../../tarefas/lista-tarefas";
 import { TarefaDialog } from "../../tarefas/tarefa-dialog";
+import { CanalSelect } from "./canal-select";
 import { ObservacoesForm } from "./observacoes-form";
 import { AtribuirVendedor } from "./atribuir-vendedor";
 
@@ -67,6 +69,7 @@ export default async function AtendimentoPage({
       criadoEm: atendimentos.criadoEm,
       faseId: atendimentos.faseId,
       vendedorId: atendimentos.vendedorId,
+      canalId: atendimentos.canalId,
       motivoPerdaId: atendimentos.motivoPerdaId,
       motivoPerdaObs: atendimentos.motivoPerdaObs,
       cliente: clientes,
@@ -139,6 +142,12 @@ export default async function AtendimentoPage({
   const tarefas = await buscarTarefas({ atendimentoId });
   const pendentes = tarefas.filter((t) => t.status === "pendente");
 
+  const listaCanais = await db
+    .select({ id: canais.id, nome: canais.nome })
+    .from(canais)
+    .where(eq(canais.ativo, true))
+    .orderBy(asc(canais.ordem), asc(canais.id));
+
   // Chamados de pós-venda deste cliente.
   const chamadosDoAtendimento = await db
     .select({
@@ -183,6 +192,11 @@ export default async function AtendimentoPage({
             atendimentoId={atendimento.id}
             responsaveis={listaVendedores}
             trigger={<Button variant="outline">Nova tarefa</Button>}
+          />
+          <VisitaDialog
+            atendimentoId={atendimento.id}
+            responsaveis={listaVendedores}
+            trigger={<Button variant="outline">Agendar visita</Button>}
           />
           <ChamadoDialog
             atendimentoId={atendimento.id}
@@ -280,13 +294,21 @@ export default async function AtendimentoPage({
               </p>
             )}
             <p>
-              <span className="text-muted-foreground">Origem:</span>{" "}
+              <span className="text-muted-foreground">Cadastro:</span>{" "}
               <Badge variant="secondary">
                 {cliente.origem === "auto_cadastro"
                   ? "Auto-cadastro"
                   : "Interno"}
               </Badge>
             </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground">Chegou por:</span>
+              <CanalSelect
+                atendimentoId={atendimento.id}
+                canalId={atendimento.canalId}
+                canais={listaCanais}
+              />
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Vendedor:</span>{" "}
               {podeDirecionar ? (

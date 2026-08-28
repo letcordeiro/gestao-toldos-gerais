@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { vendedores } from "@/db/schema";
+import { canais, vendedores } from "@/db/schema";
 import { FormCadastro } from "../form-cadastro";
 import { EMPRESA } from "@/lib/empresa";
 
@@ -32,5 +32,18 @@ export default async function CadastroTokenPage({
     );
   }
 
-  return <FormCadastro token={token} vendedorNome={vendedor.nome} />;
+  // Só os canais que fazem sentido perguntar ao próprio cliente.
+  const listaCanais = await db
+    .select({ id: canais.id, nome: canais.nome })
+    .from(canais)
+    .where(and(eq(canais.ativo, true), eq(canais.noCadastroPublico, true)))
+    .orderBy(asc(canais.ordem), asc(canais.id));
+
+  return (
+    <FormCadastro
+      token={token}
+      vendedorNome={vendedor.nome}
+      canais={listaCanais}
+    />
+  );
 }

@@ -8,6 +8,7 @@ import {
   atendimentos,
   avisoContatos,
   avisos,
+  canais,
   clientes,
   fases,
   historicoFases,
@@ -32,6 +33,10 @@ const novoAtendimentoSchema = z
     bairro: z.string().trim().optional(),
     cidade: z.string().trim().optional(),
     observacoes: z.string().trim().optional(),
+    canalId: z
+      .union([z.literal(""), z.coerce.number().int().positive()])
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? null : v)),
   })
   .refine((d) => d.clienteId || (d.nome && d.telefone), {
     message: "Escolha um cliente ou informe nome e telefone",
@@ -63,6 +68,7 @@ export async function criarAtendimento(
     bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
     observacoes: formData.get("observacoes") || undefined,
+    canalId: formData.get("canalId") ?? "",
   });
 
   if (!parsed.success) {
@@ -108,6 +114,7 @@ export async function criarAtendimento(
       clienteId,
       faseId: faseInicial.id,
       vendedorId,
+      canalId: dados.canalId,
       observacoes: dados.observacoes || null,
     })
     .returning({ id: atendimentos.id });
@@ -364,4 +371,31 @@ export async function atualizarObservacoes(
 
   revalidatePath(`/atendimentos/${parsed.atendimentoId}`);
   return { ok: true };
+}
+
+
+/** Canais de origem ativos. */
+export async function canaisAtivos(soCadastroPublico = false) {
+  return db
+    .select({ id: canais.id, nome: canais.nome })
+    .from(canais)
+    .where(
+      soCadastroPublico
+        ? and(eq(canais.ativo, true), eq(canais.noCadastroPublico, true))
+        : eq(canais.ativo, true)
+    )
+    .orderBy(asc(canais.ordem), asc(canais.id));
+}
+
+/** Troca o canal de origem — dá para corrigir depois de abrir o atendimento. */
+export async function definirCanal(atendimentoId: number, canalId: number | null) {
+  await exigirSessao();
+  const id = z.coerce.number().int().positive().parse(atendimentoId);
+  const canal = canalId == null ? null : z.coerce.number().int().positive().parse(canalId);
+  await db
+    .update(atendimentos)
+    .set({ canalId: canal, atualizadoEm: new Date() })
+    .where(eq(atendimentos.id, id));
+  revalidatePath(`/atendimentos/${id}`);
+  revalidatePath("/painel");
 }

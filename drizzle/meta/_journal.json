@@ -204,6 +204,20 @@
       "when": 1783599290000,
       "tag": "0028_numeracoes",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1783599300000,
+      "tag": "0029_canais",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1783599310000,
+      "tag": "0030_visitas",
+      "breakpoints": true
     }
   ]
 }

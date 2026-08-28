@@ -1,8 +1,16 @@
 import { inArray } from "drizzle-orm";
 import { db } from "./index";
-import { avisos, fases, gatilhos, modelosToldo, motivosPerda } from "./schema";
+import {
+  avisos,
+  canais,
+  fases,
+  gatilhos,
+  modelosToldo,
+  motivosPerda,
+} from "./schema";
 import {
   AVISOS_COBRANCA,
+  CANAIS,
   FASES,
   GATILHOS,
   MODELOS,
@@ -32,6 +40,14 @@ async function seed() {
     console.log(`✔ ${MOTIVOS_PERDA.length} motivos de perda criados`);
   } else {
     console.log("• Motivos de perda já existem, pulando");
+  }
+
+  const canaisExistentes = await db.select().from(canais);
+  if (canaisExistentes.length === 0) {
+    await db.insert(canais).values(CANAIS);
+    console.log(`✔ ${CANAIS.length} canais de origem criados`);
+  } else {
+    console.log("• Canais já existem, pulando");
   }
 
   const gatilhosExistentes = await db.select().from(gatilhos);

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   atendimentos,
   avisos,
+  canais,
   clientes,
   fases,
   historicoFases,
@@ -86,6 +87,12 @@ export default async function AtendimentosPage({
   const linksCadastro = vendedoresAtribuiveis
     .filter((v) => v.linkToken && (veTudo || v.id === usuario.vendedorId))
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
+
+  const listaCanais = await db
+    .select({ id: canais.id, nome: canais.nome })
+    .from(canais)
+    .where(eq(canais.ativo, true))
+    .orderBy(asc(canais.ordem), asc(canais.id));
 
   // Fases escondidas da visão padrão (flag "exibir na listagem" na tela de
   // Fases). Era uma regra fixa para "Perdido"; agora vale para qualquer fase.
@@ -299,6 +306,7 @@ export default async function AtendimentosPage({
           <GerarLinkDialog links={linksCadastro} />
           <NovoAtendimentoDialog
             clientes={todosClientes}
+            canais={listaCanais}
             vendedores={vendedoresAtribuiveis.map((v) => ({
               id: v.id,
               nome: v.nome,

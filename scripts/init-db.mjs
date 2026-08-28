@@ -9,6 +9,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import {
   AVISOS_COBRANCA,
+  CANAIS,
   FASES,
   GATILHOS,
   MODELOS,
@@ -487,6 +488,21 @@ try {
   }
 } catch (e) {
   console.warn("• avisos de cobrança não semeados (não crítico):", e.message);
+}
+
+try {
+  const n = sqlite.prepare("SELECT count(*) AS c FROM canais").get().c;
+  if (n === 0) {
+    const ins = sqlite.prepare(
+      "INSERT INTO canais (nome, ordem, no_cadastro_publico, ativo) VALUES (?, ?, ?, 1)"
+    );
+    sqlite.transaction(() => {
+      for (const c of CANAIS) ins.run(c.nome, c.ordem, c.noCadastroPublico ? 1 : 0);
+    })();
+    console.log(`✔ ${CANAIS.length} canais de origem criados`);
+  }
+} catch (e) {
+  console.warn("• canais não semeados (não crítico):", e.message);
 }
 
 sqlite.close();

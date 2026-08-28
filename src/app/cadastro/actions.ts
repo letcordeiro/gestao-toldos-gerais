@@ -31,6 +31,10 @@ const cadastroSchema = z.object({
   bairro: z.string().trim().optional(),
   cidade: z.string().trim().optional(),
   descricao: z.string().trim().max(2000).optional(),
+  canalId: z
+    .union([z.literal(""), z.coerce.number().int().positive()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
 });
 
 export type CadastroPublicoState = { erro?: string; ok?: boolean };
@@ -52,6 +56,7 @@ export async function enviarAutoCadastro(
     bairro: formData.get("bairro") || undefined,
     cidade: formData.get("cidade") || undefined,
     descricao: formData.get("descricao") || undefined,
+    canalId: formData.get("canalId") ?? "",
   });
 
   if (!parsed.success) {
@@ -140,6 +145,7 @@ export async function enviarAutoCadastro(
       clienteId,
       faseId: faseInicial.id,
       vendedorId: vendedor.id,
+      canalId: dados.canalId,
       observacoes: dados.descricao
         ? `${prefixo} — o que precisa: ${dados.descricao}`
         : prefixo,

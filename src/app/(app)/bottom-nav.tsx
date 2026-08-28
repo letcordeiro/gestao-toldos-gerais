@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarDays,
   CheckSquare,
   Contact,
   Hammer,
@@ -27,6 +28,7 @@ const ICONS: Record<string, LucideIcon> = {
   painel: Home,
   tarefas: CheckSquare,
   instalacoes: Hammer,
+  visitas: CalendarDays,
   config: Settings,
   atendimentos: ListChecks,
   orcamentos: FileText,

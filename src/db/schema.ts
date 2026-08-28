@@ -68,6 +68,10 @@ export const atendimentos = sqliteTable("atendimentos", {
   // Quando o contato de pós-venda foi feito (null = ainda pendente). Some do
   // aviso de pós-venda depois de marcado.
   posVendaEm: integer("pos_venda_em", { mode: "timestamp" }),
+  // Por onde este cliente chegou. Fica no ATENDIMENTO e não no cliente: um
+  // cliente antigo pode voltar por outro caminho, e o que interessa medir é
+  // a origem de cada negócio.
+  canalId: integer("canal_id"),
   // Preenchidos quando o atendimento entra numa fase marcada como perdida.
   motivoPerdaId: integer("motivo_perda_id"),
   motivoPerdaObs: text("motivo_perda_obs"),
@@ -128,6 +132,10 @@ export const vendedores = sqliteTable("vendedores", {
   papel: text("papel", { enum: ["gestor", "atendente", "vendedor"] })
     .notNull()
     .default("vendedor"),
+  // Página de agendamento do Google Agenda deste vendedor, se ele tiver uma
+  // (Workspace → "Horário de atendimento"). O sistema só guarda e envia o
+  // link; quem administra os horários é o próprio Google.
+  linkAgendamento: text("link_agendamento"),
   // Link público de cadastro exclusivo do vendedor (/cadastro/{linkToken}).
   // Leads que entram por ele já nascem atribuídos a este vendedor.
   linkToken: text("link_token").unique(),
@@ -827,4 +835,56 @@ export const numeracoes = sqliteTable("numeracoes", {
   prefixo: text("prefixo").notNull().default(""),
   incluiAno: integer("inclui_ano", { mode: "boolean" }).notNull().default(true),
   digitos: integer("digitos").notNull().default(3),
+});
+
+// De onde o cliente veio. Cadastro fechado pelo mesmo motivo dos motivos de
+// perda: texto livre nunca agrupa, e a pergunta que interessa é "qual canal
+// traz cliente que FECHA", cruzando com a conversão.
+export const canais = sqliteTable("canais", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nome: text("nome").notNull(),
+  ordem: integer("ordem").notNull().default(0),
+  // Aparece na pergunta "como nos conheceu?" do cadastro público. Nem todo
+  // canal faz sentido perguntar ao cliente (ex.: "cliente antigo").
+  noCadastroPublico: integer("no_cadastro_publico", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+});
+
+// ---------------------------------------------------------------------------
+// VISITAS
+// A agenda de campo: quem o vendedor vai ver, quando e onde. Fica separada da
+// tarefa porque visita tem HORA e LUGAR — e é isso que permite montar rota.
+// ---------------------------------------------------------------------------
+
+export const visitas = sqliteTable("visitas", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  atendimentoId: integer("atendimento_id")
+    .notNull()
+    .references(() => atendimentos.id),
+  vendedorId: integer("vendedor_id").references(() => vendedores.id),
+  inicioEm: integer("inicio_em", { mode: "timestamp" }).notNull(),
+  duracaoMin: integer("duracao_min").notNull().default(60),
+  // Endereço da visita. Copiado do cliente na hora de agendar, mas editável:
+  // a obra costuma ser em outro lugar que não o endereço do cadastro.
+  endereco: text("endereco"),
+  observacoes: text("observacoes"),
+  situacao: text("situacao", {
+    enum: [
+      "agendada",
+      "confirmada",
+      "realizada",
+      "cancelada",
+      "nao_compareceu",
+    ],
+  })
+    .notNull()
+    .default("agendada"),
+  // Id do evento no Google Agenda, quando a sincronia estiver ligada.
+  googleEventId: text("google_event_id"),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
 });

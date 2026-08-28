@@ -24,6 +24,7 @@ const NAV = [
   { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
+  { href: "/visitas", label: "Visitas", curto: "Visitas", icon: "visitas", soGestor: false },
   { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false },
 ];
 
@@ -77,6 +78,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         href: "/cadastros/avisos",
         label: "Avisos",
         ajuda: "Lembretes de WhatsApp na lista",
+      },
+      {
+        href: "/cadastros/canais",
+        label: "Canais de origem",
+        ajuda: "Por onde o cliente chegou até nós",
       },
       {
         href: "/cadastros/motivos-perda",
@@ -137,7 +143,7 @@ export default async function AppLayout({
 
   // No mobile a barra de baixo cabe em cinco: as quatro telas do dia + um
   // botão que abre o resto.
-  const NO_MENU = ["instalacoes"];
+  const NO_MENU = ["instalacoes", "visitas"];
   const bottomItens = navItens.filter((item) => !NO_MENU.includes(item.icon));
   const grupoMais = {
     label: "Mais",
