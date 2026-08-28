@@ -32,7 +32,10 @@ const STATUS_BADGE: Record<
   { label: string; variant: "secondary" | "default" | "destructive" | "outline" }
 > = {
   rascunho: { label: "Rascunho", variant: "outline" },
+  agendado: { label: "Aguardando envio", variant: "outline" },
+  enviando: { label: "Enviando", variant: "outline" },
   enviado: { label: "Enviado", variant: "secondary" },
+  falha_envio: { label: "Falha no envio", variant: "destructive" },
   aprovado: { label: "Aprovado", variant: "default" },
   recusado: { label: "Recusado", variant: "destructive" },
 };
@@ -116,7 +119,13 @@ export default async function HistoricoClientePage({
     data: (a) => a.criadoEm,
   });
   const ORDEM_STATUS: Record<string, number> = {
-    rascunho: 0, enviado: 1, aprovado: 2, recusado: 3,
+    rascunho: 0,
+    agendado: 1,
+    enviando: 2,
+    falha_envio: 3,
+    enviado: 4,
+    aprovado: 5,
+    recusado: 6,
   };
   const orcamentosOrdenados = ordenarLista(listaOrcamentos, ordemO, dirO, {
     numero: (o) => o.numero,

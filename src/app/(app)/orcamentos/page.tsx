@@ -34,7 +34,10 @@ const STATUS_BADGE: Record<
   { label: string; variant: "secondary" | "default" | "destructive" | "outline" }
 > = {
   rascunho: { label: "Rascunho", variant: "outline" },
+  agendado: { label: "Aguardando envio", variant: "outline" },
+  enviando: { label: "Enviando", variant: "outline" },
   enviado: { label: "Enviado", variant: "secondary" },
+  falha_envio: { label: "Falha no envio", variant: "destructive" },
   aprovado: { label: "Aprovado", variant: "default" },
   recusado: { label: "Recusado", variant: "destructive" },
 };
@@ -42,7 +45,9 @@ const STATUS_BADGE: Record<
 // Ordem de exibição dos cards e cor de identificação de cada status.
 const STATUS_CARDS: { chave: string; label: string; cor: string }[] = [
   { chave: "rascunho", label: "Rascunho", cor: "#9CA3AF" },
+  { chave: "agendado", label: "Aguardando envio", cor: "#2563EB" },
   { chave: "enviado", label: "Enviados", cor: "#D97706" },
+  { chave: "falha_envio", label: "Falhas", cor: "#DC2626" },
   { chave: "aprovado", label: "Aprovados", cor: "#004E36" },
   { chave: "recusado", label: "Recusados", cor: "#DC2626" },
 ];
@@ -111,10 +116,15 @@ export default async function OrcamentosPage({
   const emJogo = statusFiltro
     ? todos.filter((o) => o.status === statusFiltro)
     : todos.filter((o) => o.status !== "recusado");
-  // Status ordena pelo andamento (rascunho → enviado → aprovado → recusado),
-  // não pelo nome.
+  // Status ordena pelo andamento da proposta, não pelo nome.
   const ORDEM_STATUS: Record<string, number> = {
-    rascunho: 0, enviado: 1, aprovado: 2, recusado: 3,
+    rascunho: 0,
+    agendado: 1,
+    enviando: 2,
+    falha_envio: 3,
+    enviado: 4,
+    aprovado: 5,
+    recusado: 6,
   };
   const linhas = ordenarLista(emJogo, ordem, dir, {
     numero: (o) => o.numero,
@@ -156,7 +166,7 @@ export default async function OrcamentosPage({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6">
         {STATUS_CARDS.map((card) => {
           const r = resumo.get(card.chave) ?? { n: 0, valor: 0 };
           const ativo = statusFiltro === card.chave;

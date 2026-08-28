@@ -569,13 +569,13 @@ export function OrcamentoForm({
         >
           Salvar rascunho
         </Button>
-        <Button type="submit" name="status" value="enviado" disabled={pending}>
-          {pending ? "Salvando…" : "Salvar como enviado"}
+        <Button type="submit" name="status" value="agendado" disabled={pending}>
+          {pending ? "Finalizando…" : "Finalizar e enviar automaticamente"}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        “Salvar como enviado” move o atendimento para a fase “Orçamento
-        enviado”.
+        O link será enviado automaticamente de segunda a sexta, entre 8h e
+        19h. Fora desse período, ficará programado para as próximas 8h.
       </p>
     </form>
   );

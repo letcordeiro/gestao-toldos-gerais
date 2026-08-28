@@ -133,7 +133,7 @@ export const orcamentos = sqliteTable("orcamentos", {
   formaPagamento: text("forma_pagamento"),
   prazoEntrega: text("prazo_entrega"),
   status: text("status", {
-    enum: ["rascunho", "enviado", "aprovado", "recusado"],
+    enum: ["rascunho", "agendado", "enviando", "enviado", "falha_envio", "aprovado", "recusado"],
   })
     .notNull()
     .default("rascunho"),
@@ -142,6 +142,10 @@ export const orcamentos = sqliteTable("orcamentos", {
   // Momento em que o orçamento foi enviado ao cliente (status -> enviado).
   // Base para a cobrança de retorno após DIAS_COBRANCA dias (lib/cobranca).
   enviadoEm: integer("enviado_em", { mode: "timestamp" }),
+  agendadoEm: integer("agendado_em", { mode: "timestamp" }),
+  envioTentativas: integer("envio_tentativas").notNull().default(0),
+  envioErro: text("envio_erro"),
+  mensagemId: text("mensagem_id"),
   // Último "já contatei" no aviso de cobrança. Silencia o aviso por mais um
   // ciclo de DIAS_COBRANCA dias (se continuar sem desfecho, volta a lembrar).
   cobrancaContatoEm: integer("cobranca_contato_em", { mode: "timestamp" }),

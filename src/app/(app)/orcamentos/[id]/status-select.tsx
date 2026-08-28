@@ -12,7 +12,10 @@ import { mudarStatusOrcamento } from "../actions";
 
 const OPCOES = [
   { value: "rascunho", label: "Rascunho" },
+  { value: "agendado", label: "Aguardando envio" },
+  { value: "enviando", label: "Enviando" },
   { value: "enviado", label: "Enviado" },
+  { value: "falha_envio", label: "Falha no envio" },
   { value: "aprovado", label: "Aprovado" },
   { value: "recusado", label: "Recusado" },
 ];
