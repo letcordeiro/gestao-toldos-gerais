@@ -37,6 +37,7 @@ import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
+import { mudarStatusOrcamento } from "../actions";
 import { gerarContratoDoOrcamento } from "../../contratos/actions";
 import { StatusSelect } from "./status-select";
 import { FotosOrcamento } from "./fotos-orcamento";
@@ -241,23 +242,35 @@ export default async function OrcamentoPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {proximoPasso.acao === "enviar" && (
-            <Button
-              nativeButton={false}
-              render={
-                <a
-                  href={linkWhatsApp(
-                    cliente.telefone,
-                    cliente.nome,
-                    orc.numero,
-                    linkProposta
-                  )}
-                  target="_blank"
-                  rel="noopener"
-                />
-              }
-            >
-              <MessageCircle className="size-4" /> Enviar no WhatsApp
-            </Button>
+            <>
+              {podeEditar && (
+                <form action={mudarStatusOrcamento.bind(null, orc.id, "agendado")}>
+                  <Button type="submit">
+                    Finalizar e enviar automaticamente
+                  </Button>
+                </form>
+              )}
+              {/* Saída manual: serve quando o envio automático falha e alguém
+                  precisa mandar na mão. */}
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <a
+                    href={linkWhatsApp(
+                      cliente.telefone,
+                      cliente.nome,
+                      orc.numero,
+                      linkProposta
+                    )}
+                    target="_blank"
+                    rel="noopener"
+                  />
+                }
+              >
+                <MessageCircle className="size-4" /> Mandar na mão
+              </Button>
+            </>
           )}
           {proximoPasso.acao === "fechar" && (
             <>

@@ -47,7 +47,9 @@ const orcamentoSchema = z.object({
     .optional()
     .transform((v) => (v === "" || v === 0 || v === undefined ? null : v)),
   observacoesInternas: z.string().trim().max(4000).optional(),
-  status: z.enum(["rascunho", "enviado"]),
+  // "agendado" (e não "enviado"): quem marca como enviado é o worker, depois
+  // da confirmação da Evolution.
+  status: z.enum(["rascunho", "agendado"]),
   itens: z.array(itemSchema).min(1, "Adicione ao menos um item"),
 });
 
@@ -96,34 +98,6 @@ async function proximoNumero(): Promise<string> {
     config,
     ano
   );
-}
-
-async function moverParaOrcamentoEnviado(atendimentoId: number) {
-  const faseEnviado = await db.query.fases.findFirst({
-    where: eq(fases.nome, "Orçamento enviado"),
-  });
-  if (!faseEnviado) return;
-
-  const atendimento = await db.query.atendimentos.findFirst({
-    where: eq(atendimentos.id, atendimentoId),
-  });
-  if (!atendimento || atendimento.faseId === faseEnviado.id) return;
-
-  await db
-    .update(atendimentos)
-    .set({ faseId: faseEnviado.id, atualizadoEm: new Date() })
-    .where(eq(atendimentos.id, atendimentoId));
-  await db.insert(historicoFases).values({
-    atendimentoId,
-    faseAnteriorId: atendimento.faseId,
-    faseNovaId: faseEnviado.id,
-  });
-  // A fase mudou por aqui e não pelo seletor do funil — as automações de
-  // fase precisam rodar do mesmo jeito.
-  await dispararGatilhos("entrou_na_fase", {
-    atendimentoId,
-    faseId: faseEnviado.id,
-  });
 }
 
 /**
@@ -234,7 +208,7 @@ export async function criarOrcamento(
       observacoesInternas: dados.observacoesInternas || null,
       status: dados.status,
       publicToken: nanoid(12),
-      enviadoEm: dados.status === "enviado" ? new Date() : null,
+      agendadoEm: dados.status === "agendado" ? new Date() : null,
     })
     .returning({ id: orcamentos.id });
 
@@ -275,10 +249,6 @@ export async function criarOrcamento(
         .set({ vendedorId: usuario.vendedorId })
         .where(eq(atendimentos.id, dados.atendimentoId));
     }
-  }
-
-  if (dados.status === "enviado") {
-    await moverParaOrcamentoEnviado(dados.atendimentoId);
   }
 
   revalidatePath("/orcamentos");
@@ -336,9 +306,8 @@ export async function atualizarOrcamento(
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
 
-  // Marca o envio na primeira vez que vira "enviado" (não reinicia o prazo).
-  const viraEnviadoAgora =
-    dados.status === "enviado" && existente.status !== "enviado";
+  const agendaAgora =
+    dados.status === "agendado" && existente.status !== "agendado";
 
   await db
     .update(orcamentos)
@@ -358,7 +327,9 @@ export async function atualizarOrcamento(
       validadeDias: dados.validadeDias,
       observacoesInternas: dados.observacoesInternas || null,
       status: dados.status,
-      ...(viraEnviadoAgora ? { enviadoEm: new Date() } : {}),
+      ...(agendaAgora
+        ? { agendadoEm: new Date(), envioErro: null, envioTentativas: 0 }
+        : {}),
     })
     .where(eq(orcamentos.id, orcamentoId));
 
@@ -376,18 +347,21 @@ export async function atualizarOrcamento(
     }))
   );
 
-  // Só move para "Orçamento enviado" se estava em rascunho antes
-  if (dados.status === "enviado" && existente.status === "rascunho") {
-    await moverParaOrcamentoEnviado(dados.atendimentoId);
-  }
-
   revalidatePath("/orcamentos");
   revalidatePath(`/orcamentos/${orcamentoId}`);
   revalidatePath("/atendimentos");
   redirect(`/orcamentos/${orcamentoId}`);
 }
 
-const statusSchema = z.enum(["rascunho", "enviado", "aprovado", "recusado"]);
+const statusSchema = z.enum([
+  "rascunho",
+  "agendado",
+  "enviando",
+  "enviado",
+  "falha_envio",
+  "aprovado",
+  "recusado",
+]);
 
 export async function mudarStatusOrcamento(
   orcamentoId: number,
@@ -395,6 +369,8 @@ export async function mudarStatusOrcamento(
 ) {
   await exigirComercial();
   const novoStatus = statusSchema.parse(status);
+  // O status "enviado" é reservado ao worker após confirmação da Evolution.
+  if (novoStatus === "enviado" || novoStatus === "enviando") return;
   const id = z.coerce.number().int().positive().parse(orcamentoId);
 
   const orcamento = await db.query.orcamentos.findFirst({
@@ -402,23 +378,18 @@ export async function mudarStatusOrcamento(
   });
   if (!orcamento || orcamento.status === novoStatus) return;
 
-  const marcarEnvio = novoStatus === "enviado" && orcamento.status !== "enviado";
+  const agendar = novoStatus === "agendado" && orcamento.status !== "agendado";
 
   await db
     .update(orcamentos)
     .set({
       status: novoStatus,
-      ...(marcarEnvio ? { enviadoEm: new Date() } : {}),
+      ...(agendar
+        ? { agendadoEm: new Date(), envioErro: null, envioTentativas: 0 }
+        : {}),
     })
     .where(eq(orcamentos.id, id));
 
-  if (novoStatus === "enviado") {
-    await moverParaOrcamentoEnviado(orcamento.atendimentoId);
-    await dispararGatilhos("orcamento_enviado", {
-      atendimentoId: orcamento.atendimentoId,
-      orcamentoId: id,
-    });
-  }
   if (novoStatus === "aprovado") {
     await moverParaOrcamentoAprovado(orcamento.atendimentoId);
     await dispararGatilhos("orcamento_aprovado", {

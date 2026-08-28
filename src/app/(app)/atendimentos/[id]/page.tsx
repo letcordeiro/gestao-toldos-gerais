@@ -46,7 +46,10 @@ export const metadata = { title: "Atendimento" };
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
+  agendado: "Aguardando envio",
+  enviando: "Enviando",
   enviado: "Enviado",
+  falha_envio: "Falha no envio",
   aprovado: "Aprovado",
   recusado: "Recusado",
 };
