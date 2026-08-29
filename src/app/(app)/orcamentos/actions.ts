@@ -303,6 +303,12 @@ export async function atualizarOrcamento(
   }
   const dados = parsed.data;
 
+  if (dados.status === "agendado" && existente.enviadoEm != null) {
+    return {
+      erro: "Este orçamento já foi enviado e não pode ser agendado novamente.",
+    };
+  }
+
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
 
@@ -377,6 +383,7 @@ export async function mudarStatusOrcamento(
     where: eq(orcamentos.id, id),
   });
   if (!orcamento || orcamento.status === novoStatus) return;
+  if (novoStatus === "agendado" && orcamento.enviadoEm != null) return;
 
   const agendar = novoStatus === "agendado" && orcamento.status !== "agendado";
 
