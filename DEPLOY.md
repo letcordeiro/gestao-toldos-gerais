@@ -32,7 +32,7 @@ Tudo já está commitado. `.env.local` e a pasta `data/` **não** vão pro repos
    - `AUTH_USERS` aceita vários usuários separados por vírgula: `email1:senha1,email2:senha2`.
 5. **Volume (CRÍTICO — senão o banco some a cada deploy):** em Advanced → Volumes/Mounts, adicione um **Volume Mount** com Mount Path `/data`. É onde fica o `toldos.db`.
 6. **Porta:** o container escuta na **3000**.
-7. **Domínio:** em Domains, adicione `toldos.bionatural.tech`, container port **3000**, HTTPS (Let's Encrypt) ligado. Aponte o DNS `toldos` para o IP da VPS antes (registro A).
+7. **Domínio:** em Domains, adicione `toldos.cordena.net`, container port **3000**, HTTPS (Let's Encrypt) ligado. Aponte o DNS `toldos` para o IP da VPS antes (registro A).
 8. **Deploy.**
 
 ## O que acontece no primeiro boot

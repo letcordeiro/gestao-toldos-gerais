@@ -11,7 +11,10 @@ Sistema interno de orçamentos e funil de atendimento da Toldos Gerais Ltda (tol
 - Deploy: VPS Hostinger via Dokploy (Traefik + Let's Encrypt)
   - Banco em volume persistente: `/data/toldos.db` (NUNCA dentro do build)
   - Variável de ambiente `DATABASE_PATH=/data/toldos.db`
-  - Domínio inicial: `toldos.bionatural.tech` (migrar depois para `app.toldosgerais.com.br`)
+  - Domínio: **`toldos.cordena.net`** — é o único Host no roteador do Traefik.
+    `toldos.bionatural.tech` NÃO existe e responde 404 do próprio Traefik (texto
+    puro, 19 bytes): quem vir isso está batendo no domínio errado, não num app
+    fora do ar (29/08/2026).
 
 ## Dev local
 
@@ -255,7 +258,7 @@ Paleta extraída da logo oficial (`public/logo.png` ✅):
 - ⚠️ Textos padrão em `src/lib/proposta.ts` (montagem, garantia, pagamento, prazo) e seed do Toldo Retrátil Cortina: **conferir redação com o João contra o orçamento real**
 - ⚠️ Evitar `useSearchParams` em client components (causa mismatch de hidratação com IDs do Base UI) — passar valores como props do Server Component
 - ⚠️ Aviso dev-only de hidratação do Base UI (IDs `base-ui-_R_…`) aparece em telas com `Select`/`RadioGroup` de valor pré-selecionado (ex.: `/orcamentos/[id]/editar`). É cosmético: os valores renderizam e salvam corretamente; some em produção. Não afeta funcionalidade
-- ✅ **NO AR em produção (2026-07-08): https://toldos.bionatural.tech** (HTTPS/Let's Encrypt). Verificado end-to-end: login real, middleware, banco criado+semeado no boot, cadastro público, PDF.
+- ✅ **NO AR em produção: https://toldos.cordena.net** (HTTPS/Let's Encrypt). Verificado end-to-end: login real, middleware, banco criado+semeado no boot, cadastro público, PDF.
   - GitHub: `letcordeiro/gestao-toldos-gerais` (público), branch `main`.
   - Dokploy: projeto **Toldos Gerais** → app **app**. Provider **Git** (URL pública `https://github.com/letcordeiro/gestao-toldos-gerais.git`), Build Type **Dockerfile**, porta 3000.
   - Volume persistente: mount **toldos-data → /data** (banco `toldos.db`).

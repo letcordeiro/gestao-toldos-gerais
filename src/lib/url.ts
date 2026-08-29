@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-// URL base pública do sistema (ex.: https://toldos.bionatural.tech).
+// URL base pública do sistema (ex.: https://toldos.cordena.net).
 //
 // Prioriza APP_URL (fixa, configurada no deploy) para NÃO depender do header
 // da requisição — atrás do proxy o "Host" às vezes chega como "localhost", o
