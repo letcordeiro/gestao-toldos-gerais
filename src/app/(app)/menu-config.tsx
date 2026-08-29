@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, type LucideIcon } from "lucide-react";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -56,12 +58,16 @@ export function MenuSuspenso({
       />
       <DropdownMenuContent align="end" className="w-64">
         {grupos.map((grupo, i) => (
-          <div key={grupo.titulo}>
+          // O rótulo TEM de estar dentro de um Group: o GroupLabel do Base UI
+          // lança exceção sem esse ancestral, e o menu inteiro morre ao abrir.
+          // Ficou latente enquanto o grupo "Mais" não tinha título (29/08/2026).
+          <Fragment key={grupo.titulo}>
             {i > 0 && <DropdownMenuSeparator />}
-            {grupo.titulo && (
-              <DropdownMenuLabel>{grupo.titulo}</DropdownMenuLabel>
-            )}
-            {grupo.itens.map((item) => (
+            <DropdownMenuGroup>
+              {grupo.titulo && (
+                <DropdownMenuLabel>{grupo.titulo}</DropdownMenuLabel>
+              )}
+              {grupo.itens.map((item) => (
               <DropdownMenuItem
                 key={item.href}
                 render={<Link href={item.href} />}
@@ -73,8 +79,9 @@ export function MenuSuspenso({
                   </span>
                 </span>
               </DropdownMenuItem>
-            ))}
-          </div>
+              ))}
+            </DropdownMenuGroup>
+          </Fragment>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
