@@ -635,7 +635,8 @@ export function OrcamentoForm({
       </div>
       <p className="text-xs text-muted-foreground">
         O link será enviado automaticamente de segunda a sexta, entre 8h e
-        19h. Fora desse período, ficará programado para as próximas 8h.
+        19h, e aos sábados, entre 8h e 12h. Fora desses períodos, ficará
+        programado para a próxima janela disponível.
       </p>
     </form>
   );
