@@ -337,6 +337,34 @@ export const avisoContatos = sqliteTable("aviso_contatos", {
     .default(sql`(unixepoch())`),
 });
 
+// Fila idempotente do pós-venda automático. Só recebe atendimentos concluídos
+// depois da data de ativação configurada no worker; o histórico anterior é
+// auditado separadamente para não disparar mensagens antigas em massa.
+export const posVendaEnvios = sqliteTable("pos_venda_envios", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  atendimentoId: integer("atendimento_id")
+    .notNull()
+    .unique()
+    .references(() => atendimentos.id, { onDelete: "cascade" }),
+  avisoId: integer("aviso_id")
+    .notNull()
+    .references(() => avisos.id, { onDelete: "cascade" }),
+  conclusaoEm: integer("conclusao_em", { mode: "timestamp" }).notNull(),
+  status: text("status", {
+    enum: ["agendado", "enviando", "enviado", "falha_envio", "cancelado"],
+  })
+    .notNull()
+    .default("agendado"),
+  agendadoEm: integer("agendado_em", { mode: "timestamp" }).notNull(),
+  tentativas: integer("tentativas").notNull().default(0),
+  erro: text("erro"),
+  enviadoEm: integer("enviado_em", { mode: "timestamp" }),
+  mensagemId: text("mensagem_id"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 // ---------------------------------------------------------------------------
 // CONTRATOS
 // Gerados sob demanda a partir de um orçamento aprovado. Os nomes das tabelas
