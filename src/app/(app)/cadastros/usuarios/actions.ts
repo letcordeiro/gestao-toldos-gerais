@@ -14,6 +14,12 @@ const vendedorSchema = z
     nome: z.string().trim().min(1, "Informe o nome"),
     whatsapp: z.string().trim().optional(),
     telefoneFixo: z.string().trim().optional(),
+    // Página de agendamento própria (Calendly, Cal.com, Google Agenda no
+    // Workspace). O sistema só guarda e envia o link — quem administra os
+    // horários é o serviço de fora.
+    linkAgendamento: z
+      .union([z.literal(""), z.string().trim().url("Link inválido")])
+      .optional(),
     email: z
       .string()
       .trim()
@@ -45,6 +51,7 @@ export async function salvarVendedor(
     nome: formData.get("nome"),
     whatsapp: formData.get("whatsapp") || undefined,
     telefoneFixo: formData.get("telefoneFixo") || undefined,
+    linkAgendamento: formData.get("linkAgendamento") ?? "",
     email: formData.get("email") || undefined,
     papel: formData.get("papel") || undefined,
     senha: formData.get("senha") || undefined,
@@ -59,6 +66,7 @@ export async function salvarVendedor(
     nome: dados.nome,
     whatsapp: dados.whatsapp || null,
     telefoneFixo: dados.telefoneFixo || null,
+    linkAgendamento: dados.linkAgendamento || null,
     email: dados.email || null,
     papel: dados.papel,
   };

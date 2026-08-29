@@ -147,6 +147,7 @@ export default async function UsuariosPage({
                       nome: vendedor.nome,
                       whatsapp: vendedor.whatsapp,
                       telefoneFixo: vendedor.telefoneFixo,
+                      linkAgendamento: vendedor.linkAgendamento,
                       email: vendedor.email,
                       temAcesso: Boolean(vendedor.senhaHash),
                       papel: vendedor.papel,

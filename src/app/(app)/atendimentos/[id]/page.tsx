@@ -145,6 +145,10 @@ export default async function AtendimentoPage({
   const tarefas = await buscarTarefas({ atendimentoId });
   const pendentes = tarefas.filter((t) => t.status === "pendente");
 
+  // Link de agendamento do vendedor responsável (Cal.com, Calendly, Google
+  // Agenda no Workspace). Só aparece o botão se ele tiver cadastrado um.
+  const linkAgendamento = vendedorAtual?.linkAgendamento ?? null;
+
   const listaCanais = await db
     .select({ id: canais.id, nome: canais.nome })
     .from(canais)
@@ -196,6 +200,26 @@ export default async function AtendimentoPage({
             responsaveis={listaVendedores}
             trigger={<Button variant="outline">Nova tarefa</Button>}
           />
+          {linkAgendamento && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <a
+                  href={linkWhatsApp(
+                    cliente.telefone,
+                    `Olá, ${cliente.nome.split(" ")[0]}! Aqui é da Toldos Gerais. ` +
+                      `Para marcar a visita técnica no melhor horário para você, ` +
+                      `é só escolher um horário aqui: ${linkAgendamento}`
+                  )}
+                  target="_blank"
+                  rel="noopener"
+                />
+              }
+            >
+              Mandar link de agendamento
+            </Button>
+          )}
           <VisitaDialog
             atendimentoId={atendimento.id}
             responsaveis={listaVendedores}

@@ -19,6 +19,7 @@ type Vendedor = {
   id: number;
   nome: string;
   whatsapp: string | null;
+  linkAgendamento: string | null;
   telefoneFixo: string | null;
   email: string | null;
   temAcesso: boolean;
@@ -75,6 +76,22 @@ export function VendedorDialog({
                 placeholder="(31)3333-3333"
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="linkAgendamento">Link de agendamento</Label>
+            <Input
+              id="linkAgendamento"
+              name="linkAgendamento"
+              type="url"
+              defaultValue={vendedor?.linkAgendamento ?? ""}
+              placeholder="https://cal.com/… ou https://calendly.com/…"
+            />
+            <p className="text-xs text-muted-foreground">
+              Página onde o cliente escolhe o horário sozinho. Cal.com e
+              Calendly têm plano gratuito e conectam numa conta Gmail comum.
+              Com o link preenchido, a tela do atendimento passa a oferecer
+              “Mandar link de agendamento” no WhatsApp.
+            </p>
           </div>
           <p className="text-xs text-muted-foreground">
             O próprio vendedor confirma/completa esses dados no primeiro acesso.
