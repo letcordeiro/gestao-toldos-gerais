@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { instalacaoEquipe, instaladores } from "@/db/schema";
-import { exigirComercial } from "@/lib/auth";
+import { instalacaoEquipe, instaladores, orcamentoItens } from "@/db/schema";
+import { exigirComercial, exigirUsuario } from "@/lib/auth";
+import { valorDaComissao } from "@/lib/comissoes";
+import { registrarDinheiro } from "@/lib/log-dinheiro";
 import { parseParaCentavos } from "@/lib/format";
 
 const linhaSchema = z.object({
@@ -79,6 +81,7 @@ export async function removerDaEquipe(linhaId: number) {
 
 /** Baixa da comissão: marca (ou desmarca) como paga. */
 export async function marcarComissaoPaga(linhaId: number, paga: boolean) {
+  const usuario = await exigirUsuario();
   await exigirComercial();
   const id = z.coerce.number().int().positive().parse(linhaId);
   const linha = await db.query.instalacaoEquipe.findFirst({
@@ -88,7 +91,30 @@ export async function marcarComissaoPaga(linhaId: number, paga: boolean) {
     .update(instalacaoEquipe)
     .set({ pagoEm: paga ? new Date() : null })
     .where(eq(instalacaoEquipe.id, id));
-  if (linha) revalidar(linha.orcamentoId);
+
+  if (linha) {
+    // O valor vai junto no log: sem ele, "quem deu baixa" não responde
+    // "de quanto era" — que é a pergunta seguinte, sempre.
+    const [instalador, soma] = await Promise.all([
+      db.query.instaladores.findFirst({
+        where: eq(instaladores.id, linha.instaladorId),
+      }),
+      db
+        .select({
+          total: sql<number | null>`sum(${orcamentoItens.valorMin})`,
+        })
+        .from(orcamentoItens)
+        .where(eq(orcamentoItens.orcamentoId, linha.orcamentoId)),
+    ]);
+    await registrarDinheiro({
+      acao: paga ? "comissao_paga" : "comissao_desfeita",
+      usuario: usuario.nome ?? usuario.email,
+      descricao: `Comissão de ${instalador?.nome ?? "instalador"}`,
+      valor: valorDaComissao(linha, soma[0]?.total ?? null),
+      orcamentoId: linha.orcamentoId,
+    });
+    revalidar(linha.orcamentoId);
+  }
 }
 
 /** Instaladores ativos com a comissão padrão, para montar a equipe. */

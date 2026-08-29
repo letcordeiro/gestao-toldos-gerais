@@ -115,6 +115,11 @@ const CONFIG: { titulo: string; itens: { href: string; label: string; ajuda: str
         ajuda: "Quem vai na obra e a comissão de cada um",
       },
       {
+        href: "/cadastros/log-dinheiro",
+        label: "Movimentos de dinheiro",
+        ajuda: "Quem deu baixa em parcela e comissão",
+      },
+      {
         href: "/cadastros/numeracoes",
         label: "Numerações",
         ajuda: "Formato do número de orçamento e contrato",

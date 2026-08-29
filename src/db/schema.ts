@@ -892,3 +892,33 @@ export const visitas = sqliteTable("visitas", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// ---------------------------------------------------------------------------
+// LOG DE DINHEIRO
+// Só o que move dinheiro: baixa de parcela recebida e de comissão paga.
+// Registrar tudo viraria ruído com uma equipe de três pessoas; o que precisa
+// de resposta é "quem deu baixa nisso, quando, e de quanto era".
+// ---------------------------------------------------------------------------
+
+export const logsDinheiro = sqliteTable("logs_dinheiro", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  acao: text("acao", {
+    enum: [
+      "parcela_recebida",
+      "parcela_desfeita",
+      "comissao_paga",
+      "comissao_desfeita",
+    ],
+  }).notNull(),
+  usuario: text("usuario").notNull(),
+  descricao: text("descricao").notNull(),
+  // Valor envolvido, em centavos. Null quando não dá para calcular (comissão
+  // percentual sobre orçamento sem valor fechado).
+  valor: integer("valor"),
+  // Para onde a tela manda quem for conferir.
+  orcamentoId: integer("orcamento_id"),
+  contratoId: integer("contrato_id"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

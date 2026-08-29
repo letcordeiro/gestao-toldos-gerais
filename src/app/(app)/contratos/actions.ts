@@ -25,6 +25,7 @@ import { configNumeracao } from "@/lib/numeracao-consulta";
 import { proximoNumero as proximoNumeroFormatado } from "@/lib/numeracao";
 import { dispararGatilhos } from "@/lib/gatilhos-executor";
 import type { EventoGatilho } from "@/lib/gatilhos";
+import { registrarDinheiro } from "@/lib/log-dinheiro";
 import {
   calcularRetencao,
   gerarPreset,
@@ -978,6 +979,20 @@ export async function marcarParcelaRecebida(
     .update(contratoPagamentos)
     .set({ pagoEm: recebida ? new Date() : null })
     .where(eq(contratoPagamentos.id, id));
+
+  // Vai para os dois lugares de propósito: o evento conta a história DAQUELE
+  // contrato; o log de dinheiro junta tudo numa lista só, que é onde se
+  // procura quando a pergunta é "quem deu baixa nisso".
+  const parcela = await db.query.contratoPagamentos.findFirst({
+    where: eq(contratoPagamentos.id, id),
+  });
+  await registrarDinheiro({
+    acao: recebida ? "parcela_recebida" : "parcela_desfeita",
+    usuario: nomeUsuario(usuario),
+    descricao: parcela?.rotulo ?? "Parcela do contrato",
+    valor: parcela?.valor ?? null,
+    contratoId: linha.contratoId,
+  });
 
   await registrarEvento(
     linha.contratoId,

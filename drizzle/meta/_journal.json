@@ -225,6 +225,13 @@
       "when": 1787918500000,
       "tag": "0031_visitas",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1787918510000,
+      "tag": "0032_logs_dinheiro",
+      "breakpoints": true
     }
   ]
 }
