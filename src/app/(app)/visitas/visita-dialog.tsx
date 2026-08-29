@@ -37,15 +37,26 @@ function paraInput(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+export type AtendimentoOpcao = {
+  id: number;
+  clienteNome: string;
+  clienteTelefone: string;
+  faseNome: string;
+};
+
 export function VisitaDialog({
   visita,
   atendimentoId,
+  atendimentos = [],
   responsaveis = [],
   ehAtendente = false,
   trigger,
 }: {
   visita?: VisitaEdicao;
-  atendimentoId: number;
+  /** Fixo quando o diálogo abre de dentro de um atendimento. */
+  atendimentoId?: number;
+  /** Para escolher o cliente aqui dentro, quando não há atendimento fixo. */
+  atendimentos?: AtendimentoOpcao[];
   responsaveis?: { id: number; nome: string }[];
   /** Atendente marca a agenda dos outros: precisa dizer quem vai. */
   ehAtendente?: boolean;
@@ -54,6 +65,11 @@ export function VisitaDialog({
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [endereco, setEndereco] = useState(visita?.endereco ?? "");
+  // Quando não vem atendimento fixo, ele é escolhido aqui.
+  const [escolhido, setEscolhido] = useState<string>(
+    atendimentoId ? String(atendimentoId) : ""
+  );
+  const alvo = atendimentoId ?? (escolhido ? Number(escolhido) : null);
   const [state, formAction, pending] = useActionState<VisitaFormState, FormData>(
     salvarVisita,
     {}
@@ -66,15 +82,15 @@ export function VisitaDialog({
     }
   }, [state, router]);
 
-  // Ao abrir para uma visita nova, já traz o endereço do cliente — quase
-  // sempre é onde a visita acontece, e digitar de novo só gera erro.
+  // Traz o endereço do cliente escolhido — quase sempre é onde a visita
+  // acontece, e digitar de novo só gera erro. Ao trocar de cliente, troca
+  // junto: manter o endereço do anterior mandaria a equipe para o lugar errado.
   useEffect(() => {
-    if (aberto && !visita && endereco === "") {
-      enderecoDoAtendimento(atendimentoId)
-        .then((e) => setEndereco(e))
-        .catch(() => {});
-    }
-  }, [aberto, visita, atendimentoId, endereco]);
+    if (!aberto || visita || alvo == null) return;
+    enderecoDoAtendimento(alvo)
+      .then((e) => setEndereco(e))
+      .catch(() => {});
+  }, [aberto, visita, alvo]);
 
   // Padrão de horário: amanhã às 9h, arredondado — quase nunca se marca visita
   // para daqui a cinco minutos.
@@ -96,7 +112,32 @@ export function VisitaDialog({
         </DialogHeader>
         <form action={formAction} className="space-y-3">
           {visita && <input type="hidden" name="id" value={visita.id} />}
-          <input type="hidden" name="atendimentoId" value={atendimentoId} />
+          <input type="hidden" name="atendimentoId" value={alvo ?? ""} />
+
+          {!atendimentoId && (
+            <div className="space-y-1.5">
+              <Label htmlFor="escolhaAtendimento">Cliente *</Label>
+              <select
+                id="escolhaAtendimento"
+                value={escolhido}
+                onChange={(e) => setEscolhido(e.target.value)}
+                className={SELECT}
+              >
+                <option value="">Selecione…</option>
+                {atendimentos.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.clienteNome} — {a.clienteTelefone} · {a.faseNome}
+                  </option>
+                ))}
+              </select>
+              {atendimentos.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum atendimento em aberto. Crie um em Atendimentos antes
+                  de marcar a visita.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
             <div className="space-y-1.5">
@@ -177,7 +218,7 @@ export function VisitaDialog({
             <Button type="button" variant="outline" onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || alvo == null}>
               {pending ? "Salvando…" : "Salvar"}
             </Button>
           </div>

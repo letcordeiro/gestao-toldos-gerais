@@ -1,10 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { atendimentos, clientes, vendedores, visitas } from "@/db/schema";
+import {
+  atendimentos,
+  clientes,
+  fases,
+  vendedores,
+  visitas,
+} from "@/db/schema";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
 
@@ -145,4 +151,34 @@ function revalidar(atendimentoId: number) {
   revalidatePath("/visitas");
   revalidatePath("/painel");
   revalidatePath(`/atendimentos/${atendimentoId}`);
+}
+
+
+/**
+ * Atendimentos que podem receber visita: cliente ativo e negócio ainda em
+ * andamento. Fase terminal (concluído/perdido) fica de fora — visita em
+ * negócio encerrado é engano de digitação, não agenda.
+ */
+export async function atendimentosParaVisita() {
+  const usuario = await exigirUsuario();
+  const filtros: (SQL | undefined)[] = [
+    eq(clientes.ativo, true),
+    eq(fases.terminal, false),
+  ];
+  if (!veFunilInteiro(usuario.papel) && usuario.vendedorId != null) {
+    filtros.push(eq(atendimentos.vendedorId, usuario.vendedorId));
+  }
+
+  return db
+    .select({
+      id: atendimentos.id,
+      clienteNome: clientes.nome,
+      clienteTelefone: clientes.telefone,
+      faseNome: fases.nome,
+    })
+    .from(atendimentos)
+    .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .innerJoin(fases, eq(atendimentos.faseId, fases.id))
+    .where(and(...filtros))
+    .orderBy(asc(clientes.nome));
 }

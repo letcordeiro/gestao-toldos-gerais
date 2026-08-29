@@ -20,6 +20,8 @@ import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { SituacaoVisitaSelect, ExcluirVisitaButton } from "./acoes-visita";
+import { VisitaDialog } from "./visita-dialog";
+import { atendimentosParaVisita, responsaveisDeVisita } from "./actions";
 
 export const metadata = { title: "Visitas" };
 
@@ -62,6 +64,12 @@ export default async function VisitasPage({
 
   // O tipo da coluna vem como string do Drizzle; fixar aqui evita `any` ao
   // indexar os mapas de rótulo e cor lá embaixo.
+  // Para agendar sem sair da tela: quem pode receber visita e quem pode ir.
+  const [opcoesAtendimento, listaResponsaveis] = await Promise.all([
+    atendimentosParaVisita(),
+    responsaveisDeVisita(),
+  ]);
+
   const paraAgenda = linhas.map((l) => ({
     ...l,
     situacao: l.situacao as SituacaoVisita,
@@ -75,24 +83,33 @@ export default async function VisitasPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Visitas</h1>
           <p className="text-sm text-muted-foreground">
-            A agenda de campo, dia a dia e em ordem de horário. Para agendar,
-            abra o atendimento do cliente.
+            A agenda de campo, dia a dia e em ordem de horário.
           </p>
         </div>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href={passadas ? "/visitas" : "/visitas?ver=passadas"} />}
-        >
-          {passadas ? "Ver próximas" : "Ver anteriores"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link href={passadas ? "/visitas" : "/visitas?ver=passadas"} />
+            }
+          >
+            {passadas ? "Ver próximas" : "Ver anteriores"}
+          </Button>
+          <VisitaDialog
+            atendimentos={opcoesAtendimento}
+            responsaveis={listaResponsaveis}
+            ehAtendente={usuario.papel === "atendente"}
+            trigger={<Button>Agendar visita</Button>}
+          />
+        </div>
       </div>
 
       {dias.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           {passadas
             ? "Nenhuma visita anterior."
-            : "Nenhuma visita marcada. Abra um atendimento e use “Agendar visita”."}
+            : "Nenhuma visita marcada. Use “Agendar visita” aqui em cima, ou abra o atendimento do cliente."}
         </p>
       ) : (
         <div className="space-y-6">
