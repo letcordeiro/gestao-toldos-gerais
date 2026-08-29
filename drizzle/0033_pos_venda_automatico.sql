@@ -28,4 +28,4 @@ Sua opinião ajuda muito a gente a melhorar. E, se puder, deixa uma avaliação 
 {avaliacao}
 
 Muito obrigado pela confiança! Qualquer coisa, é só chamar.'
-WHERE `gatilho` = 'atendimento_concluido';
+WHERE `gatilho` = 'atendimento_concluido' AND `nome` = 'Pós-venda';
