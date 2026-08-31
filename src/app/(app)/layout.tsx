@@ -14,18 +14,19 @@ async function sair() {
   redirect("/login");
 }
 
-// A barra principal só tem o que se abre TODO DIA, na ordem em que o dia
-// acontece: olho o painel, faço as tarefas, ando com os atendimentos, mando
-// orçamento, acompanho a instalação. O de uso semanal foi para "Mais" e o que
-// se ajusta uma vez, para a engrenagem.
+// A barra principal só tem o que se abre TODO DIA, na ordem do CAMINHO DO
+// NEGÓCIO: o painel abre o dia, e depois vem a vida de uma venda — atendimento,
+// orçamento, visita, instalação. Tarefas fecha a fila porque atravessa todas as
+// etapas e não é um passo do funil (ordem pedida pela Letícia em 31/08/2026).
+// O de uso semanal foi para "Mais"; o que se ajusta uma vez, para a engrenagem.
 // curto: rótulo compacto do menu inferior (mobile).
 const NAV = [
   { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
-  { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
   { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
   { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
   { href: "/visitas", label: "Visitas", curto: "Visitas", icon: "visitas", soGestor: false },
   { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false },
+  { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
 ];
 
 // Telas de uso semanal: entram no menu "Mais" em vez de disputar espaço na

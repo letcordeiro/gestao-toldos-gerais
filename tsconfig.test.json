@@ -26,7 +26,8 @@
     "src/lib/comissoes.ts",
     "src/lib/numeracao.ts",
     "src/lib/visitas.ts",
-    "src/lib/busca-cliente.ts"
+    "src/lib/busca-cliente.ts",
+    "src/lib/disponibilidade.ts"
   ],
   "files": [
     "src/lib/valor-extenso.test.ts",
@@ -44,6 +45,7 @@
     "src/lib/comissoes.test.ts",
     "src/lib/numeracao.test.ts",
     "src/lib/visitas.test.ts",
-    "src/lib/busca-cliente.test.ts"
+    "src/lib/busca-cliente.test.ts",
+    "src/lib/disponibilidade.test.ts"
   ]
 }
