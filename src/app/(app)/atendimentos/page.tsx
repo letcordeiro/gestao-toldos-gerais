@@ -357,9 +357,13 @@ export default async function AtendimentosPage({
             {linhasOrdenadas.map((linha) => (
               <TableRow key={linha.id}>
                 <TableCell className="font-medium">
+                  {/* Verde, como na lista de Clientes: é por aqui que se chega
+                      na tela do atendimento (e nos botões de abrir chamado,
+                      agendar visita, novo orçamento). Pintado como texto comum,
+                      ninguém descobre que dá para clicar. */}
                   <Link
                     href={`/atendimentos/${linha.id}`}
-                    className="hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {linha.clienteNome}
                   </Link>

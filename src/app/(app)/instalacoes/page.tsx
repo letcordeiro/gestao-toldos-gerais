@@ -181,7 +181,7 @@ function Linha({ inst, veTudo }: { inst: Instalacao; veTudo: boolean }) {
         <p className="font-medium">
           <Link
             href={`/orcamentos/${inst.orcamentoId}`}
-            className="hover:underline"
+            className="text-primary hover:underline"
           >
             {inst.clienteNome}
           </Link>{" "}

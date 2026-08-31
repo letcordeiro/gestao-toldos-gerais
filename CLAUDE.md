@@ -540,6 +540,18 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## Link em tabela é verde (31/08/2026)
+
+Nome que leva para outra tela usa `text-primary hover:underline`. Só
+`hover:underline` faz o link parecer texto comum, e ninguém passa o mouse em
+cima de um texto para descobrir que ele clica.
+
+Isso escondeu a tela do atendimento: as ações do cliente (abrir chamado,
+agendar visita, novo orçamento) só existem em `/atendimentos/[id]`, e o único
+caminho até lá é o nome na lista. Pintado de preto, a tela inteira ficou
+inalcançável — quem procurava os botões procurava na lista, onde eles nunca
+estiveram.
+
 ## Linha de botões precisa de `flex-wrap` (31/08/2026)
 
 A tela do atendimento tem cinco ações no cabeçalho. Sem `flex-wrap`, no celular
