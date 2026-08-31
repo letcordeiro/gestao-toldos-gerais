@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { SituacaoVisitaSelect, ExcluirVisitaButton } from "./acoes-visita";
 import { VisitaDialog } from "./visita-dialog";
 import { atendimentosParaVisita, responsaveisDeVisita } from "./actions";
+import { conexaoDoVendedor, googleConfigurado } from "@/lib/google-agenda";
 
 export const metadata = { title: "Visitas" };
 
@@ -70,6 +71,16 @@ export default async function VisitasPage({
     responsaveisDeVisita(),
   ]);
 
+  // O convite para conectar a agenda mora AQUI, e não só no perfil: é nesta
+  // tela que a falta dela aparece, e ninguém entra no perfil sem motivo.
+  // Só para quem recebe visita — a atendente marca a agenda dos outros, a
+  // dela não entra na conta de horário livre de ninguém.
+  const convidarAgenda =
+    googleConfigurado() &&
+    usuario.vendedorId != null &&
+    usuario.papel !== "atendente" &&
+    (await conexaoDoVendedor(usuario.vendedorId)) == null;
+
   const paraAgenda = linhas.map((l) => ({
     ...l,
     situacao: l.situacao as SituacaoVisita,
@@ -104,6 +115,26 @@ export default async function VisitasPage({
           />
         </div>
       </div>
+
+      {convidarAgenda && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-secondary/40 p-3">
+          <p className="text-sm">
+            <strong className="font-medium">Conecte sua agenda do Google</strong>
+            <span className="text-muted-foreground">
+              {" "}
+              — quem marcar visita para você passa a ver seus horários livres.
+              Só as faixas ocupadas, nunca o que você tem marcado.
+            </span>
+          </p>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<a href="/api/google/conectar" />}
+          >
+            Conectar
+          </Button>
+        </div>
+      )}
 
       {dias.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">

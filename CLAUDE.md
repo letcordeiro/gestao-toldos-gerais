@@ -572,6 +572,12 @@ rotas `/api/google/conectar` e `/api/google/callback`, tabela `agendas_google`
 `APP_URL`. Sem os quatro, a integração some da tela e o cálculo de horário
 livre segue funcionando só com as visitas do sistema — nada quebra.
 
+O convite para conectar aparece em DOIS lugares: no perfil e numa faixa na tela
+de **Visitas** — é lá que a falta da agenda aparece, e ninguém entra no perfil
+sem motivo. A faixa some sozinha quando a agenda está conectada, e nunca é
+mostrada para a atendente: ela marca a agenda dos outros, a dela não entra no
+cálculo de ninguém.
+
 Perder a `AGENDA_ENCRYPTION_KEY` **não** é catástrofe (ao contrário da do cofre
 do Gestão): ninguém perde dado, cada vendedor só reconecta a agenda.
 
