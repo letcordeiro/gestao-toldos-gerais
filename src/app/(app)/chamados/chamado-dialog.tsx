@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TIPO_CHAMADO_LABEL, type TipoServico } from "@/lib/chamados";
 import { centavosParaInput, mascaraMoeda } from "@/lib/format";
+import { SeletorCliente } from "@/components/shared/seletor-cliente";
 import {
   orcamentosDoAtendimento,
   salvarChamado,
@@ -129,7 +130,7 @@ export function ChamadoDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {chamado ? "Editar chamado" : "Nova ordem de manutenção"}
+            {chamado ? "Editar chamado" : "Novo chamado"}
           </DialogTitle>
         </DialogHeader>
         <form action={formAction} className="space-y-3">
@@ -139,19 +140,12 @@ export function ChamadoDialog({
           {!atendimentoId && (
             <div className="space-y-1.5">
               <Label htmlFor="escolhaAtendimento">Cliente *</Label>
-              <select
+              <SeletorCliente
                 id="escolhaAtendimento"
-                value={escolhido}
-                onChange={(e) => setEscolhido(e.target.value)}
-                className={SELECT_CLASSES}
-              >
-                <option value="">Escolha o cliente</option>
-                {atendimentos.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.clienteNome} — {a.clienteTelefone}
-                  </option>
-                ))}
-              </select>
+                opcoes={atendimentos}
+                valor={escolhido}
+                onValorChange={setEscolhido}
+              />
             </div>
           )}
 

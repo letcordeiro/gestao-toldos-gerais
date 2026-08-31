@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SeletorCliente } from "@/components/shared/seletor-cliente";
 import {
   enderecoDoAtendimento,
   salvarVisita,
@@ -117,19 +118,12 @@ export function VisitaDialog({
           {!atendimentoId && (
             <div className="space-y-1.5">
               <Label htmlFor="escolhaAtendimento">Cliente *</Label>
-              <select
+              <SeletorCliente
                 id="escolhaAtendimento"
-                value={escolhido}
-                onChange={(e) => setEscolhido(e.target.value)}
-                className={SELECT}
-              >
-                <option value="">Selecione…</option>
-                {atendimentos.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.clienteNome} — {a.clienteTelefone} · {a.faseNome}
-                  </option>
-                ))}
-              </select>
+                opcoes={atendimentos.map((a) => ({ ...a, detalhe: a.faseNome }))}
+                valor={escolhido}
+                onValorChange={setEscolhido}
+              />
               {atendimentos.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Nenhum atendimento em aberto. Crie um em Atendimentos antes

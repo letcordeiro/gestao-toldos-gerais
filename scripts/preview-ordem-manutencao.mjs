@@ -76,6 +76,43 @@ INSERT INTO chamados (id,atendimento_id,orcamento_id,assunto,descricao,tipo,na_g
           'troca do motor e do controle',${agora + 7 * dia},${agora});
 `);
 
+// Massa para conferir o seletor com busca: nomes fora de ordem alfabetica, tres
+// "Carlos" em posicoes diferentes do nome e um acento, que e o caso que quebra
+// busca ingenua ("goncalves" tem que achar "Goncalves").
+const outros = [
+  ["Zuleica Prates", "(31) 97000-0001"],
+  ["Carlos Eduardo Muniz", "(31) 97000-0002"],
+  ["Ana Beatriz Rezende", "(31) 97000-0003"],
+  ["João Carlos Ferreira", "(31) 97000-0004"],
+  ["Bruno Sales", "(31) 97000-0005"],
+  ["Marina Carlos de Assis", "(31) 97000-0006"],
+  ["Édson Nogueira", "(31) 97000-0007"],
+  ["Roberto Gonçalves", "(31) 97000-0008"],
+  ["Patrícia Lima", "(31) 97000-0009"],
+  ["Fernando Cardoso", "(31) 97000-0010"],
+];
+outros.forEach(([nome, tel], i) => {
+  const cid = 100 + i;
+  sqlite
+    .prepare("INSERT INTO clientes (id,nome,telefone,ativo) VALUES (?,?,?,1)")
+    .run(cid, nome, tel);
+  sqlite
+    .prepare(
+      "INSERT INTO atendimentos (id,cliente_id,fase_id,vendedor_id,criado_em,atualizado_em) VALUES (?,?,8,2,?,?)"
+    )
+    .run(200 + i, cid, agora - 200 * dia, agora - 100 * dia);
+});
+console.log("clientes extras para o seletor:", outros.length);
+
+// Uma fase ABERTA e alguns atendimentos nela: o diálogo de visita só lista
+// atendimento fora de fase terminal, então sem isto ele aparece vazio.
+sqlite
+  .prepare(
+    "INSERT INTO fases (id,nome,ordem,cor,terminal) VALUES (3,'Orçamento enviado',3,'#E5A000',0)"
+  )
+  .run();
+sqlite.prepare("UPDATE atendimentos SET fase_id=3 WHERE id IN (201,203,205)").run();
+
 console.log("pronto:", dbPath);
 console.log("  /chamados/1/pdf  → ficha cheia");
 console.log("  /chamados/2/pdf  → ficha em branco");

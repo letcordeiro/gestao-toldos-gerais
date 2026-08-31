@@ -16,13 +16,7 @@ import { CamposEndereco } from "@/components/shared/campos-endereco";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SeletorCliente } from "@/components/shared/seletor-cliente";
 import {
   criarAtendimento,
   type NovoAtendimentoState,
@@ -100,25 +94,15 @@ export function NovoAtendimentoDialog({
             <TabsContent value="existente" className="mt-4">
               <div className="space-y-1.5">
                 <Label>Cliente</Label>
-                <Select
-                  value={clienteId || null}
-                  items={clientes.map((c) => ({
-                    value: String(c.id),
-                    label: `${c.nome} — ${c.telefone}`,
+                <SeletorCliente
+                  opcoes={clientes.map((c) => ({
+                    id: c.id,
+                    clienteNome: c.nome,
+                    clienteTelefone: c.telefone,
                   }))}
-                  onValueChange={(v) => setClienteId(v ?? "")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Escolha um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {c.nome} — {c.telefone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  valor={clienteId}
+                  onValorChange={setClienteId}
+                />
                 {modo === "existente" && clienteId && (
                   <input type="hidden" name="clienteId" value={clienteId} />
                 )}

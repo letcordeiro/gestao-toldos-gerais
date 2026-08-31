@@ -519,6 +519,35 @@ Massa de teste: `node scripts/preview-ordem-manutencao.mjs` monta
 `data/preview-ordem.db` do zero (roda todas as migrations) com três chamados —
 ficha cheia, ficha vazia e serviço "outros".
 
+## Escolher cliente: seletor com busca (31/08/2026)
+
+`components/shared/seletor-cliente.tsx` — um componente só, usado no diálogo de
+chamado, no de visita e no "cliente existente" do novo atendimento. Lista em
+ordem alfabética e **filtra pelo que se digita**.
+
+As regras ficam separadas em `lib/busca-cliente.ts`, com teste, porque errar
+aqui não quebra tela nenhuma — só faz o cliente sumir da lista, que é o defeito
+que ninguém percebe até alguém reclamar:
+
+- casa em **qualquer parte** do texto, não só no começo — "carlos" tem que
+  achar "João Carlos Ferreira";
+- **ignora acento e caixa** — "goncalves" acha "Gonçalves";
+- cada palavra digitada precisa aparecer, **em qualquer ordem**;
+- o **telefone** entra na busca junto: é como se separa dois homônimos.
+
+O id escolhido vai num `<input type="hidden">`, então as Server Actions
+continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
+(atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
+decide.
+
+## Linha de botões precisa de `flex-wrap` (31/08/2026)
+
+A tela do atendimento tem cinco ações no cabeçalho. Sem `flex-wrap`, no celular
+as últimas ("Abrir chamado", "Novo orçamento") saíam para fora da tela **sem
+barra de rolagem** — deixavam de existir para quem usa, e o defeito não aparece
+em nenhum teste nem no monitor do desenvolvedor. Toda linha de ações de
+cabeçalho leva `flex flex-wrap`.
+
 ### Cotação de fornecedor
 
 Tabelas `fornecedores`, `cotacoes`, `cotacao_itens`, `cotacao_fornecedores`,

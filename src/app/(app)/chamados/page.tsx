@@ -97,7 +97,7 @@ export default async function ChamadosPage({
           <ChamadoDialog
             atendimentos={opcoesAtendimento}
             irParaChamado
-            trigger={<Button>Nova ordem</Button>}
+            trigger={<Button>Abrir chamado</Button>}
           />
         </div>
       </div>

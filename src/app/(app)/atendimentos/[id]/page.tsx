@@ -189,7 +189,10 @@ export default async function AtendimentoPage({
             {cliente.nome}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        {/* flex-wrap é obrigatório: são cinco botões e, sem quebrar linha, no
+            celular os últimos ("Abrir chamado", "Novo orçamento") saem para
+            fora da tela sem barra de rolagem — deixam de existir para quem usa. */}
+        <div className="flex flex-wrap items-center gap-2">
           <FaseSelect
             atendimentoId={atendimento.id}
             faseId={atendimento.faseId}
