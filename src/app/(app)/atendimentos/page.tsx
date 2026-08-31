@@ -28,6 +28,9 @@ import {
 import { FaseSelect } from "@/components/shared/fase-select";
 import { FiltrosFunil } from "./filtros";
 import { GerarLinkDialog } from "./gerar-link-dialog";
+import { Button } from "@/components/ui/button";
+import { ChamadoDialog } from "../chamados/chamado-dialog";
+import { atendimentosParaChamado } from "../chamados/actions";
 import { NovoAtendimentoDialog } from "./novo-atendimento-dialog";
 
 export const metadata = { title: "Atendimentos" };
@@ -87,6 +90,10 @@ export default async function AtendimentosPage({
   const linksCadastro = vendedoresAtribuiveis
     .filter((v) => v.linkToken && (veTudo || v.id === usuario.vendedorId))
     .map((v) => ({ id: v.id, nome: v.nome, token: v.linkToken as string }));
+
+  // Abrir chamado sem sair da lista. Consulta propria porque o pos-venda vale
+  // para cliente de funil JA FECHADO, que os filtros desta tela escondem.
+  const opcoesChamado = await atendimentosParaChamado();
 
   const listaCanais = await db
     .select({ id: canais.id, nome: canais.nome })
@@ -304,6 +311,16 @@ export default async function AtendimentosPage({
           {/* Avisos e Fases saíram daqui: agora moram na engrenagem de
               Configurações, junto com o resto do que se configura uma vez. */}
           <GerarLinkDialog links={linksCadastro} />
+          <ChamadoDialog
+            atendimentos={opcoesChamado}
+            responsaveis={
+              veTudo
+                ? vendedoresAtribuiveis.map((v) => ({ id: v.id, nome: v.nome }))
+                : []
+            }
+            irParaChamado
+            trigger={<Button variant="outline">Abrir chamado</Button>}
+          />
           <NovoAtendimentoDialog
             clientes={todosClientes}
             canais={listaCanais}

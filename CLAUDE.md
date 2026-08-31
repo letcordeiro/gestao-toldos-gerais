@@ -540,6 +540,17 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## "Abrir chamado" fica em três lugares (31/08/2026)
+
+Na tela do atendimento (cliente já definido), na lista de Chamados e na lista
+de Atendimentos. Nas duas listas o cliente é escolhido dentro do diálogo, pelo
+seletor com busca, e a consulta é a `atendimentosParaChamado()` — que NÃO
+filtra fase terminal, ao contrário da de visita: pós-venda é justamente para
+quem já teve o toldo instalado e saiu do funil.
+
+Quem vê o funil inteiro escolhe o responsável já na criação; vendedor abre
+para si.
+
 ## Link em tabela é verde (31/08/2026)
 
 Nome que leva para outra tela usa `text-primary hover:underline`. Só

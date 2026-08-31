@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
 import { db } from "@/db";
 import {
@@ -70,8 +70,20 @@ export default async function ChamadosPage({
         (l) => l.responsavelId == null || l.responsavelId === usuario.vendedorId
       );
 
-  // Para abrir a ordem daqui, sem ter que achar o atendimento antes.
+  // Para abrir o chamado daqui, sem ter que achar o atendimento antes.
   const opcoesAtendimento = await atendimentosParaChamado();
+  // Só quem vê o funil inteiro escolhe o responsável; vendedor abre para si.
+  const listaResponsaveis = veTudo
+    ? (
+        await db
+          .select({ id: vendedores.id, nome: vendedores.nome, papel: vendedores.papel })
+          .from(vendedores)
+          .where(eq(vendedores.ativo, true))
+          .orderBy(asc(vendedores.nome))
+      )
+        .filter((v) => v.papel !== "atendente")
+        .map((v) => ({ id: v.id, nome: v.nome }))
+    : [];
 
   return (
     <div className="space-y-4">
@@ -96,6 +108,7 @@ export default async function ChamadosPage({
           </Button>
           <ChamadoDialog
             atendimentos={opcoesAtendimento}
+            responsaveis={listaResponsaveis}
             irParaChamado
             trigger={<Button>Abrir chamado</Button>}
           />
