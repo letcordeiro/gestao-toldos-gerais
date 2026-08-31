@@ -712,6 +712,20 @@ export const chamados = sqliteTable("chamados", {
     .notNull()
     .default("aberto"),
   responsavelId: integer("responsavel_id").references(() => vendedores.id),
+
+  // --- Ordem de Manutenção: o que se preenche para ir ao local. ---
+  // Quem executa. Texto livre de propósito: o instalador muitas vezes é
+  // terceirizado e não tem cadastro nem login no sistema.
+  instalador: text("instalador"),
+  // O que se cobra quando a visita não entra na garantia. Centavos.
+  valor: integer("valor"),
+  // Serviço da ficha de papel: vedação é o caso mais comum e ganha marcação
+  // própria; o resto vai em `servicoOutros`, escrito por quem atende.
+  tipoServico: text("tipo_servico", { enum: ["vedacao", "outros"] }),
+  servicoOutros: text("servico_outros"),
+  // Dia combinado da ida ao local. Só a data: a hora se acerta no telefone.
+  visitaEm: integer("visita_em", { mode: "timestamp" }),
+
   fechadoEm: integer("fechado_em", { mode: "timestamp" }),
   criadoPor: text("criado_por"),
   criadoEm: integer("criado_em", { mode: "timestamp" })

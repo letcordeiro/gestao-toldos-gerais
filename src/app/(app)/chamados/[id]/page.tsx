@@ -20,8 +20,10 @@ import {
   SITUACAO_CHAMADO_LABEL,
   TIPO_CHAMADO_LABEL,
   avaliarGarantia,
+  descricaoServico,
   type SituacaoChamado,
 } from "@/lib/chamados";
+import { formatarCentavos } from "@/lib/format";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,12 +150,26 @@ export default async function ChamadoPage({
               naGarantia: chamado.naGarantia,
               responsavelId: chamado.responsavelId,
               orcamentoId: chamado.orcamentoId,
+              instalador: chamado.instalador,
+              valor: chamado.valor,
+              tipoServico: chamado.tipoServico,
+              servicoOutros: chamado.servicoOutros,
+              visitaEm: chamado.visitaEm,
             }}
             atendimentoId={chamado.atendimentoId}
             orcamentos={orcamentosDoCliente}
             responsaveis={listaResponsaveis}
             trigger={<Button variant="outline">Editar</Button>}
           />
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <a href={`/chamados/${chamado.id}/pdf`} target="_blank" rel="noopener" />
+            }
+          >
+            Imprimir ficha
+          </Button>
           <Button
             nativeButton={false}
             render={
@@ -198,6 +214,28 @@ export default async function ChamadoPage({
         )}
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ordem de manutenção</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+          <Dado rotulo="Serviço" valor={descricaoServico(chamado.tipoServico, chamado.servicoOutros)} />
+          <Dado rotulo="Instalador" valor={chamado.instalador} />
+          <Dado
+            rotulo="Ida ao local"
+            valor={
+              chamado.visitaEm
+                ? format(chamado.visitaEm, "dd/MM/yyyy", { locale: ptBR })
+                : null
+            }
+          />
+          <Dado
+            rotulo="Valor"
+            valor={chamado.valor != null ? formatarCentavos(chamado.valor) : null}
+          />
+        </CardContent>
+      </Card>
+
       {chamado.descricao && (
         <Card>
           <CardHeader>
@@ -240,6 +278,23 @@ export default async function ChamadoPage({
           <NovaInteracao chamadoId={chamado.id} />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * Um campo da ficha. Campo vazio aparece como travessão em vez de sumir: quem
+ * abre a tela antes de imprimir precisa ver o que ainda falta preencher.
+ */
+function Dado({ rotulo, valor }: { rotulo: string; valor: string | null }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {rotulo}
+      </p>
+      <p className={valor ? "font-medium" : "text-muted-foreground"}>
+        {valor || "—"}
+      </p>
     </div>
   );
 }

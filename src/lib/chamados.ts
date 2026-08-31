@@ -86,3 +86,69 @@ export const GARANTIA_COR: Record<StatusGarantia, string> = {
   fora: "#EF4444",
   indefinida: "#94A3B8",
 };
+
+// ---------------------------------------------------------------------------
+// ORDEM DE MANUTENÇÃO
+// A ficha que a equipe leva impressa para o cliente assinar no local.
+// ---------------------------------------------------------------------------
+
+export type TipoServico = "vedacao" | "outros";
+
+export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {
+  vedacao: "Vedação",
+  outros: "Outros",
+};
+
+/**
+ * O que sai escrito no campo "Serviço" da ficha.
+ *
+ * "Outros" sozinho não diz nada a quem recebe o papel, então quando há
+ * descrição ela é que manda; sem tipo escolhido, devolve string vazia para o
+ * PDF imprimir a linha em branco e alguém preencher à mão.
+ */
+export function descricaoServico(
+  tipo: TipoServico | null | undefined,
+  outros: string | null | undefined
+): string {
+  const texto = (outros ?? "").trim();
+  if (!tipo) return texto;
+  if (tipo === "vedacao") return TIPO_SERVICO_LABEL.vedacao;
+  return texto || TIPO_SERVICO_LABEL.outros;
+}
+
+/**
+ * Quebra o relato do cliente nas linhas de escrita da ficha impressa.
+ *
+ * Devolve SEMPRE `total` linhas: as que sobram saem em branco, porque a ficha
+ * é papel de trabalho — o instalador anota nelas o que encontrou no local.
+ * Palavra maior que a linha é cortada em vez de estourar a margem, e o que não
+ * couber em `total` linhas é descartado: o relato completo continua na tela.
+ */
+export function linhasDaFicha(
+  texto: string | null | undefined,
+  total = 4,
+  porLinha = 95
+): string[] {
+  const linhas: string[] = [];
+  let atual = "";
+  for (const palavra of (texto ?? "").replace(/\s+/g, " ").trim().split(" ")) {
+    if (!palavra) continue;
+    let p = palavra;
+    while (p.length > porLinha) {
+      if (atual) {
+        linhas.push(atual);
+        atual = "";
+      }
+      linhas.push(p.slice(0, porLinha));
+      p = p.slice(porLinha);
+    }
+    if (!atual) atual = p;
+    else if (atual.length + 1 + p.length <= porLinha) atual += ` ${p}`;
+    else {
+      linhas.push(atual);
+      atual = p;
+    }
+  }
+  if (atual) linhas.push(atual);
+  return Array.from({ length: total }, (_, i) => linhas[i] ?? "");
+}

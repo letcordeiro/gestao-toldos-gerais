@@ -478,6 +478,47 @@ instalação** (`orcamento_instalacao.dataEntrega`), com o prazo do contrato
 quando existe. Sem data de entrega o status é **"indefinida"**, nunca
 "expirada". Mudar a situação grava linha no histórico sozinha.
 
+## Ordem de Manutenção (31/08/2026)
+
+A ficha de papel que a equipe levava à mão virou impressão do chamado — é o
+**mesmo registro**, não um cadastro à parte: o que se preenchia no papel já
+estava quase todo no sistema, faltavam quatro campos (0034 em `chamados`):
+
+| Campo da ficha | Onde mora |
+|---|---|
+| Nome / Tel / End. | `clientes` (pelo atendimento) |
+| Data da instalação | `orcamento_instalacao.dataEntrega` do orçamento ligado |
+| com / sem garantia | `chamados.naGarantia` |
+| Vendedor | `atendimentos.vendedorId` |
+| Data da ligação | `chamados.criadoEm` |
+| **Instalador** | `chamados.instalador` — texto livre |
+| **Valor** | `chamados.valor` (centavos) |
+| **Vedação / Outros** | `chamados.tipoServico` + `servicoOutros` |
+| **Data da ida ao local** | `chamados.visitaEm` |
+
+**Instalador é texto livre de propósito.** Quem executa é quase sempre
+terceirizado, não tem cadastro nem login; exigir cadastro travaria o
+preenchimento. O preço é não dar para filtrar por instalador — se um dia isso
+fizer falta, aí sim vira cadastro.
+
+`GET /chamados/[id]/pdf` gera **A5 paisagem** com a logo da Toldos Gerais
+(`EMPRESA`, não `EMPRESA_CONTRATO` — só o contrato mudou de emitente). Rota
+**interna**: não existe versão pública, e vendedor só imprime a ficha dos
+próprios clientes.
+
+**Todo campo sai como linha sublinhada, mesmo preenchido.** A ficha continua
+sendo papel de trabalho: o que o sistema não sabe vai em branco para escrever
+no local, e as três linhas do relato existem para o instalador anotar o que
+encontrou. `linhasDaFicha()` devolve sempre o mesmo número de linhas por isso.
+
+Nada é copiado para o chamado na hora de abrir: a ficha impressa hoje lê o
+cadastro de hoje, então corrigir um telefone conserta a próxima impressão
+sozinho.
+
+Massa de teste: `node scripts/preview-ordem-manutencao.mjs` monta
+`data/preview-ordem.db` do zero (roda todas as migrations) com três chamados —
+ficha cheia, ficha vazia e serviço "outros".
+
 ### Cotação de fornecedor
 
 Tabelas `fornecedores`, `cotacoes`, `cotacao_itens`, `cotacao_fornecedores`,

@@ -19,6 +19,8 @@ import {
 } from "@/lib/chamados";
 import { PRIORIDADE_COR } from "@/lib/tarefas";
 import { Button } from "@/components/ui/button";
+import { ChamadoDialog } from "./chamado-dialog";
+import { atendimentosParaChamado } from "./actions";
 
 export const metadata = { title: "Chamados" };
 
@@ -42,6 +44,7 @@ export default async function ChamadosPage({
       naGarantia: chamados.naGarantia,
       criadoEm: chamados.criadoEm,
       atendimentoId: chamados.atendimentoId,
+      responsavelId: chamados.responsavelId,
       clienteNome: clientes.nome,
       numero: orcamentos.numero,
       responsavelNome: vendedores.nome,
@@ -58,10 +61,17 @@ export default async function ChamadosPage({
     )
     .orderBy(desc(chamados.criadoEm));
 
-  // Vendedor só vê o que é dele.
+  // Vendedor só vê o que é dele. Compara por id, não por nome: dois "João" no
+  // cadastro fariam um ver os chamados do outro. Chamado ainda sem responsável
+  // continua visível — senão ele fica órfão e ninguém atende.
   const lista = veTudo
     ? linhas
-    : linhas.filter((l) => l.responsavelNome === usuario.nome);
+    : linhas.filter(
+        (l) => l.responsavelId == null || l.responsavelId === usuario.vendedorId
+      );
+
+  // Para abrir a ordem daqui, sem ter que achar o atendimento antes.
+  const opcoesAtendimento = await atendimentosParaChamado();
 
   return (
     <div className="space-y-4">
@@ -74,22 +84,29 @@ export default async function ChamadosPage({
             continua num lugar só.
           </p>
         </div>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={
-            <Link href={mostrarFechados ? "/chamados" : "/chamados?ver=fechados"} />
-          }
-        >
-          {mostrarFechados ? "Ver abertos" : "Ver encerrados"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link href={mostrarFechados ? "/chamados" : "/chamados?ver=fechados"} />
+            }
+          >
+            {mostrarFechados ? "Ver abertos" : "Ver encerrados"}
+          </Button>
+          <ChamadoDialog
+            atendimentos={opcoesAtendimento}
+            irParaChamado
+            trigger={<Button>Nova ordem</Button>}
+          />
+        </div>
       </div>
 
       {lista.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           {mostrarFechados
             ? "Nenhum chamado encerrado."
-            : "Nenhum chamado aberto. Para abrir um, entre no atendimento do cliente."}
+            : "Nenhum chamado aberto."}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
