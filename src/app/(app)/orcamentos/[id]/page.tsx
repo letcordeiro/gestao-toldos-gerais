@@ -155,27 +155,53 @@ export default async function OrcamentoPage({
 
   // O que fazer agora, escrito em uma frase. A tela inteira gira em torno
   // disso — o resto das ações vai para o menu.
-  const proximoPasso: { texto: string; acao: "enviar" | "fechar" | "produzir" | "nenhuma" } =
-    orc.status === "rascunho"
-      ? {
-          texto: "Rascunho: revise os valores e mande a proposta ao cliente.",
-          acao: "enviar",
-        }
-      : orc.status === "enviado"
-        ? {
-            texto: fichaLiberada
-              ? "Negócio fechado no funil — confirme o desfecho deste orçamento."
-              : "Proposta com o cliente. Cobre o retorno ou registre a resposta no funil.",
-            acao: "fechar",
-          }
-        : orc.status === "aprovado"
-          ? {
-              texto: fichaLiberada
-                ? "Aprovado: preencha a ficha de instalação e, se o cliente pedir, gere o contrato."
-                : "Aprovado. Mova o atendimento para uma fase de negócio fechado para liberar ficha e contrato.",
-              acao: fichaLiberada ? "produzir" : "nenhuma",
-            }
-          : { texto: "Orçamento recusado. Nada pendente por aqui.", acao: "nenhuma" };
+  // Um caso POR STATUS, e não uma escada que termina em "recusado". A escada
+  // anterior tratava rascunho/enviado/aprovado e jogava os outros QUATRO no
+  // "Orçamento recusado. Nada pendente por aqui." — inclusive `falha_envio`,
+  // que é exatamente quando alguém precisa agir, e `agendado`, que é o estado
+  // normal de quem acabou de clicar em "Finalizar e enviar automaticamente".
+  const passoPorStatus: Record<
+    typeof orc.status,
+    { texto: string; acao: "enviar" | "fechar" | "produzir" | "nenhuma" }
+  > = {
+    rascunho: {
+      texto: "Rascunho: revise os valores e mande a proposta ao cliente.",
+      acao: "enviar",
+    },
+    agendado: {
+      texto:
+        "Na fila do envio automático. A proposta sai na próxima janela: " +
+        "de segunda a sexta das 8h às 19h, e sábado das 8h às 12h.",
+      acao: "nenhuma",
+    },
+    enviando: {
+      texto: "Mandando a proposta ao cliente agora.",
+      acao: "nenhuma",
+    },
+    falha_envio: {
+      texto: orc.envioErro
+        ? `O envio automático falhou: ${orc.envioErro}. Mande na mão ou tente de novo.`
+        : "O envio automático falhou. Mande na mão ou tente de novo.",
+      acao: "enviar",
+    },
+    enviado: {
+      texto: fichaLiberada
+        ? "Negócio fechado no funil — confirme o desfecho deste orçamento."
+        : "Proposta com o cliente. Cobre o retorno ou registre a resposta no funil.",
+      acao: "fechar",
+    },
+    aprovado: {
+      texto: fichaLiberada
+        ? "Aprovado: preencha a ficha de instalação e, se o cliente pedir, gere o contrato."
+        : "Aprovado. Mova o atendimento para uma fase de negócio fechado para liberar ficha e contrato.",
+      acao: fichaLiberada ? "produzir" : "nenhuma",
+    },
+    recusado: {
+      texto: "Orçamento recusado. Nada pendente por aqui.",
+      acao: "nenhuma",
+    },
+  };
+  const proximoPasso = passoPorStatus[orc.status];
 
   const secoes: Array<{ titulo: string; texto: string | null }> = [
     { titulo: "MODELO", texto: modeloTexto },
