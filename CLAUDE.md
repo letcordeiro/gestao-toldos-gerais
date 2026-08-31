@@ -540,6 +540,45 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## Agenda do Google por vendedor (31/08/2026)
+
+Cada vendedor conecta a PRÓPRIA agenda em `/perfil`. O sistema usa isso só para
+saber o que já está ocupado, e mostra os horários livres na hora de marcar
+visita.
+
+**Só leitura, e só free/busy.** O escopo é `calendar.readonly` e a consulta é a
+`freeBusy` da API: o Google devolve apenas as FAIXAS ocupadas, sem título e sem
+convidado. O sistema nunca escreve na agenda de ninguém.
+
+**Privacidade (regra da Letícia, 31/08/2026):** só o dono da agenda vê os
+próprios compromissos. Para os outros — a atendente marcando visita para o
+vendedor — saem apenas as visitas de cliente marcadas neste sistema, que já são
+informação de trabalho. O compromisso particular encolhe o horário livre e
+pronto; a tela só diz que "há compromissos particulares no dia". Devolver
+"ocupado 19h–22h, terça e quinta" contaria a vida de fora do trabalho de quem
+só emprestou a agenda.
+
+O cálculo junta DUAS fontes: Google + visitas já marcadas aqui. Só a do Google
+deixaria marcar duas visitas no mesmo horário; só a daqui ignoraria o dentista.
+
+Peças: `lib/disponibilidade.ts` (o que sobra livre — puro, testado),
+`lib/google-freebusy.ts` (lê a resposta do Google — puro, testado),
+`lib/google-agenda.ts` (OAuth, token, consulta), `lib/cripto.ts` (AES-256-GCM),
+rotas `/api/google/conectar` e `/api/google/callback`, tabela `agendas_google`
+(0035).
+
+**Envs (Dokploy, nunca no repositório):** `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `AGENDA_ENCRYPTION_KEY` (`openssl rand -hex 32`) e
+`APP_URL`. Sem os quatro, a integração some da tela e o cálculo de horário
+livre segue funcionando só com as visitas do sistema — nada quebra.
+
+Perder a `AGENDA_ENCRYPTION_KEY` **não** é catástrofe (ao contrário da do cofre
+do Gestão): ninguém perde dado, cada vendedor só reconecta a agenda.
+
+O `state` do OAuth é assinado (`lib/google-estado.ts`) e conferido contra o
+vendedor logado — sem isso dava para induzir alguém a ligar a agenda de um
+estranho à própria conta.
+
 ## "Abrir chamado" fica em três lugares (31/08/2026)
 
 Na tela do atendimento (cliente já definido), na lista de Chamados e na lista

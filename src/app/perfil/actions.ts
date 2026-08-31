@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
+import { desconectar } from "@/lib/google-agenda";
 import { vendedores } from "@/db/schema";
 import {
   exigirUsuario,
@@ -102,4 +103,13 @@ export async function alterarSenha(
   await redefinirSenhaUsuario(usuario.email, dados.novaSenha);
   revalidatePath("/perfil");
   return { ok: true };
+}
+
+/** Esquece a agenda do Google deste vendedor (apaga o token guardado). */
+export async function desconectarAgenda(): Promise<void> {
+  const usuario = await exigirUsuario();
+  if (usuario.vendedorId == null) return;
+  await desconectar(usuario.vendedorId);
+  revalidatePath("/perfil");
+  revalidatePath("/visitas");
 }

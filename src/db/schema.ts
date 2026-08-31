@@ -936,6 +936,39 @@ export const visitas = sqliteTable("visitas", {
 });
 
 // ---------------------------------------------------------------------------
+// AGENDA DO GOOGLE
+// Conexão de cada vendedor com a agenda dele. Guardamos só o necessário para
+// PERGUNTAR os horários ocupados — o sistema nunca escreve na agenda de
+// ninguém, e o escopo pedido ao Google é de leitura.
+// ---------------------------------------------------------------------------
+
+export const agendasGoogle = sqliteTable("agendas_google", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // Uma linha por vendedor: conectar de novo substitui a anterior.
+  vendedorId: integer("vendedor_id")
+    .notNull()
+    .unique()
+    .references(() => vendedores.id, { onDelete: "cascade" }),
+  // Qual conta Google foi ligada. Aparece na tela: quem tem duas contas
+  // precisa ver qual delas o sistema está lendo.
+  googleEmail: text("google_email").notNull(),
+  // Cifrados (AES-256-GCM). O refresh token é a chave da agenda da pessoa:
+  // em texto puro, um vazamento do banco entrega a agenda de todo mundo.
+  refreshToken: text("refresh_token").notNull(),
+  accessToken: text("access_token"),
+  accessTokenExpiraEm: integer("access_token_expira_em", {
+    mode: "timestamp",
+  }),
+  // Última falha ao falar com o Google (token revogado, acesso retirado).
+  // Fica guardada para a tela poder dizer "reconecte" em vez de mostrar a
+  // agenda vazia como se a pessoa não tivesse compromisso nenhum.
+  ultimoErro: text("ultimo_erro"),
+  conectadoEm: integer("conectado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// ---------------------------------------------------------------------------
 // LOG DE DINHEIRO
 // Só o que move dinheiro: baixa de parcela recebida e de comissão paga.
 // Registrar tudo viraria ruído com uma equipe de três pessoas; o que precisa

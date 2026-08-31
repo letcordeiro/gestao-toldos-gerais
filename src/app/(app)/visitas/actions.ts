@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, type SQL } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -13,6 +13,15 @@ import {
 } from "@/db/schema";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
+import {
+  horariosLivres,
+  janelaDoDia,
+  juntarIntervalos,
+  textoDoIntervalo,
+  type Intervalo,
+} from "@/lib/disponibilidade";
+import { ocupadosDoVendedor } from "@/lib/google-agenda";
+import { SITUACOES_EM_PE } from "@/lib/visitas";
 
 const visitaSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -181,4 +190,119 @@ export async function atendimentosParaVisita() {
     .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .where(and(...filtros))
     .orderBy(asc(clientes.nome));
+}
+
+export type DisponibilidadeDoDia = {
+  estado: "ok" | "sem_conexao" | "erro";
+  /** Faixas livres, já formatadas ("09:00 às 11:30"). */
+  livres: string[];
+  /**
+   * Faixas ocupadas que quem está olhando TEM DIREITO de ver.
+   *
+   * Para o dono da agenda, tudo. Para os outros — a atendente marcando visita
+   * para o vendedor —, só as visitas de cliente marcadas neste sistema, que já
+   * são informação de trabalho e aparecem na tela de Visitas de qualquer jeito.
+   * Compromisso particular do Google NUNCA sai daqui: ele encolhe o horário
+   * livre e pronto. Devolver "ocupado das 19h às 22h, terça e quinta" é contar
+   * a vida de fora do trabalho de quem só emprestou a agenda.
+   */
+  ocupados: string[];
+  /** Verdadeiro quando há particular escondido — a tela explica o buraco. */
+  temParticularOculto: boolean;
+  mensagem?: string;
+};
+
+/**
+ * O que sobra livre na agenda de um vendedor num dia.
+ *
+ * Junta DUAS fontes: os compromissos do Google e as visitas já marcadas neste
+ * sistema. Só a do Google deixaria a atendente marcar duas visitas no mesmo
+ * horário; só a daqui ignoraria o dentista da tarde.
+ *
+ * A visita que está sendo EDITADA não conta como ocupada — senão ela bloqueia
+ * o próprio horário e a tela diz que não cabe.
+ */
+export async function disponibilidadeDoDia(
+  vendedorId: number | null,
+  diaISO: string,
+  duracaoMin: number,
+  ignorarVisitaId?: number
+): Promise<DisponibilidadeDoDia> {
+  const usuario = await exigirUsuario();
+  const alvo = vendedorId ?? usuario.vendedorId;
+  if (alvo == null)
+    return { estado: "sem_conexao", livres: [], ocupados: [], temParticularOculto: false };
+
+  const [ano, mes, dia] = diaISO.split("-").map(Number);
+  if (!ano || !mes || !dia) {
+    return { estado: "sem_conexao", livres: [], ocupados: [], temParticularOculto: false };
+  }
+  const data = new Date(ano, mes - 1, dia);
+  const janela = janelaDoDia(data);
+  const inicioDoDia = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+  const fimDoDia = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+
+  // Visitas já marcadas aqui dentro, do mesmo vendedor, no mesmo dia.
+  const marcadas = await db
+    .select({
+      id: visitas.id,
+      inicioEm: visitas.inicioEm,
+      duracaoMin: visitas.duracaoMin,
+    })
+    .from(visitas)
+    .where(
+      and(
+        eq(visitas.vendedorId, alvo),
+        inArray(visitas.situacao, SITUACOES_EM_PE),
+        gte(visitas.inicioEm, inicioDoDia),
+        lte(visitas.inicioEm, fimDoDia)
+      )
+    );
+
+  const ocupados: Intervalo[] = marcadas
+    .filter((v) => v.id !== ignorarVisitaId)
+    .map((v) => ({
+      inicio: v.inicioEm,
+      fim: new Date(v.inicioEm.getTime() + v.duracaoMin * 60000),
+    }));
+
+  const doSistema = [...ocupados];
+  const doGoogle = await ocupadosDoVendedor(alvo, inicioDoDia, fimDoDia);
+  if (doGoogle.estado === "ok") ocupados.push(...doGoogle.ocupados);
+
+  const livres = horariosLivres(data, ocupados, duracaoMin, undefined, new Date());
+  const formatar = (l: Intervalo[]) => l.map(textoDoIntervalo);
+
+  // Ocupado dentro do expediente é o que interessa mostrar: a reunião das 22h
+  // não explica nada sobre o dia de trabalho.
+  const noExpediente = (l: Intervalo[]) =>
+    juntarIntervalos(l).filter(
+      (o) =>
+        o.fim.getTime() > janela.inicio.getTime() &&
+        o.inicio.getTime() < janela.fim.getTime()
+    );
+
+  // A regra de privacidade: só o dono da agenda vê os próprios compromissos.
+  const ehDono = usuario.vendedorId === alvo;
+  const visiveis = noExpediente(ehDono ? ocupados : doSistema);
+  const particularOculto =
+    !ehDono &&
+    doGoogle.estado === "ok" &&
+    noExpediente(doGoogle.ocupados).length > 0;
+
+  if (doGoogle.estado === "erro") {
+    return {
+      estado: "erro",
+      livres: formatar(livres),
+      ocupados: formatar(visiveis),
+      temParticularOculto: false,
+      mensagem: doGoogle.mensagem,
+    };
+  }
+  return {
+    estado: doGoogle.estado === "ok" ? "ok" : "sem_conexao",
+    livres: formatar(livres),
+    ocupados: formatar(visiveis),
+    temParticularOculto: particularOculto,
+  };
 }

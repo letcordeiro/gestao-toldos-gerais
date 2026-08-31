@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { conexaoDoVendedor, googleConfigurado } from "@/lib/google-agenda";
+import { AgendaGoogle } from "./agenda-google";
 import { PerfilForm } from "./perfil-form";
 import { SegurancaForm } from "./seguranca-form";
 
@@ -36,6 +38,8 @@ export default async function PerfilPage() {
   if (!vendedor) redirect("/painel");
 
   const primeiraVez = !usuario.perfilCompleto;
+
+  const conexaoAgenda = await conexaoDoVendedor(usuario.vendedorId);
 
   return (
     <main className="flex min-h-screen items-start justify-center bg-background p-4 pt-10">
@@ -80,6 +84,31 @@ export default async function PerfilPage() {
             />
           </CardContent>
         </Card>
+
+        {/* Some no primeiro acesso: quem ainda não completou o cadastro tem uma
+            coisa só para fazer aqui, e agenda não é ela. */}
+        {!primeiraVez && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Google Agenda</CardTitle>
+              <CardDescription>
+                Seus compromissos entram no cálculo de horário livre das visitas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgendaGoogle
+                disponivel={googleConfigurado()}
+                conexao={
+                  conexaoAgenda && {
+                    googleEmail: conexaoAgenda.googleEmail,
+                    conectadoEm: conexaoAgenda.conectadoEm.toLocaleDateString("pt-BR"),
+                    ultimoErro: conexaoAgenda.ultimoErro,
+                  }
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
