@@ -14,10 +14,17 @@ const clienteSchema = z.object({
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
   // CPF/CNPJ — opcional no cadastro, obrigatório só na emissão de contrato.
   documento: z.string().trim().max(30).optional(),
+  // Opcional (01/09/2026): a equipe cadastra pelo telefone e nem sempre o
+  // cliente sabe o CEP na hora — o endereço se completa depois. Continua
+  // recusando CEP pela metade: meio CEP guardado engana mais do que campo
+  // vazio, porque parece preenchido.
   cep: z
     .string()
     .trim()
-    .refine((v) => v.replace(/\D/g, "").length === 8, "Informe um CEP válido"),
+    .refine(
+      (v) => v === "" || v.replace(/\D/g, "").length === 8,
+      "CEP incompleto: deixe em branco ou informe os 8 dígitos"
+    ),
   endereco: z.string().trim().min(1, "Informe o endereço"),
   numero: z.string().trim().min(1, "Informe o número"),
   complemento: z.string().trim().optional(),

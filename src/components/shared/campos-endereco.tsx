@@ -20,13 +20,19 @@ function mascaraCep(valor: string): string {
 
 // Campos de endereço com CEP em primeiro: ao completar o CEP, busca o
 // endereço no ViaCEP e preenche rua/bairro/cidade (resta número e complemento).
-// obrigatorio: exige CEP, endereço e número.
+// obrigatorio: exige endereço e número.
+// cepObrigatorio: separado porque no cadastro INTERNO o CEP é opcional — a
+// equipe cadastra pelo telefone e nem sempre o cliente sabe o CEP na hora. No
+// cadastro público, que o próprio cliente preenche em casa, ele continua
+// exigido (é o que traz o endereço sozinho pelo ViaCEP).
 export function CamposEndereco({
   inicial,
   obrigatorio = false,
+  cepObrigatorio = obrigatorio,
 }: {
   inicial?: EnderecoInicial;
   obrigatorio?: boolean;
+  cepObrigatorio?: boolean;
 }) {
   const [cep, setCep] = useState(inicial?.cep ?? "");
   const [endereco, setEndereco] = useState(inicial?.endereco ?? "");
@@ -63,12 +69,12 @@ export function CamposEndereco({
   return (
     <>
       <div className="space-y-1.5">
-        <Label htmlFor="cep">CEP{obrigatorio ? " *" : ""}</Label>
+        <Label htmlFor="cep">CEP{cepObrigatorio ? " *" : ""}</Label>
         <Input
           id="cep"
           name="cep"
           value={cep}
-          required={obrigatorio}
+          required={cepObrigatorio}
           inputMode="numeric"
           placeholder="30000-000"
           onChange={(e) => {

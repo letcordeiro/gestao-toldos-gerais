@@ -89,6 +89,7 @@ export function ClienteDialog({
           </div>
           <CamposEndereco
             obrigatorio
+            cepObrigatorio={false}
             inicial={{
               cep: cliente?.cep,
               endereco: cliente?.endereco,
