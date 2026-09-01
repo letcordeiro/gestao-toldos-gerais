@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SeletorCliente } from "@/components/shared/seletor-cliente";
+import { MAX_ENVIO_BYTES, MAX_FOTO_BYTES } from "@/lib/limites-foto";
 import { Textarea } from "@/components/ui/textarea";
 import { mascaraMoeda } from "@/lib/format";
 import {
@@ -110,6 +111,7 @@ export function OrcamentoForm({
 }) {
   const edicao = Boolean(orcamento);
   const [fotosCount, setFotosCount] = useState(0);
+  const [fotosErro, setFotosErro] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState<
     OrcamentoFormState,
     FormData
@@ -591,7 +593,22 @@ export function OrcamentoForm({
                   accept="image/jpeg,image/png,image/webp"
                   multiple
                   className="sr-only"
-                  onChange={(e) => setFotosCount(e.target.files?.length ?? 0)}
+                  onChange={(e) => {
+                    const fotos = [...(e.target.files ?? [])];
+                    setFotosCount(fotos.length);
+                    // Barra AQUI, com o motivo escrito. Passar do teto do
+                    // servidor devolve "Application error" e mais nada — foi
+                    // o que derrubou os orçamentos com foto de celular.
+                    const total = fotos.reduce((s, f) => s + f.size, 0);
+                    const grande = fotos.find((f) => f.size > MAX_FOTO_BYTES);
+                    setFotosErro(
+                      grande
+                        ? `"${grande.name}" tem ${mb(grande.size)} MB. O limite por imagem é ${mb(MAX_FOTO_BYTES)} MB.`
+                        : total > MAX_ENVIO_BYTES
+                          ? `As imagens somam ${mb(total)} MB e o limite do envio é ${mb(MAX_ENVIO_BYTES)} MB. Tire algumas e mande o resto depois, pelo próprio orçamento.`
+                          : null
+                    );
+                  }}
                 />
               </label>
               {fotosCount > 0 && (
@@ -602,6 +619,9 @@ export function OrcamentoForm({
                 </span>
               )}
             </div>
+            {fotosErro && (
+              <p className="mt-2 text-sm text-destructive">{fotosErro}</p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -629,4 +649,9 @@ export function OrcamentoForm({
       </p>
     </form>
   );
+}
+
+/** Bytes → MB com uma casa, para caber numa frase. */
+function mb(bytes: number): string {
+  return (bytes / 1024 / 1024).toFixed(1).replace(".", ",");
 }

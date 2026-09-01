@@ -540,6 +540,32 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## Foto no orçamento: dois limites que precisam combinar (01/09/2026)
+
+O Next recusa Server Action com corpo acima de **1 MB por padrão**, e isso
+nunca tinha sido configurado. O formulário aceitava foto de até 8 MB, então
+**qualquer foto de celular derrubava o envio inteiro** com "Application error:
+a server-side exception has occurred" — sem dizer o motivo, e sem aparecer
+para quem testava sem anexar foto. Custou um dia de trabalho do João em
+31/08/2026, com três hipóteses erradas pelo caminho (papel de usuário, cache do
+navegador, id de atendimento).
+
+Agora são três números que têm que continuar combinando:
+
+| Onde | Quanto | Papel |
+|---|---|---|
+| `next.config.ts` → `serverActions.bodySizeLimit` | 40 MB | último recurso |
+| `lib/limites-foto.ts` → `MAX_ENVIO_BYTES` | 32 MB | soma das fotos, barra no navegador |
+| `lib/limites-foto.ts` → `MAX_FOTO_BYTES` | 8 MB | cada imagem |
+
+`limites-foto.ts` NÃO tem `server-only` de propósito: os dois lados leem o
+mesmo número. Quando o navegador barrava com um limite e o servidor com outro,
+o envio morria sem explicação.
+
+**Ao mexer em qualquer um: o do next.config tem que ser o MAIOR**, com folga
+para o resto do formulário, que viaja no mesmo envio. Se ele ficar abaixo dos
+outros, o defeito volta exatamente igual — e ele não aparece em teste sem foto.
+
 ## Agenda do Google por vendedor (31/08/2026)
 
 Cada vendedor conecta a PRÓPRIA agenda em `/perfil`. O sistema usa isso só para

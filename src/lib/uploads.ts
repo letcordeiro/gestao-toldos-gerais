@@ -3,6 +3,9 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
+import { MAX_FOTO_BYTES } from "./limites-foto";
+
+export { MAX_ENVIO_BYTES, MAX_FOTO_BYTES } from "./limites-foto";
 
 // Diretório de uploads. Por padrão fica ao lado do banco (mesmo volume /data
 // em produção), sem precisar de env extra. Pode ser sobrescrito por UPLOADS_DIR.
@@ -27,7 +30,6 @@ const EXTENSOES: Record<string, string> = {
   "image/webp": "webp",
 };
 
-export const MAX_FOTO_BYTES = 8 * 1024 * 1024; // 8 MB
 
 export type SalvarFotoResultado =
   | { ok: true; arquivo: string }
