@@ -37,6 +37,7 @@ import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
 import { urlBase } from "@/lib/url";
+import { permiteEnvioAutomatico } from "@/lib/orcamento-envio";
 import { mudarStatusOrcamento } from "../actions";
 import { gerarContratoDoOrcamento } from "../../contratos/actions";
 import { StatusSelect } from "./status-select";
@@ -202,6 +203,7 @@ export default async function OrcamentoPage({
     },
   };
   const proximoPasso = passoPorStatus[orc.status];
+  const envioAutomaticoDisponivel = permiteEnvioAutomatico(orc.vendedorId);
 
   const secoes: Array<{ titulo: string; texto: string | null }> = [
     { titulo: "MODELO", texto: modeloTexto },
@@ -269,7 +271,7 @@ export default async function OrcamentoPage({
         <div className="flex flex-wrap items-center gap-2">
           {proximoPasso.acao === "enviar" && (
             <>
-              {podeEditar && (
+              {podeEditar && envioAutomaticoDisponivel && (
                 <form action={mudarStatusOrcamento.bind(null, orc.id, "agendado")}>
                   <Button type="submit">
                     Finalizar e enviar automaticamente
@@ -279,7 +281,7 @@ export default async function OrcamentoPage({
               {/* Saída manual: serve quando o envio automático falha e alguém
                   precisa mandar na mão. */}
               <Button
-                variant="outline"
+                variant={envioAutomaticoDisponivel ? "outline" : "default"}
                 nativeButton={false}
                 render={
                   <a
@@ -294,7 +296,10 @@ export default async function OrcamentoPage({
                   />
                 }
               >
-                <MessageCircle className="size-4" /> Mandar na mão
+                <MessageCircle className="size-4" />
+                {envioAutomaticoDisponivel
+                  ? "Mandar na mão"
+                  : "Enviar pelo WhatsApp"}
               </Button>
             </>
           )}
