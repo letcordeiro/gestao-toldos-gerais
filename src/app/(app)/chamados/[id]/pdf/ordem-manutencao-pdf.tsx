@@ -22,17 +22,24 @@ const TRACO = "#333";
  * uma linha sublinhada mesmo quando tem valor — a ficha continua servindo como
  * papel de trabalho, e não como um comprovante fechado.
  *
- * CABE EM UMA PÁGINA e tem que continuar cabendo: o A5 deitado dá ~388pt de
- * altura útil e o desenho gasta ~345. Mexer no espaçamento, no tamanho da logo
- * ou no número de linhas de escrita come essa folga — e quando estoura, quem
- * cai para a página 2 é justamente a assinatura do cliente, sem aviso nenhum.
- * Depois de mexer, conte as páginas do PDF gerado.
+ * A FOLHA É A4, O DESENHO É A5 DEITADA (01/09/2026). Elas não brigam: a
+ * largura de uma A4 em pé (595pt) é exatamente a de uma A5 deitada, e metade
+ * da altura da A4 (420pt) é exatamente a altura de uma A5 deitada. Então a
+ * ficha ocupa a METADE DE CIMA da folha e sai um tracejado no meio para
+ * cortar — a impressora da loja é A4, e imprimir em A5 obrigaria a trocar a
+ * bandeja ou deixar o papel encolhido no meio da página.
+ *
+ * A metade de cima é um teto de verdade: o desenho gasta ~345pt dos 420
+ * disponíveis. Mexer no espaçamento, no tamanho da logo ou no número de linhas
+ * de escrita come essa folga — e quando estoura, o que passa da linha de corte
+ * é justamente a assinatura do cliente, sem aviso nenhum. Depois de mexer,
+ * gere o PDF e confira que nada cruzou o tracejado.
  */
 
 const styles = StyleSheet.create({
   page: {
     paddingTop: 18,
-    paddingBottom: 14,
+    paddingBottom: 0,
     paddingHorizontal: 30,
     fontSize: 9,
     fontFamily: "Helvetica",
@@ -52,7 +59,7 @@ const styles = StyleSheet.create({
   },
   numero: { fontSize: 8, color: "#666", textAlign: "right" },
 
-  linha: { flexDirection: "row", alignItems: "flex-end", marginBottom: 12 },
+  linha: { flexDirection: "row", alignItems: "flex-end", marginBottom: 15 },
   rotulo: { fontFamily: "Helvetica-Bold", marginRight: 3 },
   campo: {
     flexGrow: 1,
@@ -84,10 +91,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.8,
     borderBottomColor: TRACO,
     paddingBottom: 1.5,
-    marginBottom: 11,
-    minHeight: 13,
+    marginBottom: 14,
+    minHeight: 14,
   },
-  rodape: { marginTop: 8 },
+  rodape: { marginTop: 14 },
+  // Metade de cima da A4. A altura fixa é o que garante que a linha de corte
+  // caia no meio da folha, com ficha ou sem ficha preenchida.
+  metade: {
+    height: 402, // 420 (meia A4) menos o paddingTop da página
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#bbb",
+    borderBottomStyle: "dashed",
+  },
+  corte: {
+    marginTop: 3,
+    fontSize: 6,
+    color: "#999",
+    textAlign: "center",
+  },
 });
 
 export type DadosOrdemManutencao = {
@@ -165,8 +186,9 @@ export function OrdemManutencaoPDF({ dados }: { dados: DadosOrdemManutencao }) {
       title={`Ordem de Manutenção — ${dados.clienteNome}`}
       author={EMPRESA.razaoSocial}
     >
-      {/* A5 deitada: é a meia folha que a equipe já leva na prancheta. */}
-      <Page size="A5" orientation="landscape" style={styles.page}>
+      {/* Folha A4, ficha na metade de cima: imprime e corta no tracejado. */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.metade}>
         <View style={styles.cabecalho}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={dados.logoDataUri} style={styles.logo} />
@@ -245,6 +267,8 @@ export function OrdemManutencaoPDF({ dados }: { dados: DadosOrdemManutencao }) {
         <View style={[styles.linha, styles.rodape]}>
           <Campo rotulo="Assinatura do Cliente:" valor="" ultimo />
         </View>
+        </View>
+        <Text style={styles.corte}>corte aqui</Text>
       </Page>
     </Document>
   );

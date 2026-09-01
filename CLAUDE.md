@@ -501,10 +501,17 @@ terceirizado, não tem cadastro nem login; exigir cadastro travaria o
 preenchimento. O preço é não dar para filtrar por instalador — se um dia isso
 fizer falta, aí sim vira cadastro.
 
-`GET /chamados/[id]/pdf` gera **A5 paisagem** com a logo da Toldos Gerais
-(`EMPRESA`, não `EMPRESA_CONTRATO` — só o contrato mudou de emitente). Rota
-**interna**: não existe versão pública, e vendedor só imprime a ficha dos
-próprios clientes.
+`GET /chamados/[id]/pdf` gera **folha A4 com a ficha na metade de cima** e um
+tracejado "corte aqui" no meio (01/09/2026). O desenho é de A5 deitada; a
+folha é A4 porque **a impressora da loja é A4** — sair em A5 obrigaria a trocar
+bandeja ou deixaria o papel encolhido no meio da página.
+
+As duas medidas casam exatamente: a largura de uma A4 em pé (595pt) é a de uma
+A5 deitada, e metade da altura da A4 (420pt) é a altura de uma A5 deitada.
+
+Logo da Toldos Gerais (`EMPRESA`, não `EMPRESA_CONTRATO` — só o contrato mudou
+de emitente). Rota **interna**: não existe versão pública, e vendedor só
+imprime a ficha dos próprios clientes.
 
 **Todo campo sai como linha sublinhada, mesmo preenchido.** A ficha continua
 sendo papel de trabalho: o que o sistema não sabe vai em branco para escrever
