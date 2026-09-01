@@ -28,6 +28,7 @@ import {
   criarOrcamento,
   type OrcamentoFormState,
 } from "@/app/(app)/orcamentos/actions";
+import { permiteEnvioAutomatico } from "@/lib/orcamento-envio";
 
 type AtendimentoOpcao = {
   id: number;
@@ -151,6 +152,9 @@ export function OrcamentoForm({
   );
 
   const modeloSelecionado = modelos.find((m) => String(m.id) === modeloId);
+  const envioAutomaticoDisponivel = permiteEnvioAutomatico(
+    vendedorId ? Number(vendedorId) : null
+  );
   const estruturaFixaAluminio = modeloSelecionado?.estruturaSempreAluminio;
   const usaFormato = modeloSelecionado?.usaFormato ?? false;
   const tipoEstruturaEfetivo: TipoEstrutura = estruturaFixaAluminio
@@ -638,15 +642,24 @@ export function OrcamentoForm({
         >
           Salvar rascunho
         </Button>
-        <Button type="submit" name="status" value="agendado" disabled={pending}>
-          {pending ? "Finalizando…" : "Finalizar e enviar automaticamente"}
-        </Button>
+        {envioAutomaticoDisponivel && (
+          <Button type="submit" name="status" value="agendado" disabled={pending}>
+            {pending ? "Finalizando…" : "Finalizar e enviar automaticamente"}
+          </Button>
+        )}
       </div>
-      <p className="text-xs text-muted-foreground">
-        O link será enviado automaticamente de segunda a sexta, entre 8h e
-        19h, e aos sábados, entre 8h e 12h. Fora desses períodos, ficará
-        programado para a próxima janela disponível.
-      </p>
+      {envioAutomaticoDisponivel ? (
+        <p className="text-xs text-muted-foreground">
+          O link será enviado automaticamente de segunda a sexta, entre 8h e
+          19h, e aos sábados, entre 8h e 12h. Fora desses períodos, ficará
+          programado para a próxima janela disponível.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          O envio automático está temporariamente disponível somente para os
+          orçamentos do João Avelar.
+        </p>
+      )}
     </form>
   );
 }

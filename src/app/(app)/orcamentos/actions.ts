@@ -18,6 +18,7 @@ import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
 import { configNumeracao } from "@/lib/numeracao-consulta";
 import { proximoNumero as proximoNumeroFormatado } from "@/lib/numeracao";
+import { permiteEnvioAutomatico } from "@/lib/orcamento-envio";
 import { dispararGatilhos } from "@/lib/gatilhos-executor";
 import { removerFotoArquivo, salvarFoto } from "@/lib/uploads";
 
@@ -182,6 +183,12 @@ export async function criarOrcamento(
   // Admin do env sem vendedor cai no que veio do formulário.
   const vendedorId = usuario.vendedorId ?? dados.vendedorId ?? null;
 
+  if (dados.status === "agendado" && !permiteEnvioAutomatico(vendedorId)) {
+    return {
+      erro: "O envio automático está disponível temporariamente somente para os orçamentos do João Avelar.",
+    };
+  }
+
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
   const itensConvertidos = conversao.itens;
@@ -303,6 +310,16 @@ export async function atualizarOrcamento(
   }
   const dados = parsed.data;
 
+  const vendedorIdEfetivo = dados.vendedorId ?? existente.vendedorId;
+  if (
+    dados.status === "agendado" &&
+    !permiteEnvioAutomatico(vendedorIdEfetivo)
+  ) {
+    return {
+      erro: "O envio automático está disponível temporariamente somente para os orçamentos do João Avelar.",
+    };
+  }
+
   if (dados.status === "agendado" && existente.enviadoEm != null) {
     return {
       erro: "Este orçamento já foi enviado e não pode ser agendado novamente.",
@@ -383,6 +400,7 @@ export async function mudarStatusOrcamento(
     where: eq(orcamentos.id, id),
   });
   if (!orcamento || orcamento.status === novoStatus) return;
+  if (novoStatus === "agendado" && !permiteEnvioAutomatico(orcamento.vendedorId)) return;
   if (novoStatus === "agendado" && orcamento.enviadoEm != null) return;
 
   const agendar = novoStatus === "agendado" && orcamento.status !== "agendado";
