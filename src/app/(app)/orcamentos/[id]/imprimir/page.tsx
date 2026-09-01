@@ -8,6 +8,7 @@ import {
   atendimentos,
   clientes,
   modelosToldo,
+  orcamentoFotos,
   orcamentoItens,
   orcamentos,
   vendedores,
@@ -68,6 +69,15 @@ export default async function ImprimirOrcamentoPage({
     .from(orcamentoItens)
     .where(eq(orcamentoItens.orcamentoId, orcamentoId))
     .orderBy(asc(orcamentoItens.ordem));
+
+  // A página pública (/proposta/[token]) sempre mostrou as fotos; esta, que é
+  // o "Ver proposta" da equipe, nunca as buscou. Quem manda a proposta via
+  // tela via menos do que o cliente recebia.
+  const fotos = await db
+    .select({ id: orcamentoFotos.id })
+    .from(orcamentoFotos)
+    .where(eq(orcamentoFotos.orcamentoId, orcamentoId))
+    .orderBy(asc(orcamentoFotos.ordem));
 
   const { orc, cliente, vendedor } = linha;
   const endereco = enderecoCompleto(cliente);
@@ -158,6 +168,32 @@ export default async function ImprimirOrcamentoPage({
         {validade ? (
           <p className="mb-3 text-[11px] font-bold text-[#004e36]">{validade}</p>
         ) : null}
+
+        {fotos.length > 0 && (
+          <div className="mb-3">
+            <h3 className="text-[10px] font-bold tracking-wide text-[#004e36]">
+              FOTOS
+            </h3>
+            <p className="mb-1.5 text-[9px] italic text-neutral-500">
+              As imagens são apenas exemplos de aplicação do produto. O
+              resultado final pode variar conforme o local, as medidas e outros
+              fatores do seu projeto.
+            </p>
+            {/* break-inside-avoid: sem isso a impressão parte uma foto ao meio
+                entre duas páginas. */}
+            <div className="grid grid-cols-2 gap-2">
+              {fotos.map((f) => (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  key={f.id}
+                  src={`/orcamentos/${orcamentoId}/fotos/${f.id}`}
+                  alt="Foto da proposta"
+                  className="h-36 w-full break-inside-avoid rounded border object-cover"
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-neutral-200 pt-2 text-center text-[9px] text-neutral-500">
           {vendedor ? (
