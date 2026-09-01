@@ -18,7 +18,7 @@ import { enderecoCompleto } from "@/lib/endereco";
 import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
-import { ImprimirAutomatico } from "../ficha/imprimir/imprimir-automatico";
+import { ImprimirAutomatico } from "@/components/shared/imprimir-automatico";
 
 function Secao({ titulo, texto }: { titulo: string; texto: string | null }) {
   if (!texto) return null;

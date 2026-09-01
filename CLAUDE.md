@@ -509,9 +509,19 @@ bandeja ou deixaria o papel encolhido no meio da página.
 As duas medidas casam exatamente: a largura de uma A4 em pé (595pt) é a de uma
 A5 deitada, e metade da altura da A4 (420pt) é a altura de uma A5 deitada.
 
+**O botão "Imprimir ficha" vai para `/chamados/[id]/imprimir`, NÃO para o PDF**
+(01/09/2026). Celular não imprime PDF: o link abria o arquivo e parava aí, sem
+diálogo de impressão. A página HTML chama `window.print()` sozinha e funciona
+em qualquer navegador — e no diálogo já tem "Salvar como PDF" para quem quer o
+arquivo. Mesma razão que já valia para a ficha de instalação e o contrato.
+O PDF continua em `/chamados/[id]/pdf`, atrás do "Baixar PDF", para mandar.
+
+As duas saídas lêem `dadosDaOrdem()` — uma consulta só. Se um campo novo entrar
+na ficha, entra nos dois lugares ou em nenhum.
+
 Logo da Toldos Gerais (`EMPRESA`, não `EMPRESA_CONTRATO` — só o contrato mudou
-de emitente). Rota **interna**: não existe versão pública, e vendedor só
-imprime a ficha dos próprios clientes.
+de emitente). Rota **interna** nas duas saídas: não existe versão pública, e
+vendedor só imprime a ficha dos próprios clientes.
 
 **Todo campo sai como linha sublinhada, mesmo preenchido.** A ficha continua
 sendo papel de trabalho: o que o sistema não sabe vai em branco para escrever

@@ -41,9 +41,23 @@ const data = (d: Date | null | undefined) =>
  * chamado na hora de abrir — assim a ficha impressa hoje reflete o cadastro
  * de hoje, e corrigir um telefone conserta a próxima impressão sozinho.
  */
-export async function gerarOrdemManutencao(
+export type OrdemCarregada = {
+  clienteNome: string;
+  vendedorId: number | null;
+  dados: DadosOrdemManutencao;
+};
+
+/**
+ * Carrega TUDO que a ficha mostra, uma vez só.
+ *
+ * Existe separado do PDF porque a ficha sai em dois formatos: o PDF (para
+ * salvar e mandar) e a página de impressão (que é a que funciona no celular —
+ * navegador de celular não imprime PDF). Os dois lêem daqui, senão um dia um
+ * campo aparece num e não no outro.
+ */
+export async function dadosDaOrdem(
   chamadoId: number
-): Promise<OrdemGerada | null> {
+): Promise<OrdemCarregada | null> {
   const [linha] = await db
     .select({
       chamado: chamados,
@@ -92,10 +106,24 @@ export async function gerarOrdemManutencao(
     logoDataUri: `data:image/png;base64,${logo.toString("base64")}`,
   };
 
+  return { clienteNome: cliente.nome, vendedorId: linha.vendedorId, dados };
+}
+
+/** A ficha em PDF — para salvar e mandar. */
+export async function gerarOrdemManutencao(
+  chamadoId: number
+): Promise<OrdemGerada | null> {
+  const carregada = await dadosDaOrdem(chamadoId);
+  if (!carregada) return null;
+
   const documento = createElement(OrdemManutencaoPDF, {
-    dados,
+    dados: carregada.dados,
   }) as React.ReactElement<import("@react-pdf/renderer").DocumentProps>;
   const buffer = await renderToBuffer(documento);
 
-  return { clienteNome: cliente.nome, vendedorId: linha.vendedorId, buffer };
+  return {
+    clienteNome: carregada.clienteNome,
+    vendedorId: carregada.vendedorId,
+    buffer,
+  };
 }

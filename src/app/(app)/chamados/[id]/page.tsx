@@ -161,14 +161,31 @@ export default async function ChamadoPage({
             responsaveis={listaResponsaveis}
             trigger={<Button variant="outline">Editar</Button>}
           />
+          {/* Vai para a página de impressão, e NÃO direto para o PDF: celular
+              não imprime PDF — abre o arquivo e para por aí. No diálogo que
+              essa página abre já tem "Salvar como PDF" para quem quer o
+              arquivo, e o PDF continua em /chamados/[id]/pdf para mandar. */}
           <Button
             variant="outline"
             nativeButton={false}
             render={
-              <a href={`/chamados/${chamado.id}/pdf`} target="_blank" rel="noopener" />
+              <a href={`/chamados/${chamado.id}/imprimir`} target="_blank" rel="noopener" />
             }
           >
             Imprimir ficha
+          </Button>
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={
+              <a
+                href={`/chamados/${chamado.id}/pdf?download=1`}
+                target="_blank"
+                rel="noopener"
+              />
+            }
+          >
+            Baixar PDF
           </Button>
           <Button
             nativeButton={false}

@@ -15,7 +15,7 @@ import {
 import { exigirUsuario } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
 import { EMPRESA } from "@/lib/empresa";
-import { ImprimirAutomatico } from "./imprimir-automatico";
+import { ImprimirAutomatico } from "@/components/shared/imprimir-automatico";
 
 /** Célula rotulada da ficha (mesma linguagem visual do papel da empresa). */
 function Celula({

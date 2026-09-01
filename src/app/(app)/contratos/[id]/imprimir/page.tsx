@@ -7,7 +7,7 @@ import { exigirUsuario } from "@/lib/auth";
 import { carregarDadosContrato } from "@/lib/gerar-contrato";
 import { ContratoPreview } from "@/components/shared/contrato-preview";
 import { EMPRESA_CONTRATO } from "@/lib/empresa";
-import { ImprimirAutomatico } from "../../../orcamentos/[id]/ficha/imprimir/imprimir-automatico";
+import { ImprimirAutomatico } from "@/components/shared/imprimir-automatico";
 
 export const metadata = { title: "Imprimir contrato" };
 
