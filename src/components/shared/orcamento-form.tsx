@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SeletorCliente } from "@/components/shared/seletor-cliente";
 import { Textarea } from "@/components/ui/textarea";
 import { mascaraMoeda } from "@/lib/format";
 import {
@@ -208,26 +209,14 @@ export function OrcamentoForm({
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Atendimento / cliente *</Label>
-              <Select
-                value={atendimentoId || null}
-                items={atendimentos.map((a) => ({
-                  value: String(a.id),
-                  label: `${a.clienteNome} — ${a.clienteTelefone}`,
-                }))}
-                onValueChange={(v) => setAtendimentoId(v ?? "")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Escolha o atendimento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {atendimentos.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>
-                      {a.clienteNome} — {a.clienteTelefone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="escolhaAtendimento">Atendimento / cliente *</Label>
+              <SeletorCliente
+                id="escolhaAtendimento"
+                opcoes={atendimentos}
+                valor={atendimentoId}
+                onValorChange={setAtendimentoId}
+                placeholder="Digite o nome do cliente"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Vendedor responsável</Label>
