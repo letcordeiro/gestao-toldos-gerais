@@ -557,6 +557,24 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## Editar orçamento já enviado (01/09/2026)
+
+O formulário só tinha "Salvar rascunho" e "Finalizar e enviar". Num orçamento
+que o cliente JÁ RECEBEU, o primeiro **derrubava o status de volta para
+rascunho** e o segundo levava recusa por reenvio — não existia salvar mantendo
+"enviado". Quem só queria corrigir um valor a pedido do cliente desfazia o
+envio sem perceber.
+
+Agora o status do formulário aceita um terceiro valor, **`manter`**, que
+preserva o status atual. Em orçamento fora de rascunho a tela mostra só
+**"Salvar alterações"**; em rascunho, os dois botões de sempre.
+
+O `publicToken` NÃO muda ao editar: o link que o cliente já tem passa a mostrar
+a versão corrigida. É isso que se quer — o cliente pediu a alteração.
+
+`manter` não existe na criação (orçamento nasce rascunho); se chegar lá, vira
+rascunho.
+
 ## Foto no orçamento: dois limites que precisam combinar (01/09/2026)
 
 O Next recusa Server Action com corpo acima de **1 MB por padrão**, e isso

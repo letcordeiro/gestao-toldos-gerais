@@ -60,6 +60,8 @@ type Item = {
 // Valores iniciais ao editar um orçamento existente (já em reais formatados)
 export type OrcamentoInicial = {
   id: number;
+  /** Status atual — decide quais botões de salvar aparecem. */
+  status: string;
   atendimentoId: number;
   modeloId: number | null;
   vendedorId: number | null;
@@ -111,6 +113,8 @@ export function OrcamentoForm({
   orcamento?: OrcamentoInicial;
 }) {
   const edicao = Boolean(orcamento);
+  // Já saiu das mãos da equipe: agendado, enviando, enviado, aprovado, recusado.
+  const jaSaiu = Boolean(orcamento && orcamento.status !== "rascunho");
   const [fotosCount, setFotosCount] = useState(0);
   const [fotosErro, setFotosErro] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState<
@@ -632,20 +636,32 @@ export function OrcamentoForm({
 
       {state.erro && <p className="text-sm text-destructive">{state.erro}</p>}
 
+      {/* Orçamento que o cliente JÁ RECEBEU salva mantendo o status. Oferecer
+          "Salvar rascunho" aqui derrubaria para rascunho um orçamento que está
+          com o cliente — e era a única saída que existia, então quem só queria
+          corrigir um valor acabava desfazendo o envio sem perceber. */}
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="submit"
-          name="status"
-          value="rascunho"
-          variant="secondary"
-          disabled={pending}
-        >
-          Salvar rascunho
-        </Button>
-        {envioAutomaticoDisponivel && (
-          <Button type="submit" name="status" value="agendado" disabled={pending}>
-            {pending ? "Finalizando…" : "Finalizar e enviar automaticamente"}
+        {jaSaiu ? (
+          <Button type="submit" name="status" value="manter" disabled={pending}>
+            {pending ? "Salvando…" : "Salvar alterações"}
           </Button>
+        ) : (
+          <>
+            <Button
+              type="submit"
+              name="status"
+              value="rascunho"
+              variant="secondary"
+              disabled={pending}
+            >
+              Salvar rascunho
+            </Button>
+            {envioAutomaticoDisponivel && (
+              <Button type="submit" name="status" value="agendado" disabled={pending}>
+                {pending ? "Finalizando…" : "Finalizar e enviar automaticamente"}
+              </Button>
+            )}
+          </>
         )}
       </div>
       {envioAutomaticoDisponivel ? (

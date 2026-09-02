@@ -50,7 +50,11 @@ const orcamentoSchema = z.object({
   observacoesInternas: z.string().trim().max(4000).optional(),
   // "agendado" (e não "enviado"): quem marca como enviado é o worker, depois
   // da confirmação da Evolution.
-  status: z.enum(["rascunho", "agendado"]),
+  // "manter" = salvar sem mexer no status. Existe porque orçamento JÁ ENVIADO
+  // precisa poder ser corrigido quando o cliente pede alteração: antes, as
+  // únicas saídas eram derrubar de volta para rascunho ou levar recusa por
+  // reenvio, e nenhuma das duas é "corrigir o que o cliente pediu".
+  status: z.enum(["rascunho", "agendado", "manter"]),
   itens: z.array(itemSchema).min(1, "Adicione ao menos um item"),
 });
 
@@ -213,7 +217,8 @@ export async function criarOrcamento(
       aosCuidadosDe: dados.aosCuidadosDe || null,
       validadeDias: dados.validadeDias,
       observacoesInternas: dados.observacoesInternas || null,
-      status: dados.status,
+      // Orçamento nasce rascunho; "manter" só existe na edição.
+      status: dados.status === "manter" ? "rascunho" : dados.status,
       publicToken: nanoid(12),
       agendadoEm: dados.status === "agendado" ? new Date() : null,
     })
@@ -329,6 +334,10 @@ export async function atualizarOrcamento(
   const conversao = converterItens(dados.itens);
   if ("erro" in conversao) return { erro: conversao.erro };
 
+  // "manter" preserva o status atual — é o caminho de quem só está corrigindo
+  // um orçamento que o cliente já recebeu.
+  const statusFinal =
+    dados.status === "manter" ? existente.status : dados.status;
   const agendaAgora =
     dados.status === "agendado" && existente.status !== "agendado";
 
@@ -349,7 +358,7 @@ export async function atualizarOrcamento(
       aosCuidadosDe: dados.aosCuidadosDe || null,
       validadeDias: dados.validadeDias,
       observacoesInternas: dados.observacoesInternas || null,
-      status: dados.status,
+      status: statusFinal,
       ...(agendaAgora
         ? { agendadoEm: new Date(), envioErro: null, envioTentativas: 0 }
         : {}),

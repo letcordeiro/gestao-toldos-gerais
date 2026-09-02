@@ -102,6 +102,7 @@ export default async function EditarOrcamentoPage({
 
   const inicial: OrcamentoInicial = {
     id: orcamento.id,
+    status: orcamento.status,
     atendimentoId: orcamento.atendimentoId,
     modeloId: orcamento.modeloId,
     vendedorId: orcamento.vendedorId,
