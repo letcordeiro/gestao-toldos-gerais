@@ -70,7 +70,19 @@ export function SeletorCliente({
   );
 
   const selecionado = itens.find((i) => i.value === valor) ?? null;
-  const [busca, setBusca] = useState("");
+
+  // O texto começa mostrando quem JÁ está escolhido. Sem isto, abrir a edição
+  // de um orçamento mostrava o campo de cliente vazio, como se ninguém
+  // estivesse selecionado — e quem via isso escolhia o cliente de novo.
+  const [busca, setBusca] = useState(() => rotuloDe(opcoes, valor));
+
+  // Quando o valor muda de fora (a tela trocou de registro), o texto acompanha.
+  // Digitação não passa por aqui: quem digita mexe em `busca`, não em `valor`.
+  const [ultimoValor, setUltimoValor] = useState(valor);
+  if (valor !== ultimoValor) {
+    setUltimoValor(valor);
+    if (valor && !selecionado) setBusca(rotuloDe(opcoes, valor));
+  }
 
   const filtrados = useMemo(
     () => itens.filter((i) => combinaBusca(i.label, busca)),
@@ -128,3 +140,11 @@ export function SeletorCliente({
   );
 }
 
+/** O texto que representa uma opção já escolhida — o mesmo rótulo da lista. */
+function rotuloDe(opcoes: OpcaoCliente[], valor: string): string {
+  const o = opcoes.find((x) => String(x.id) === valor);
+  if (!o) return "";
+  return [o.clienteNome, o.clienteTelefone, o.detalhe]
+    .filter(Boolean)
+    .join(" — ");
+}
