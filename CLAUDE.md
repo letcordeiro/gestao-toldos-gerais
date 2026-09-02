@@ -770,6 +770,34 @@ de contratos ainda trazia uma coluna "Orçamento" que só apontava de volta.
 - **Criar contrato nunca passou pela lista**: sai do botão "Gerar contrato" na
   tela do orçamento, liberado pela fase de negócio fechado. Nada mudou aí.
 
+## Diálogo + navegação: nunca no mesmo instante (02/09/2026)
+
+`setAberto(false)` seguido de `router.push()` na mesma função **desmonta o
+diálogo no meio da animação de saída** e deixa o fundo dele órfão no
+documento — invisível, fora da árvore da página, e engolindo todo clique. A
+tela seguinte abre e nada responde até um F5. Foi o "site trava ao trocar de
+página" relatado em 02/09/2026.
+
+O certo é guardar o destino e navegar em **`onOpenChangeComplete`**, que só
+dispara quando o fechamento terminou:
+
+```tsx
+const [destino, setDestino] = useState<string | null>(null);
+// no sucesso: setDestino(url); setAberto(false);
+<Dialog open={aberto} onOpenChange={setAberto}
+  onOpenChangeComplete={(open) => {
+    if (open || !destino) return;
+    router.push(destino); setDestino(null);
+  }}>
+```
+
+`router.refresh()` pode ir na hora: ele não desmonta o diálogo, só refaz o
+servidor. É só `push`/`replace` que criam a corrida.
+
+**Isto não aparece em teste automatizado**: no navegador headless as animações
+não rodam, o diálogo fecha na hora e a corrida não acontece. Só se vê no
+navegador de verdade.
+
 ## Diálogos: altura da tela (26/08/2026)
 
 `DialogContent` tem `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto`. Antes, um

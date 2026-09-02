@@ -117,15 +117,33 @@ export function ChamadoDialog({
     FormData
   >(salvarChamado, {});
 
+  // Mesma armadilha do "Novo atendimento": navegar junto com setAberto(false)
+  // desmonta o diálogo no meio da animação de saída e deixa o fundo dele órfão
+  // no documento, invisível e engolindo todo clique. A navegação espera o
+  // fechamento terminar (onOpenChangeComplete). `refresh` pode ir na hora:
+  // ele não desmonta o diálogo, só refaz o servidor.
+  const [destino, setDestino] = useState<string | null>(null);
+
   useEffect(() => {
     if (!state.ok) return;
+    if (irParaChamado && state.criadoId) {
+      setDestino(`/chamados/${state.criadoId}`);
+    } else {
+      router.refresh();
+    }
     setAberto(false);
-    if (irParaChamado && state.criadoId) router.push(`/chamados/${state.criadoId}`);
-    else router.refresh();
   }, [state, router, irParaChamado]);
 
   return (
-    <Dialog open={aberto} onOpenChange={setAberto}>
+    <Dialog
+      open={aberto}
+      onOpenChange={setAberto}
+      onOpenChangeComplete={(open) => {
+        if (open || !destino) return;
+        router.push(destino);
+        setDestino(null);
+      }}
+    >
       <DialogTrigger render={trigger} />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

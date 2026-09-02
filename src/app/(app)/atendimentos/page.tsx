@@ -11,7 +11,7 @@ import {
   historicoFases,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
 import { GATILHO_LABEL, pendenciasDoAviso } from "@/lib/avisos";
 import type { Aviso, PendenciaAviso } from "@/lib/avisos";
 import { LinhaPendencia } from "./linha-pendencia";
@@ -329,6 +329,7 @@ export default async function AtendimentosPage({
               nome: v.nome,
             }))}
             ehGestor={veTudo}
+            paraOrcamento={podeComercial(usuario.papel)}
           />
         </div>
       </div>

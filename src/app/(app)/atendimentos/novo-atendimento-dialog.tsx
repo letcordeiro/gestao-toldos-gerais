@@ -30,11 +30,14 @@ export function NovoAtendimentoDialog({
   vendedores,
   canais,
   ehGestor,
+  paraOrcamento = false,
 }: {
   clientes: ClienteOpcao[];
   vendedores: VendedorOpcao[];
   canais: { id: number; nome: string }[];
   ehGestor: boolean;
+  /** Quem monta orçamento cai direto no novo orçamento depois de criar. */
+  paraOrcamento?: boolean;
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -45,16 +48,38 @@ export function NovoAtendimentoDialog({
     FormData
   >(criarAtendimento, {});
 
-  // Criou: fecha o diálogo e abre o atendimento. Antes a action redirecionava
-  // sozinha e o diálogo ficava por cima com o botão preso em "Criando…".
+  // Para onde ir depois de criar. A navegação NÃO acontece aqui: fica guardada
+  // e só dispara quando o diálogo terminou de fechar (onOpenChangeComplete).
+  //
+  // Navegar junto com setAberto(false) desmontava o diálogo no meio da animação
+  // de saída e deixava o FUNDO dele órfão no documento — invisível, mas
+  // engolindo todo clique. A página seguinte abria e nada respondia até dar
+  // F5. Foi o "site trava ao trocar de página" de 02/09/2026.
+  const [destino, setDestino] = useState<string | null>(null);
+
   useEffect(() => {
     if (!state.criadoId) return;
+    // Quem vende cai direto no orçamento — é o passo seguinte do trabalho.
+    // A atendente não monta orçamento, então para ela o destino é a ficha do
+    // atendimento, que é o que ela vai usar para encaminhar.
+    setDestino(
+      paraOrcamento
+        ? `/orcamentos/novo?atendimento=${state.criadoId}`
+        : `/atendimentos/${state.criadoId}`
+    );
     setAberto(false);
-    router.push(`/atendimentos/${state.criadoId}`);
-  }, [state.criadoId, router]);
+  }, [state.criadoId, paraOrcamento]);
 
   return (
-    <Dialog open={aberto} onOpenChange={setAberto}>
+    <Dialog
+      open={aberto}
+      onOpenChange={setAberto}
+      onOpenChangeComplete={(open) => {
+        if (open || !destino) return;
+        router.push(destino);
+        setDestino(null);
+      }}
+    >
       <DialogTrigger render={<Button>Novo atendimento</Button>} />
       <DialogContent className="sm:max-w-lg">
         {/* Cabeçalho e botão grudados: o formulário é longo e, rolando, dava
