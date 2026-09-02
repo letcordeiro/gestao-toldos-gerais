@@ -119,7 +119,12 @@ export default async function ImprimirOrcamentoPage({
         </div>
 
         {orc.introducao ? (
-          <p className="mb-2.5 text-justify text-[11px]">{orc.introducao}</p>
+          // whitespace-pre-line: a introdução é escrita à mão, com parágrafos.
+          // Sem isto, tudo virava um bloco só — era o ÚNICO campo do orçamento
+          // sem essa regra; todos os outros passam pelo <Secao>, que já a tem.
+          <p className="mb-2.5 whitespace-pre-line text-justify text-[11px]">
+            {orc.introducao}
+          </p>
         ) : null}
 
         <Secao titulo="MODELO" texto={modeloTexto} />

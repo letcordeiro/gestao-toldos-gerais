@@ -159,7 +159,9 @@ export default async function PropostaPublicaPage({
           </div>
 
           {orc.introducao ? (
-            <p className="text-justify text-sm">{orc.introducao}</p>
+            <p className="whitespace-pre-line text-justify text-sm">
+              {orc.introducao}
+            </p>
           ) : null}
 
           <Secao titulo="MODELO" texto={modeloTexto} />
