@@ -557,6 +557,21 @@ continuam recebendo exatamente o que sempre receberam. Qual id depende da tela
 (atendimento nos chamados e visitas, cliente no novo atendimento) — quem chama
 decide.
 
+## Impressão: `min-h-screen` gera página em branco no iPhone (02/09/2026)
+
+O shell do app é `min-h-screen`. Em IMPRESSÃO, o **Safari do iPhone** entende
+`100vh` como a altura do CELULAR, muito maior que uma A4: a caixa com
+`bg-background` estourava a folha e saía uma segunda página com uma faixa
+cinza e nada mais. O Chrome do computador remapeia `vh` para a folha e **não
+reproduz** — cheguei a testar a hipótese no Chrome, ela "passou", e eu a
+descartei errado. Só o PDF salvo pelo Safari mostrou a faixa.
+
+Consertado com `print:min-h-0 print:bg-white` no shell (`(app)/layout.tsx`).
+
+**Lição para a próxima:** impressão que só falha no celular precisa ser
+depurada com o PDF DAQUELE navegador. Chrome desktop não serve de prova, e a
+faixa de fundo é a pista — página "em branco" quase nunca está vazia.
+
 ## Editar orçamento já enviado (01/09/2026)
 
 O formulário só tinha "Salvar rascunho" e "Finalizar e enviar". Num orçamento

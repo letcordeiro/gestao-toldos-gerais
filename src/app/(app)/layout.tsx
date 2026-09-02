@@ -175,7 +175,12 @@ export default async function AppLayout({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    // print:min-h-0 é obrigatório. `min-h-screen` = "uma tela de altura", e na
+    // IMPRESSÃO o Safari do iPhone entende "tela" como a altura do CELULAR, que
+    // é muito maior que uma A4: a caixa cinza estourava a folha e gerava uma
+    // segunda página com uma faixa de fundo e nada mais. No Chrome do
+    // computador não acontece — por isso passou tanto tempo sem ninguém achar.
+    <div className="min-h-screen bg-background print:min-h-0 print:bg-white">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-between gap-3 py-2.5">
