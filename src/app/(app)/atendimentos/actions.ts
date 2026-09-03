@@ -125,7 +125,14 @@ export async function criarAtendimento(
     faseNovaId: faseInicial.id,
   });
 
+  // O atendimento novo aparece em várias telas. Invalidar só o funil deixava
+  // Orçamentos e, principalmente, o seletor de Visitas com a lista que havia
+  // sido carregada antes da criação; um F5 fazia o cliente "aparecer" porque
+  // então a rota era buscada novamente.
   revalidatePath("/atendimentos");
+  revalidatePath("/orcamentos");
+  revalidatePath("/visitas");
+  revalidatePath("/painel");
   // Sem redirect() aqui: com useActionState ele deixava o botão travado em
   // "Criando…" e o diálogo aberto na frente da tela nova.
   return { criadoId: novo.id };
