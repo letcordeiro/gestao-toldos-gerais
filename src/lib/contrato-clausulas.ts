@@ -65,6 +65,11 @@ export type DadosContrato = {
   retencaoPercent: number;
   multaPercent: number;
   jurosMesPercent: number;
+  /** Multa por dia de atraso DA CONTRATADA, e o teto dela. */
+  multaContratadaDiaPercent: number;
+  multaContratadaTetoPercent: number;
+  /** Diária cobrada quando o cliente manda parar a obra (centavos). */
+  paralisacaoDiaria: number;
   flagMedidas: boolean;
   flagClima: boolean;
   flagEnergia: boolean;
@@ -348,6 +353,15 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
     );
   }
   if (prazo.itens!.length === 0) delete prazo.itens;
+  // Paralisação pedida pelo cliente: a equipe sobe, o cliente manda voltar
+  // outro dia, e o dia de trabalho se perde. Mora no PRAZO porque é aqui que
+  // a prorrogação é tratada.
+  prazo.paragrafosFinais = [
+    `A paralisação dos trabalhos solicitada pelo CONTRATANTE, não prevista neste contrato, que implique ` +
+      `perda do dia de trabalho da equipe, sujeita o CONTRATANTE ao pagamento de ` +
+      `${moedaComExtenso(dados.paralisacaoDiaria)} por dia paralisado, a título de cobertura da mão de obra ` +
+      `mobilizada, sem prejuízo da prorrogação do prazo de entrega pelo período correspondente.`,
+  ];
   clausulas.push(prazo);
 
   // 4 — OBRIGAÇÕES DA CONTRATADA
@@ -391,7 +405,10 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
   }
   clausulas.push(obrigacoesContratante);
 
-  // 6 — INADIMPLÊNCIA
+  // 6 — INADIMPLÊNCIA — os DOIS lados.
+  // Antes só punia o cliente, o que o advogado do outro lado aponta como
+  // desequilíbrio. A multa da CONTRATADA veio do contrato da Telhado Técnico
+  // e foi decidida pela Letícia em 18/09/2026: por dia, com teto.
   clausulas.push({
     titulo: "DA INADIMPLÊNCIA E DO ATRASO",
     paragrafos: [
@@ -400,6 +417,11 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
         `${formatarPercent(dados.jurosMesPercent)}% ao mês, calculados pro rata die, sem prejuízo da correção monetária.`,
       "O atraso superior a 30 (trinta) dias autoriza a CONTRATADA a suspender a fabricação ou a instalação " +
         "até a regularização, ficando os prazos automaticamente prorrogados pelo período da suspensão.",
+      `Na mesma medida, caso a CONTRATADA ultrapasse o prazo da Cláusula Terceira sem aviso prévio ao ` +
+        `CONTRATANTE, incidirá multa de ${formatarPercent(dados.multaContratadaDiaPercent)}% por dia de atraso ` +
+        `sobre o valor deste contrato, limitada a ${formatarPercent(dados.multaContratadaTetoPercent)}% do total. ` +
+        `Não se considera atraso a prorrogação decorrente das hipóteses previstas na Cláusula Terceira, ` +
+        `desde que comunicada ao CONTRATANTE.`,
     ],
   });
 

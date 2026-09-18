@@ -642,9 +642,16 @@ que passou de 10 para 12 cláusulas:
 **O foro é sempre a ÚLTIMA cláusula**; cláusula nova entra antes dele. Há teste
 que trava isso, e outro que trava a contagem — se mudar, é para mudar junto.
 
-NÃO foram incluídas duas coisas do contrato de origem, por serem decisão
-comercial dela e não técnica: multa por atraso DA CONTRATADA e cobrança de
-diária por paralisação pedida pelo cliente.
+As duas que dependiam de decisão comercial entraram depois, com os valores
+dela (18/09/2026), e viraram **campos editáveis** (0036) como multa e juros —
+preço muda com o tempo e trocar número não pode depender de deploy:
+
+- `multaContratadaDiaPercent` / `multaContratadaTetoPercent` — o que a EMPRESA
+  paga se atrasar **sem aviso prévio**: 0,5% por dia, teto 10%. Mora na
+  cláusula de inadimplência, que antes só punia o cliente. Prorrogação
+  comunicada (chuva, medidas) não conta como atraso.
+- `paralisacaoDiaria` — R$ 800,00 por dia perdido quando o CLIENTE manda parar
+  a obra. Mora no PRAZO, que é onde a prorrogação é tratada.
 
 ## Agenda do Google por vendedor (31/08/2026)
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { mascaraMoeda, parseParaCentavos } from "@/lib/format";
+import { centavosParaInput, mascaraMoeda, parseParaCentavos } from "@/lib/format";
 import { ESCOPO_LABEL, type EscopoContrato } from "@/lib/contratos";
 import { salvarDadosContrato, type ContratoFormState } from "../actions";
 
@@ -26,6 +26,9 @@ export type DadosForm = {
   retencaoPercent: number;
   multaPercent: number;
   jurosMesPercent: number;
+  multaContratadaDiaPercent: number;
+  multaContratadaTetoPercent: number;
+  paralisacaoDiaria: number;
   flagMedidas: boolean;
   flagClima: boolean;
   flagEnergia: boolean;
@@ -215,6 +218,71 @@ export function ContratoForm({
             disabled={!editavel}
             defaultValue={inicial.jurosMesPercent}
           />
+        </div>
+      </div>
+
+      {/* O que a EMPRESA paga se atrasar, e o que o cliente paga se mandar
+          parar a obra. Editáveis como multa e juros: preço muda com o tempo e
+          trocar número não pode depender de deploy. */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="multaContratadaDiaPercent">
+            Nosso atraso: multa/dia (%)
+          </Label>
+          <Input
+            id="multaContratadaDiaPercent"
+            name="multaContratadaDiaPercent"
+            type="number"
+            step="0.1"
+            min={0}
+            max={100}
+            inputMode="decimal"
+            disabled={!editavel}
+            defaultValue={inicial.multaContratadaDiaPercent}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="multaContratadaTetoPercent">Teto da multa (%)</Label>
+          <Input
+            id="multaContratadaTetoPercent"
+            name="multaContratadaTetoPercent"
+            type="number"
+            step="1"
+            min={0}
+            max={100}
+            inputMode="decimal"
+            disabled={!editavel}
+            defaultValue={inicial.multaContratadaTetoPercent}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="paralisacaoDiaria">Diária de paralisação</Label>
+          <Input
+            id="paralisacaoDiaria"
+            name="paralisacaoDiariaTexto"
+            inputMode="numeric"
+            disabled={!editavel}
+            defaultValue={centavosParaInput(inicial.paralisacaoDiaria)}
+            onChange={(e) => {
+              const mascarado = mascaraMoeda(e.target.value);
+              e.target.value = mascarado;
+              const oculto = document.getElementById(
+                "paralisacaoDiaria-oculto"
+              ) as HTMLInputElement | null;
+              if (oculto) {
+                oculto.value = String(parseParaCentavos(mascarado) ?? 0);
+              }
+            }}
+          />
+          <input
+            type="hidden"
+            id="paralisacaoDiaria-oculto"
+            name="paralisacaoDiaria"
+            defaultValue={inicial.paralisacaoDiaria}
+          />
+          <p className="text-xs text-muted-foreground">
+            Por dia perdido quando o cliente manda parar a obra.
+          </p>
         </div>
       </div>
 

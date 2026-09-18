@@ -253,6 +253,13 @@
       "when": 1788240000000,
       "tag": "0035_agenda_google",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1789700000000,
+      "tag": "0036_multa_contratada",
+      "breakpoints": true
     }
   ]
 }

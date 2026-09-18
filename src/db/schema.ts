@@ -408,6 +408,18 @@ export const contratos = sqliteTable("contratos", {
   retencaoPercent: integer("retencao_percent").notNull().default(30),
   multaPercent: real("multa_percent").notNull().default(2),
   jurosMesPercent: real("juros_mes_percent").notNull().default(1),
+  // O outro lado da moeda: o que a CONTRATADA paga se atrasar sem avisar.
+  // Por dia de atraso, limitado ao teto — senão uma obra parada por meses
+  // zeraria o contrato.
+  multaContratadaDiaPercent: real("multa_contratada_dia_percent")
+    .notNull()
+    .default(0.5),
+  multaContratadaTetoPercent: real("multa_contratada_teto_percent")
+    .notNull()
+    .default(10),
+  // Diária cobrada quando o CLIENTE manda parar a obra e o dia se perde.
+  // Centavos, como todo dinheiro no schema.
+  paralisacaoDiaria: integer("paralisacao_diaria").notNull().default(80000),
   // Cláusulas opcionais — desligar renumera as demais automaticamente.
   flagMedidas: integer("flag_medidas", { mode: "boolean" }).notNull().default(true),
   flagClima: integer("flag_clima", { mode: "boolean" }).notNull().default(true),
