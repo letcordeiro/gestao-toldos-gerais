@@ -359,7 +359,11 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
       "executar a instalação por equipe própria ou credenciada, com observância das normas técnicas e de segurança aplicáveis;",
       "manter o CONTRATANTE informado sobre o andamento da fabricação e a data prevista de instalação;",
       "responsabilizar-se pelos encargos trabalhistas e previdenciários de sua equipe;",
-      "reparar, dentro do prazo de garantia, os defeitos de fabricação ou de instalação que lhe forem imputáveis.",
+      "reparar, dentro do prazo de garantia, os defeitos de fabricação ou de instalação que lhe forem imputáveis;",
+      // Vindo do contrato da Telhado Técnico (18/09/2026). Na prática já é o
+      // que a empresa faz; escrever evita a discussão de quem paga a pintura
+      // da parede furada no lugar errado.
+      "reparar os danos que sua equipe causar às instalações já existentes no local durante a execução dos serviços.",
     ],
   });
 
@@ -371,7 +375,12 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
       "efetuar os pagamentos nas condições e nos prazos ajustados na Cláusula Segunda;",
       "disponibilizar o local da instalação livre, desimpedido e em condições seguras de acesso na data agendada;",
       "informar previamente à CONTRATADA a existência de tubulações, fiações ou estruturas ocultas no local de fixação;",
-      "obter, quando exigível, autorização do condomínio, do proprietário ou do poder público para a instalação.",
+      "obter, quando exigível, autorização do condomínio, do proprietário ou do poder público para a instalação;",
+      // O imóvel raramente está vazio: é loja aberta, empresa funcionando ou
+      // casa com gente dentro. Sem horário combinado, a equipe chega e não
+      // sobe — e quem perde o dia é a CONTRATADA.
+      "quando o imóvel estiver locado ou em funcionamento, combinar previamente com a CONTRATADA os horários de execução, " +
+        "de modo que não haja circulação de pessoas sob a área de trabalho.",
     ],
   };
   if (dados.flagEnergia) {
@@ -405,6 +414,8 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
         `sob medida já adquirido e da mão de obra empregada, devolvendo-se o saldo remanescente, se houver.`,
       "A rescisão por descumprimento de qualquer das cláusulas por qualquer das partes deverá ser " +
         "comunicada por escrito, assegurado o prazo de 10 (dez) dias para regularização.",
+      "O contrato poderá ainda ser rescindido a qualquer tempo por comum acordo entre as partes, " +
+        "formalizado por escrito, acertando-se os valores devidos até a data da rescisão.",
     ],
   });
 
@@ -417,6 +428,13 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
       )}) meses, contados da data da conclusão da instalação, contra defeitos de fabricação e de instalação.`,
       "A garantia não cobre danos decorrentes de mau uso, intervenção de terceiros não autorizados, " +
         "vendaval, granizo, queda de árvores ou outros eventos da natureza, nem o desgaste natural dos materiais.",
+      // A defesa contra "o toldo manchou / a calha transbordou": sem
+      // manutenção, a garantia não responde. Vem do contrato da Telhado
+      // Técnico, que exige vistoria semestral das calhas.
+      "A conservação é de responsabilidade do CONTRATANTE, que deverá realizar, no mínimo a cada 6 (seis) meses, " +
+        "a limpeza da lona ou da cobertura e a desobstrução de calhas e condutores, quando houver. " +
+        "A falta de manutenção adequada, comprovada por vistoria, exclui a cobertura da garantia quanto aos " +
+        "danos dela decorrentes.",
     ],
   });
 
@@ -432,7 +450,43 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
     ],
   });
 
-  // 10 — FORO
+  // 10 — RESPONSABILIDADE TÉCNICA
+  // A cláusula que faltava, e a mais valiosa das que vieram do contrato da
+  // Telhado Técnico (18/09/2026): diz até onde vai a responsabilidade da
+  // empresa. Toldo se fixa em parede, laje ou estrutura que JÁ ESTAVA LÁ — sem
+  // este limite escrito, qualquer trinca ou infiltração antiga vira discussão
+  // sobre quem paga.
+  clausulas.push({
+    titulo: "DA RESPONSABILIDADE TÉCNICA",
+    paragrafos: [
+      "A CONTRATADA declara possuir capacidade técnica para a execução dos serviços, respondendo:",
+    ],
+    itens: [
+      "pela correta execução das intervenções realizadas e pela fixação adequada ao tipo de estrutura encontrada;",
+      "pela observância das normas técnicas e de segurança aplicáveis;",
+      "pelo zelo e pelo uso adequado dos materiais fornecidos.",
+    ],
+    paragrafosFinais: [
+      "A responsabilidade técnica limita-se aos serviços executados no escopo deste contrato, não abrangendo " +
+        "estruturas pré-existentes fora do escopo, problemas ocultos não identificáveis no momento da contratação, " +
+        "nem alterações realizadas por terceiros após a instalação.",
+      "Caso seja exigida Anotação de Responsabilidade Técnica (ART) ou documento equivalente, sua emissão " +
+        "dependerá de contratação específica e de ajuste prévio de custos.",
+    ],
+  });
+
+  // 11 — DISPOSIÇÕES GERAIS
+  clausulas.push({
+    titulo: "DAS DISPOSIÇÕES GERAIS",
+    paragrafos: [
+      "Este contrato não gera vínculo empregatício, societário ou de representação entre as partes, " +
+        "nem entre o CONTRATANTE e os profissionais empregados pela CONTRATADA na execução dos serviços.",
+      "A tolerância de qualquer das partes quanto ao descumprimento de qualquer cláusula não implica " +
+        "novação, renúncia ou alteração do aqui pactuado.",
+    ],
+  });
+
+  // 12 — FORO
   clausulas.push({
     titulo: "DO FORO",
     paragrafos: [

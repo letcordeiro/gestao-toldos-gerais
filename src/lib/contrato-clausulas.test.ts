@@ -96,11 +96,34 @@ test("frasePagamento: data fixa mostra vencimento em dd/mm/aaaa", () => {
   assert.match(f, /com vencimento em 28\/02\/2026/);
 });
 
-test("montarClausulas: 10 cláusulas com todas as flags ligadas", () => {
+test("montarClausulas: 12 cláusulas com todas as flags ligadas", () => {
   const c = montarClausulas(dados());
-  assert.equal(c.length, 10);
+  assert.equal(c.length, 12);
   assert.equal(c[0].titulo, "DO OBJETO");
-  assert.equal(c[9].titulo, "DO FORO");
+  // O foro é sempre o ÚLTIMO: cláusula nova entra antes dele, nunca depois.
+  assert.equal(c[c.length - 1].titulo, "DO FORO");
+});
+
+test("responsabilidade técnica diz até onde a empresa responde", () => {
+  const c = montarClausulas(dados());
+  const resp = c.find((x) => x.titulo === "DA RESPONSABILIDADE TÉCNICA");
+  assert.ok(resp, "a cláusula precisa existir");
+  const texto = [...resp.paragrafos, ...(resp.paragrafosFinais ?? [])].join(" ");
+  // O que interessa é o LIMITE: sem ele, estrutura velha do cliente vira
+  // problema da Toldos Gerais.
+  assert.match(texto, /estruturas pré-existentes fora do escopo/);
+  assert.match(texto, /problemas ocultos/);
+  assert.match(texto, /alterações realizadas por terceiros/);
+});
+
+test("garantia exige manutenção do cliente", () => {
+  const c = montarClausulas(dados());
+  const g = c.find((x) => x.titulo === "DA GARANTIA");
+  assert.ok(g, "a cláusula de garantia precisa existir");
+  const texto = g.paragrafos.join(" ");
+  assert.match(texto, /6 \(seis\) meses/);
+  assert.match(texto, /limpeza/);
+  assert.match(texto, /exclui a cobertura da garantia/);
 });
 
 test("montarClausulas: renumeração é posicional (flags só mudam o conteúdo)", () => {
@@ -112,6 +135,7 @@ test("montarClausulas: renumeração é posicional (flags só mudam o conteúdo)
   // A numeração continua contígua: índice 0..9 → PRIMEIRA..DÉCIMA
   assert.equal(ordinalClausula(0), "PRIMEIRA");
   assert.equal(ordinalClausula(9), "DÉCIMA");
+  assert.equal(ordinalClausula(11), "DÉCIMA SEGUNDA");
 });
 
 test("montarClausulas: flagSobMedida controla o parágrafo único do objeto", () => {

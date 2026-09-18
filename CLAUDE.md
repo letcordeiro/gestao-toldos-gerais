@@ -616,6 +616,36 @@ o envio morria sem explicação.
 para o resto do formulário, que viaja no mesmo envio. Se ele ficar abaixo dos
 outros, o defeito volta exatamente igual — e ele não aparece em teste sem foto.
 
+## Cláusulas vindas do contrato da Telhado Técnico (18/09/2026)
+
+A Letícia trouxe um contrato assinado de outra empresa (reforma de telhado) e
+pediu para completar o nosso com o que faltava. Foram para `montarClausulas`,
+que passou de 10 para 12 cláusulas:
+
+- **DA RESPONSABILIDADE TÉCNICA** (nova) — a mais importante. Diz até onde a
+  empresa responde e, principalmente, o que NÃO responde: estrutura
+  pré-existente fora do escopo, problema oculto não identificável na
+  contratação e alteração feita por terceiros. Toldo se fixa em parede ou laje
+  que já estava lá; sem esse limite, trinca e infiltração antiga viram
+  discussão. Inclui a ART como contratação à parte.
+- **DAS DISPOSIÇÕES GERAIS** (nova) — sem vínculo empregatício e tolerância
+  não significa novação.
+- **Garantia** — exige manutenção do cliente (limpeza semestral de lona e
+  calhas) e exclui o que decorre da falta dela. É a defesa contra "o toldo
+  manchou".
+- **Obrigações da contratada** — reparar avaria que a equipe causar no que já
+  existe no local.
+- **Obrigações do contratante** — combinar horário quando o imóvel estiver
+  locado ou em funcionamento.
+- **Rescisão** — passou a admitir comum acordo.
+
+**O foro é sempre a ÚLTIMA cláusula**; cláusula nova entra antes dele. Há teste
+que trava isso, e outro que trava a contagem — se mudar, é para mudar junto.
+
+NÃO foram incluídas duas coisas do contrato de origem, por serem decisão
+comercial dela e não técnica: multa por atraso DA CONTRATADA e cobrança de
+diária por paralisação pedida pelo cliente.
+
 ## Agenda do Google por vendedor (31/08/2026)
 
 Cada vendedor conecta a PRÓPRIA agenda em `/perfil`. O sistema usa isso só para
