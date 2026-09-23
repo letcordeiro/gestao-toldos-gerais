@@ -148,7 +148,10 @@ export default async function CotacaoPage({
                       </Button>
                     )}
                     {r.respondidoEm && (
-                      <LimparRespostaButton conviteId={r.conviteId} />
+                      <LimparRespostaButton
+                        conviteId={r.conviteId}
+                        fornecedorNome={r.fornecedorNome}
+                      />
                     )}
                   </div>
                 </li>

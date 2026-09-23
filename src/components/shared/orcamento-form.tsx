@@ -651,10 +651,13 @@ export function OrcamentoForm({
               type="submit"
               name="status"
               value="rascunho"
-              variant="secondary"
+              // Sem envio automático este é o ÚNICO botão do formulário, e
+              // cinza ele não parecia a saída — quem montava o orçamento
+              // procurava o botão de confirmar e não achava.
+              variant={envioAutomaticoDisponivel ? "secondary" : "default"}
               disabled={pending}
             >
-              Salvar rascunho
+              {pending && !envioAutomaticoDisponivel ? "Salvando…" : "Salvar rascunho"}
             </Button>
             {envioAutomaticoDisponivel && (
               <Button type="submit" name="status" value="agendado" disabled={pending}>

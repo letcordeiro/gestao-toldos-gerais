@@ -23,6 +23,35 @@ import {
 import { ocupadosDoVendedor } from "@/lib/google-agenda";
 import { SITUACOES_EM_PE } from "@/lib/visitas";
 
+type Usuario = Awaited<ReturnType<typeof exigirUsuario>>;
+
+/**
+ * O vendedor só mexe no que é dele: visita em que ele vai, ou de cliente dele.
+ *
+ * A tela já só mostrava as visitas dele, mas as actions aceitavam qualquer
+ * id — dava para editar ou apagar a visita de outro vendedor mandando o
+ * número direto (achado na auditoria de 23/09/2026). Gestor e atendente
+ * marcam a agenda de todo mundo e passam direto.
+ */
+async function vendedorPodeMexer(
+  usuario: Usuario,
+  visita: { vendedorId: number | null; atendimentoId: number }
+): Promise<boolean> {
+  if (veFunilInteiro(usuario.papel)) return true;
+  if (usuario.vendedorId == null) return false;
+  if (visita.vendedorId === usuario.vendedorId) return true;
+  return atendimentoEhDele(usuario, visita.atendimentoId);
+}
+
+async function atendimentoEhDele(usuario: Usuario, atendimentoId: number) {
+  if (veFunilInteiro(usuario.papel)) return true;
+  const at = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, atendimentoId),
+    columns: { vendedorId: true },
+  });
+  return at != null && at.vendedorId === usuario.vendedorId;
+}
+
 const visitaSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   atendimentoId: z.coerce.number().int().positive(),
@@ -71,7 +100,11 @@ export async function salvarVisita(
   // Quem VAI na visita. O atendente marca a agenda dos outros: ele não é
   // responsável por visita nenhuma, então precisa dizer quem vai — cair no
   // "eu mesma" colocaria a visita no nome de quem não sai da mesa.
-  const responsavel = d.vendedorId ?? (ehAtendente ? null : usuario.vendedorId ?? null);
+  // Vendedor marca visita só para si: a lista de "quem vai" nem aparece para
+  // ele, e o servidor não aceita outro nome vindo por fora da tela.
+  const responsavel = veFunilInteiro(usuario.papel)
+    ? d.vendedorId ?? (ehAtendente ? null : usuario.vendedorId ?? null)
+    : usuario.vendedorId ?? null;
   if (responsavel == null && ehAtendente) {
     return { erro: "Escolha quem vai na visita." };
   }
@@ -84,7 +117,17 @@ export async function salvarVisita(
     vendedorId: responsavel,
   };
 
+  if (!(await atendimentoEhDele(usuario, d.atendimentoId))) {
+    return { erro: "Cliente não encontrado." };
+  }
+
   if (d.id) {
+    const atual = await db.query.visitas.findFirst({
+      where: eq(visitas.id, d.id),
+    });
+    if (!atual || !(await vendedorPodeMexer(usuario, atual))) {
+      return { erro: "Visita não encontrada." };
+    }
     await db.update(visitas).set(valores).where(eq(visitas.id, d.id));
   } else {
     await db.insert(visitas).values({
@@ -102,14 +145,16 @@ export async function mudarSituacaoVisita(
   visitaId: number,
   situacao: string
 ): Promise<{ erro?: string }> {
-  await exigirUsuario();
+  const usuario = await exigirUsuario();
   const id = z.coerce.number().int().positive().parse(visitaId);
   const nova = z
     .enum(["agendada", "confirmada", "realizada", "cancelada", "nao_compareceu"])
     .parse(situacao);
 
   const visita = await db.query.visitas.findFirst({ where: eq(visitas.id, id) });
-  if (!visita) return { erro: "Visita não encontrada" };
+  if (!visita || !(await vendedorPodeMexer(usuario, visita))) {
+    return { erro: "Visita não encontrada" };
+  }
 
   await db.update(visitas).set({ situacao: nova }).where(eq(visitas.id, id));
   revalidar(visita.atendimentoId);
@@ -117,9 +162,12 @@ export async function mudarSituacaoVisita(
 }
 
 export async function excluirVisita(visitaId: number) {
-  await exigirUsuario();
+  const usuario = await exigirUsuario();
   const id = z.coerce.number().int().positive().parse(visitaId);
   const visita = await db.query.visitas.findFirst({ where: eq(visitas.id, id) });
+  if (!visita || !(await vendedorPodeMexer(usuario, visita))) {
+    throw new Error("Visita não encontrada");
+  }
   await db.delete(visitas).where(eq(visitas.id, id));
   if (visita) revalidar(visita.atendimentoId);
 }

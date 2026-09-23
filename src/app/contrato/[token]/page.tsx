@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { eq } from "drizzle-orm";
+import { db } from "@/db";
 import { contratos } from "@/db/schema";
 import { EMPRESA, EMPRESA_CONTRATO } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
@@ -38,6 +39,25 @@ export default async function ContratoPublicoPage({
 
   const pdfUrl = `/contrato/${token}/pdf`;
 
+  // Contrato cancelado (ou trocado por versão nova) continua com link vivo — o
+  // cliente pode ter guardado a mensagem. Sem aviso, ele abria um documento
+  // que não vale mais como se valesse.
+  const cancelado = carregado.dados.status === "cancelado";
+  let substituido = false;
+  if (cancelado) {
+    const [atual] = await db
+      .select({ id: contratos.id })
+      .from(contratos)
+      .where(eq(contratos.publicToken, token));
+    const filho = atual
+      ? await db.query.contratos.findFirst({
+          where: eq(contratos.contratoPaiId, atual.id),
+          columns: { id: true },
+        })
+      : undefined;
+    substituido = !!filho;
+  }
+
   return (
     <main className="min-h-screen bg-muted/30 pb-10">
       <div className="sticky top-0 z-10 border-b bg-card print:hidden">
@@ -54,17 +74,58 @@ export default async function ContratoPublicoPage({
           />
           <div className="flex gap-2">
             <ImprimirContrato />
-            {/* download no <a>: baixa o arquivo em vez de abrir o visualizador */}
-            <a
-              href={`${pdfUrl}?download=1`}
-              download
-              className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Baixar PDF
-            </a>
+            {/* download no <a>: baixa o arquivo em vez de abrir o visualizador.
+                Cancelado não oferece PDF: arquivo baixado circula sem a faixa
+                que avisa que ele não vale mais. */}
+            {!cancelado && (
+              <a
+                href={`${pdfUrl}?download=1`}
+                download
+                className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Baixar PDF
+              </a>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Fora da barra de propósito: a barra some na impressão, a faixa não —
+          o papel impresso também precisa dizer que o contrato não vale. */}
+      {cancelado && (
+        // Na impressão o navegador costuma descartar o fundo: sem o
+        // print:text-red-700 o texto branco sumiria no papel.
+        <div className="border-b border-red-300 bg-red-600 text-white print:border-2 print:border-red-700 print:bg-transparent print:text-red-700">
+          <div className="mx-auto max-w-3xl space-y-1 px-4 py-3 text-sm">
+            <p className="font-semibold">
+              {substituido
+                ? "Este contrato foi substituído por uma versão mais nova e não vale mais."
+                : "Este contrato foi cancelado e não vale mais."}
+            </p>
+            <p>
+              {substituido
+                ? "Peça o link da versão atual para a gente"
+                : "Em caso de dúvida, fale com a gente"}{" "}
+              pelo WhatsApp{" "}
+              <a
+                href={linkWhatsApp(
+                  EMPRESA.whatsapp,
+                  carregado.dados.numero
+                    ? `Olá! Abri o contrato ${carregado.dados.numero} e ele aparece como cancelado.`
+                    : "Olá! Abri um contrato que aparece como cancelado."
+                )}
+                target="_blank"
+                rel="noopener"
+                className="whitespace-nowrap font-semibold underline"
+              >
+                {EMPRESA.whatsapp}
+              </a>{" "}
+              ou pelo fixo{" "}
+              <span className="whitespace-nowrap">{EMPRESA.telefoneFixo}</span>.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-3xl px-4 py-5">
         <div className="rounded-lg border bg-card p-4 sm:p-6">

@@ -824,9 +824,8 @@ mostra a ficha na tela, igualzinha ao papel, com as quatro ações em cima.
 - `ficha-ordem.tsx` — o desenho em HTML, **um só**, usado pela tela de ver e
   pela de imprimir. Eram duas cópias; ficha copiada é ficha que um dia ganha
   campo só de um lado.
-- `ficha-dados.ts` — `fichaPermitida(id)` concentra a regra de quem pode ver
-  (vendedor só alcança a ficha dos próprios clientes). Estava repetida em cada
-  tela, e cada tela nova era uma chance de esquecer.
+- `ficha-dados.ts` — `fichaPermitida(id)` aplica `vendedorVeChamado` (a
+  mesma regra da lista e da tela do chamado — ver "Auditoria de usabilidade").
 - `acoes-ordem.tsx` — Imprimir · Ver PDF · Baixar PDF · **Compartilhar**.
   - **Compartilhar manda o ARQUIVO, não o link**: o link só abre para quem tem
     login, e quem recebe a ficha é o instalador, que não tem.
@@ -839,6 +838,83 @@ mostra a ficha na tela, igualzinha ao papel, com as quatro ações em cima.
   do PDF e o botão de compartilhar — o nome do arquivo é o mesmo nos dois.
 - Na tela do chamado: **Ver ficha** (a porta de tudo) e **Imprimir ficha** (o
   caminho de todo dia). "Baixar PDF" saiu de lá — agora mora dentro da ficha.
+
+## Auditoria de usabilidade (23/09/2026)
+
+Quatro auditores (dia a dia · obra e pós-venda · cadastros e páginas públicas ·
+navegação/celular/textos) e três corretores. Relatório local em
+`AUDITORIA/[C] relatorio.md` (fora do git). O que virou regra da casa:
+
+### Card inteiro abre o registro — `components/shared/item-clicavel.tsx`
+
+Pedido da Letícia: clicar em QUALQUER ponto do card/linha abre, em toda lista
+com tela de detalhe. `LinhaClicavel` (tabela) e `CartaoClicavel` (`<li>`/div).
+
+- **Não abre** quando o clique é em botão, link, campo, seletor ou área com
+  `data-nao-abrir`, nem quando se arrastou para selecionar texto.
+- **Clique vindo de PORTAL não abre.** A lista do seletor de fase, um menu ou
+  uma confirmação ficam fora do card na página, mas o evento do React sobe
+  pela árvore até ele. Sem o `currentTarget.contains(target)`, escolher uma
+  fase na linha abria o atendimento junto.
+- `href` nulo = item comum, sem mãozinha (tarefa sem cliente).
+- Ctrl/⌘+clique e botão do meio abrem em aba nova.
+- O link verde do nome continua: é o caminho do teclado.
+- `orcamentos/linha-clicavel.tsx` morreu; tudo importa do compartilhado.
+
+### Uma regra de visibilidade do chamado — `vendedorVeChamado` (`lib/chamados.ts`)
+
+Vendedor vê o chamado se é o responsável, se não há responsável, ou se o
+cliente é dele. **A tela `/chamados/[id]` não tinha checagem nenhuma** — dava
+para abrir o chamado alheio pela URL. Lista, tela, ficha e PDF usam a mesma
+função agora, com teste.
+
+### Visitas: o servidor confere o dono
+
+`salvarVisita`, `mudarSituacaoVisita` e `excluirVisita` aceitavam qualquer id.
+Agora vendedor só mexe em visita dele ou de cliente dele, e só marca visita
+para si. Gestor e atendente passam direto.
+
+### Alvo de toque no celular — nos componentes base
+
+`button.tsx`, `input.tsx`, `select.tsx` e `dropdown-menu.tsx` crescem **só
+abaixo de `md`** (40px no botão padrão/ícone, 36px no `sm`, itens de menu com
+`py-2`). No computador tudo ficou igual. Quem precisar de altura fixa nos dois
+tamanhos repete a classe com `md:` (ex.: `h-9 md:h-9`), senão o `md:h-8` da
+base ganha no desktop.
+
+### Outras que valem lembrar
+
+- **`src/app/error.tsx`** — erro inesperado em português, com "Tentar de novo",
+  "Voltar ao início" e o `digest` para casar com o log. Antes aparecia a tela
+  do Next em inglês.
+- **Salvar plano de pagamento gravava sem `percentual`** — contrato com opções
+  A/B perdia os percentuais e a emissão recusava. Corrigido em
+  `salvarPlanoPagamento`.
+- **"Nova versão" do contrato** copia multa da contratada, teto e diária de
+  paralisação (antes voltavam ao padrão do banco).
+- **Cotação pública**: validar ANTES de apagar as respostas antigas — enviar
+  vazio apagava a cotação que o fornecedor já tinha mandado.
+- **Link público inválido** (pesquisa, cotação) mostra contato da empresa; o
+  404 genérico mandava o cliente para o login. PDF público com token errado
+  redireciona para a página HTML em vez de devolver JSON.
+- **Tutorial**: marca como visto ao ABRIR (sair no meio fazia recomeçar), Esc
+  pula, e nenhum passo aponta para `data-tour` que não existe. O "Mais" do
+  desktop ganhou `data-tour="gestor"`, igual ao do celular.
+- **Perfil continua fora do grupo `(app)` de propósito**: o layout do grupo
+  manda cadastro incompleto para `/perfil` — dentro do grupo seria laço.
+- **Croqui da ficha de instalação** é SVG, não fundo em CSS: fundo em CSS saía
+  cinza chapado na impressão (rasterizado em baixa resolução) e sumia com
+  "imprimir fundos" desligado.
+- **`eslint.config.mjs` ignora `.next-*/**`**: build de conferência com
+  `NEXT_DIST_DIR` enchia o lint de milhares de erros.
+
+### Ficou para decisão da Letícia (não mexido)
+
+- Vendedor sem envio automático (todos menos o João) não tem como marcar o
+  orçamento como "enviado" — manda pelo WhatsApp e o funil não anda.
+- Endereço e número continuam obrigatórios no cadastro interno de cliente.
+- PDF de contrato cancelado, aberto pelo link direto, não traz marca de
+  cancelado (a página HTML traz).
 
 ## A lista de contratos foi absorvida pela de orçamentos (27/08/2026)
 

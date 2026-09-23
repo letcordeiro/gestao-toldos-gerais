@@ -143,7 +143,7 @@ export function TarefaDialog({
                 defaultValue={tarefa?.responsavelId ?? ""}
                 className={SELECT_CLASSES}
               >
-                <option value="">Eu mesma</option>
+                <option value="">Para mim</option>
                 {responsaveis.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.nome}

@@ -86,6 +86,19 @@ export default async function ModelosPage({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* Tabela vazia sem texto parece tela quebrada; a frase diz o próximo passo. */}
+            {linhas.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {ehGestor
+                    ? "Nenhum modelo cadastrado. Clique em “Novo modelo” para cadastrar o primeiro."
+                    : "Nenhum modelo cadastrado ainda. Peça ao gestor para cadastrar."}
+                </TableCell>
+              </TableRow>
+            )}
             {linhas.map((modelo) => (
               <TableRow
                 key={modelo.id}

@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatarCentavos } from "@/lib/format";
-import { LinhaClicavel } from "./linha-clicavel";
+import { LinhaClicavel } from "@/components/shared/item-clicavel";
 import { CelulaContrato } from "./celula-contrato";
 
 export const metadata = { title: "Orçamentos" };

@@ -86,7 +86,7 @@ export async function criarAtendimento(
   const faseInicial = await db.query.fases.findFirst({
     orderBy: asc(fases.ordem),
   });
-  if (!faseInicial) return { erro: "Nenhuma fase cadastrada — rode o seed" };
+  if (!faseInicial) return { erro: "Nenhuma fase cadastrada ainda. Cadastre em Mais → Fases." };
 
   let clienteId = dados.clienteId;
   if (!clienteId) {

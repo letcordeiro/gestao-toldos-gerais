@@ -1,3 +1,4 @@
+import { LinhaClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { asc, like, or } from "drizzle-orm";
 import { format } from "date-fns";
@@ -152,8 +153,9 @@ export default async function ClientesPage({
               </TableRow>
             )}
             {linhas.map((cliente) => (
-              <TableRow
+              <LinhaClicavel
                 key={cliente.id}
+                href={`/cadastros/clientes/${cliente.id}`}
                 className={cliente.ativo ? "" : "bg-muted/40 opacity-60"}
               >
                 <TableCell className="font-medium">
@@ -208,7 +210,7 @@ export default async function ClientesPage({
                     nome={cliente.nome}
                   />
                 </TableCell>
-              </TableRow>
+              </LinhaClicavel>
             ))}
           </TableBody>
         </Table>

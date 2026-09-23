@@ -45,6 +45,10 @@ export function RedefinirSenhaDialog({
   const [aberto, setAberto] = useState(false);
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  // "Remover acesso" tirava o login no primeiro clique, ao lado do "Salvar
+  // senha". A confirmação fica DENTRO deste diálogo (e não num AlertDialog por
+  // cima) para não empilhar dois diálogos com fundo e foco próprios.
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
   // Estado próprio em vez de useTransition: a action chama revalidatePath da
   // rota aberta e o setState de dentro do startTransition não chegava a valer —
   // o diálogo ficava aberto com a senha já gravada. Mesma armadilha anotada no
@@ -62,6 +66,9 @@ export function RedefinirSenhaDialog({
       }
       setAberto(false);
       setSenha("");
+      // Fechar por código não passa pelo onOpenChange: sem isto o diálogo
+      // reabria já na pergunta de remoção.
+      setConfirmandoRemocao(false);
       router.refresh();
       toast.success(
         valor ? `Senha de ${nome} redefinida` : `Acesso de ${nome} removido`
@@ -81,6 +88,7 @@ export function RedefinirSenhaDialog({
         if (!v) {
           setSenha("");
           setErro(null);
+          setConfirmandoRemocao(false);
         }
       }}
     >
@@ -150,26 +158,56 @@ export function RedefinirSenhaDialog({
 
             {erro && <p className="text-sm text-destructive">{erro}</p>}
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={pending || senha.trim().length < 6}
-                onClick={() => salvar(senha.trim())}
-              >
-                {pending ? "Salvando…" : "Salvar senha"}
-              </Button>
-              {temAcesso && (
+            {confirmandoRemocao ? (
+              <div className="space-y-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                <p className="text-sm font-medium">
+                  Remover o acesso de {nome}? Ele não vai mais conseguir entrar.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="flex-1"
+                    disabled={pending}
+                    onClick={() => salvar("")}
+                  >
+                    {pending ? "Removendo…" : "Remover acesso"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => setConfirmandoRemocao(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => salvar("")}
+                  className="flex-1"
+                  disabled={pending || senha.trim().length < 6}
+                  onClick={() => salvar(senha.trim())}
                 >
-                  Remover acesso
+                  {pending ? "Salvando…" : "Salvar senha"}
                 </Button>
-              )}
-            </div>
+                {temAcesso && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => {
+                      setErro(null);
+                      setConfirmandoRemocao(true);
+                    }}
+                  >
+                    Remover acesso
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

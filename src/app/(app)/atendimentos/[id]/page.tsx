@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -24,7 +26,7 @@ import {
 import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
-import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
 import { buscarTarefas } from "@/lib/tarefas-consulta";
 import { canais, chamados, motivosPerda } from "@/db/schema";
 import {
@@ -239,12 +241,18 @@ export default async function AtendimentoPage({
             irParaChamado
             trigger={<Button variant="outline">Abrir chamado</Button>}
           />
-          <Button
-            nativeButton={false}
-            render={<Link href={`/orcamentos/novo?atendimento=${atendimento.id}`} />}
-          >
-            Novo orçamento
-          </Button>
+          {/* Atendente não cria orçamento (exigirComercial a devolveria para a
+              lista sem explicar): o botão só aparece para quem pode usá-lo. */}
+          {podeComercial(usuario.papel) && (
+            <Button
+              nativeButton={false}
+              render={
+                <Link href={`/orcamentos/novo?atendimento=${atendimento.id}`} />
+              }
+            >
+              Novo orçamento
+            </Button>
+          )}
         </div>
       </div>
 
@@ -294,8 +302,18 @@ export default async function AtendimentoPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
+          {/* A ficha do cliente junta os atendimentos e orçamentos dele; sem este
+              link, o único caminho até lá era pelo menu Mais → Clientes. */}
           <CardHeader>
             <CardTitle className="text-base">Cliente</CardTitle>
+            <CardAction>
+              <Link
+                href={`/cadastros/clientes/${cliente.id}`}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Ficha do cliente →
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="flex items-center gap-2">
@@ -385,11 +403,12 @@ export default async function AtendimentoPage({
                 Nenhum orçamento para este atendimento.
               </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-0.5">
                 {orcamentosDoAtendimento.map((orc) => (
-                  <li
+                  <CartaoClicavel
                     key={orc.id}
-                    className="flex items-center justify-between text-sm"
+                    href={`/orcamentos/${orc.id}`}
+                    className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-sm"
                   >
                     <Link
                       href={`/orcamentos/${orc.id}`}
@@ -403,7 +422,7 @@ export default async function AtendimentoPage({
                         {STATUS_LABEL[orc.status]}
                       </Badge>
                     </span>
-                  </li>
+                  </CartaoClicavel>
                 ))}
               </ul>
             )}
@@ -430,11 +449,12 @@ export default async function AtendimentoPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
+              <ul className="space-y-0.5">
                 {chamadosDoAtendimento.map((c) => (
-                  <li
+                  <CartaoClicavel
                     key={c.id}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    href={`/chamados/${c.id}`}
+                    className="-mx-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm"
                   >
                     <Link
                       href={`/chamados/${c.id}`}
@@ -454,7 +474,7 @@ export default async function AtendimentoPage({
                       {" · "}
                       {format(c.criadoEm, "dd/MM/yyyy")}
                     </span>
-                  </li>
+                  </CartaoClicavel>
                 ))}
               </ul>
             </CardContent>

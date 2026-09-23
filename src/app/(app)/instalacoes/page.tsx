@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -53,7 +54,9 @@ export default async function InstalacoesPage({
             prazo é a previsão de entrega da ficha de instalação.
           </p>
         </div>
-        {veTudo && (
+        {/* Só gestor: a tela de comissões exige gestor e devolvia a
+            atendente para o Painel sem explicação. */}
+        {usuario.papel === "gestor" && (
           <Button
             variant="outline"
             nativeButton={false}
@@ -176,7 +179,7 @@ export default async function InstalacoesPage({
 function Linha({ inst, veTudo }: { inst: Instalacao; veTudo: boolean }) {
   const atrasada = inst.gaveta === "atrasada";
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 p-3">
+    <CartaoClicavel href={`/orcamentos/${inst.orcamentoId}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
       <div className="min-w-0">
         <p className="font-medium">
           <Link
@@ -248,6 +251,6 @@ function Linha({ inst, veTudo }: { inst: Instalacao; veTudo: boolean }) {
           WhatsApp
         </Button>
       </div>
-    </li>
+    </CartaoClicavel>
   );
 }

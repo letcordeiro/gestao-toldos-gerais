@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { rotaAtiva } from "./rota-ativa";
 
 type Item = { href: string; label: string; icon?: string };
 
@@ -12,7 +13,7 @@ export function NavLinks({ itens }: { itens: Item[] }) {
   return (
     <>
       {itens.map((item) => {
-        const ativo = path === item.href || path.startsWith(`${item.href}/`);
+        const ativo = rotaAtiva(path, item.href);
         return (
           <Link
             key={item.href}

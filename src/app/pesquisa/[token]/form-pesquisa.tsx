@@ -73,7 +73,15 @@ export function FormPesquisa({
             );
           })}
         </div>
-        <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
+        {/* No celular as 11 notas não cabem numa linha sem o botão ficar abaixo
+            de ~32px (a grade quebra em 0–5 e 6–10), e o rótulo "Não indicaria"
+            caía embaixo do 6 — parecia dizer que 6 é a pior nota. Ali a
+            legenda diz o número por extenso; rótulo nas pontas só vale quando
+            a linha é uma só. */}
+        <p className="mt-1.5 text-xs text-muted-foreground sm:hidden">
+          0 = não indicaria · 10 = indicaria com certeza
+        </p>
+        <div className="mt-1.5 hidden justify-between text-xs text-muted-foreground sm:flex">
           <span>Não indicaria</span>
           <span>Indicaria com certeza</span>
         </div>

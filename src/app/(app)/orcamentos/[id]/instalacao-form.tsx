@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -109,8 +109,14 @@ export function InstalacaoForm({
   const [tipoEscada, setTipoEscada] = useState(dados.tipoEscada);
   const [estac, setEstac] = useState(dados.condEstacionamento);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   useEffect(() => {
-    if (state.ok) toast.success("Ficha de instalação salva");
+    if (!state.ok) return;
+    toast.success("Ficha de instalação salva");
+    // Avisa as ações do topo (AcoesFicha) que o que está na tela já é o que
+    // vai sair impresso — elas travam Imprimir/PDF enquanto houver alteração.
+    formRef.current?.dispatchEvent(new Event("ficha-salva"));
   }, [state]);
 
   function alterar(i: number, chave: keyof LinhaInstalacao, valor: string) {
@@ -120,7 +126,12 @@ export function InstalacaoForm({
   }
 
   return (
-    <form id="form-ficha" action={formAction} className="space-y-4">
+    <form
+      ref={formRef}
+      id="form-ficha"
+      action={formAction}
+      className="space-y-4"
+    >
       <input type="hidden" name="orcamentoId" value={orcamentoId} />
       <input type="hidden" name="itens" value={JSON.stringify(linhas)} />
 

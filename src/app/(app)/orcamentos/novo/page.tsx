@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -51,8 +52,20 @@ export default async function NovoOrcamentoPage({
   // Se quem está logado é um vendedor, ele já vem como responsável
   const vendedorLogado = await vendedorDaSessao();
 
+  const voltaAtendimento = Number.isInteger(Number(atendimento)) && Number(atendimento) > 0
+    ? Number(atendimento)
+    : null;
+
   return (
     <div className="mx-auto max-w-3xl space-y-4">
+      {/* Única tela filha que não tinha volta. Vindo de um atendimento, volta
+          para ele — é de lá que a pessoa desistiu. */}
+      <Link
+        href={voltaAtendimento ? `/atendimentos/${voltaAtendimento}` : "/orcamentos"}
+        className="text-sm text-muted-foreground hover:underline"
+      >
+        {voltaAtendimento ? "← Atendimento" : "← Orçamentos"}
+      </Link>
       <h1 className="text-2xl font-semibold tracking-tight">Novo orçamento</h1>
       <OrcamentoForm
         atendimentos={listaAtendimentos}

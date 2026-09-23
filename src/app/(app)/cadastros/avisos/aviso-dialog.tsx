@@ -73,6 +73,7 @@ export function AvisoDialog({
               name="nome"
               defaultValue={aviso?.nome}
               placeholder="Ex.: Cobrar retorno do orçamento"
+              required
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -107,6 +108,7 @@ export function AvisoDialog({
                 min={0}
                 max={365}
                 defaultValue={aviso?.dias ?? 3}
+                required
               />
             </div>
           </div>
@@ -118,6 +120,7 @@ export function AvisoDialog({
               rows={6}
               defaultValue={aviso?.mensagem}
               placeholder="Olá, {cliente}! …"
+              required
             />
             <p className="text-xs text-muted-foreground">
               Variáveis:{" "}

@@ -30,8 +30,16 @@ export function LinkCadastroVendedor({ token }: { token: string }) {
         <Button
           variant="secondary"
           onClick={async () => {
-            await navigator.clipboard.writeText(url);
-            toast.success("Link copiado");
+            // A área de transferência falha sem HTTPS, sem permissão ou em
+            // navegador embutido; sem o catch o clique não dava sinal nenhum.
+            try {
+              await navigator.clipboard.writeText(url);
+              toast.success("Link copiado");
+            } catch {
+              toast.error(
+                "Não deu para copiar — selecione o link e copie à mão."
+              );
+            }
           }}
         >
           Copiar

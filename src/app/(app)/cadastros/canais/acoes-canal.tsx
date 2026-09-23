@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarCanal, excluirCanal } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoCanalSwitch({ id, ativo }: { id: number; ativo: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -19,22 +18,12 @@ export function AtivoCanalSwitch({ id, ativo }: { id: number; ativo: boolean }) 
 }
 
 export function ExcluirCanalButton({ id, nome }: { id: number; nome: string }) {
-  const [pending, startTransition] = useTransition();
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          const r = await excluirCanal(id);
-          if (r.erro) toast.error(r.erro);
-          else toast.success(`“${nome}” excluído`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir o canal “${nome}”?`}
+      descricao="Essa ação não pode ser desfeita. Canal que já foi usado em atendimento não pode ser excluído — nesse caso, desative."
+      excluir={() => excluirCanal(id)}
+      sucesso={`“${nome}” excluído`}
+    />
   );
 }

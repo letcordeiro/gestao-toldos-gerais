@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { avaliarGarantia, descricaoServico, linhasDaFicha } from "./chamados";
+import {
+  avaliarGarantia,
+  descricaoServico,
+  linhasDaFicha,
+  vendedorVeChamado,
+} from "./chamados";
 
 const HOJE = new Date(2026, 7, 27); // 27/08/2026
 
@@ -98,4 +103,19 @@ test("quebra de linha e espaço repetido viram um espaço só", () => {
   assert.deepEqual(linhasDaFicha("goteira\n\n  na   emenda", 1), [
     "goteira na emenda",
   ]);
+});
+
+test("vendedor vê o chamado dele, o sem dono e o do cliente dele — e só", () => {
+  const joao = 2;
+  const outro = 3;
+  // responsável é ele
+  assert.ok(vendedorVeChamado({ responsavelId: joao, vendedorDoAtendimentoId: outro }, joao));
+  // ninguém pegou ainda: fica visível, senão vira órfão
+  assert.ok(vendedorVeChamado({ responsavelId: null, vendedorDoAtendimentoId: outro }, joao));
+  // o cliente é dele, mesmo com outra pessoa cuidando
+  assert.ok(vendedorVeChamado({ responsavelId: outro, vendedorDoAtendimentoId: joao }, joao));
+  // de outro vendedor, cliente de outro vendedor: não vê
+  assert.ok(!vendedorVeChamado({ responsavelId: outro, vendedorDoAtendimentoId: outro }, joao));
+  // usuário sem cadastro de vendedor não passa por esta regra
+  assert.ok(!vendedorVeChamado({ responsavelId: null, vendedorDoAtendimentoId: null }, null));
 });

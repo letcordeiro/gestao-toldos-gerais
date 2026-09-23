@@ -112,10 +112,11 @@ export function BuscaTelas({ telas }: { telas: Tela[] }) {
         data-tour="busca"
         className={cn(
           "flex items-center gap-2 rounded-full text-muted-foreground transition-colors",
-          "size-8 justify-center hover:bg-secondary hover:text-foreground",
+          // No celular a lupa tem alvo de dedo (40px); no desktop vira campo.
+          "size-10 justify-center hover:bg-secondary hover:text-foreground",
           // No desktop vira um campo de busca de mentira: quem vê um campo
           // sabe que pode digitar; quem vê só uma lupa precisa adivinhar.
-          "md:h-8 md:w-44 md:justify-start md:border md:bg-background md:px-3 md:text-sm md:hover:border-ring"
+          "md:size-auto md:h-8 md:w-44 md:justify-start md:border md:bg-background md:px-3 md:text-sm md:hover:border-ring"
         )}
       >
         <Search className="size-4 shrink-0" />
@@ -164,6 +165,15 @@ export function BuscaTelas({ telas }: { telas: Tela[] }) {
               }
               className="h-11 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
             />
+            {/* No celular não existe Esc: sem isto a única saída era adivinhar
+                que dava para tocar fora da caixa. */}
+            <button
+              type="button"
+              onClick={() => setAberto(false)}
+              className="shrink-0 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:hidden"
+            >
+              Cancelar
+            </button>
           </div>
 
           <div

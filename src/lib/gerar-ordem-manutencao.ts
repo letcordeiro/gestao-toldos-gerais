@@ -37,8 +37,10 @@ export function nomeArquivoOrdem(clienteNome: string): string {
 
 export type OrdemGerada = {
   clienteNome: string;
-  /** Dono do atendimento — a rota usa para barrar vendedor de outro cliente. */
+  /** Dono do atendimento e quem cuida do chamado — a rota usa os dois em
+   *  `vendedorVeChamado` para barrar vendedor de chamado alheio. */
   vendedorId: number | null;
+  responsavelId: number | null;
   buffer: Buffer;
 };
 
@@ -56,6 +58,8 @@ const data = (d: Date | null | undefined) =>
 export type OrdemCarregada = {
   clienteNome: string;
   vendedorId: number | null;
+  /** Quem cuida do chamado — entra em `vendedorVeChamado`. */
+  responsavelId: number | null;
   dados: DadosOrdemManutencao;
 };
 
@@ -118,7 +122,12 @@ export async function dadosDaOrdem(
     logoDataUri: `data:image/png;base64,${logo.toString("base64")}`,
   };
 
-  return { clienteNome: cliente.nome, vendedorId: linha.vendedorId, dados };
+  return {
+    clienteNome: cliente.nome,
+    vendedorId: linha.vendedorId,
+    responsavelId: chamado.responsavelId,
+    dados,
+  };
 }
 
 /** A ficha em PDF — para salvar e mandar. */
@@ -136,6 +145,7 @@ export async function gerarOrdemManutencao(
   return {
     clienteNome: carregada.clienteNome,
     vendedorId: carregada.vendedorId,
+    responsavelId: carregada.responsavelId,
     buffer,
   };
 }

@@ -20,12 +20,25 @@ const OPCOES = [
   { value: "recusado", label: "Recusado" },
 ];
 
+// "Enviando" e "Enviado" só o worker grava, depois que a Evolution confirma o
+// envio; "Aguardando envio" depende do vendedor ter envio automático e de o
+// orçamento nunca ter saído. O servidor ignora essas escolhas em silêncio, então
+// oferecê-las fazia o seletor piscar e voltar sem explicar nada.
+function opcaoBloqueada(valor: string, podeAgendar: boolean) {
+  if (valor === "enviado" || valor === "enviando") return true;
+  if (valor === "agendado") return !podeAgendar;
+  return false;
+}
+
 export function StatusSelect({
   orcamentoId,
   status,
+  podeAgendar,
 }: {
   orcamentoId: number;
   status: string;
+  /** Mesma regra de `mudarStatusOrcamento`: envio automático liberado e sem `enviadoEm`. */
+  podeAgendar: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -45,7 +58,15 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent>
         {OPCOES.map((opcao) => (
-          <SelectItem key={opcao.value} value={opcao.value}>
+          <SelectItem
+            key={opcao.value}
+            value={opcao.value}
+            // O status atual continua escolhível, senão o seletor não teria o
+            // que mostrar quando o orçamento está, por exemplo, "Enviado".
+            disabled={
+              opcao.value !== status && opcaoBloqueada(opcao.value, podeAgendar)
+            }
+          >
             {opcao.label}
           </SelectItem>
         ))}

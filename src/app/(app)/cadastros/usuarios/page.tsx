@@ -98,7 +98,7 @@ export default async function UsuariosPage({
                   colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhum vendedor cadastrado.
+                  Nenhum usuário cadastrado.
                 </TableCell>
               </TableRow>
             )}

@@ -43,11 +43,6 @@ export async function responderCotacao(
     .from(cotacaoItens)
     .where(eq(cotacaoItens.cotacaoId, cotacao.id));
 
-  // Regrava tudo: responder de novo corrige um preço digitado errado.
-  await db
-    .delete(cotacaoRespostas)
-    .where(eq(cotacaoRespostas.cotacaoFornecedorId, convite.id));
-
   const linhas = itens.map((item) => {
     const bruto = String(formData.get(`item-${item.id}`) ?? "").trim();
     const centavos = bruto ? parseParaCentavos(bruto) : null;
@@ -59,12 +54,19 @@ export async function responderCotacao(
       valorUnitario: centavos != null && centavos > 0 ? centavos : null,
     };
   });
-  if (linhas.length > 0) await db.insert(cotacaoRespostas).values(linhas);
 
+  // Valida ANTES de apagar: quem reenviava o formulário vazio perdia a cotação
+  // que já tinha mandado, porque as respostas antigas saíam primeiro.
   const algumCotado = linhas.some((l) => l.valorUnitario != null);
   if (!algumCotado) {
     return { erro: "Preencha o preço de pelo menos um item." };
   }
+
+  // Regrava tudo: responder de novo corrige um preço digitado errado.
+  await db
+    .delete(cotacaoRespostas)
+    .where(eq(cotacaoRespostas.cotacaoFornecedorId, convite.id));
+  if (linhas.length > 0) await db.insert(cotacaoRespostas).values(linhas);
 
   await db
     .update(cotacaoFornecedores)

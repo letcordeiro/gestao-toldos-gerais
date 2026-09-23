@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { salvarOpcoesContrato } from "../actions";
+import { AvisoNaoSalvo } from "./itens-contrato";
 
 export type OpcaoPrecoForm = { rotulo: string; valor: number };
 
@@ -28,6 +29,9 @@ export function OpcoesPreco({
   editavel: boolean;
 }) {
   const [opcoes, setOpcoes] = useState<OpcaoPrecoForm[]>(opcoesIniciais);
+  // O que está gravado — é isso que a emissão e o plano de pagamento enxergam.
+  const [salvas, setSalvas] = useState<OpcaoPrecoForm[]>(opcoesIniciais);
+  const naoSalvo = JSON.stringify(opcoes) !== JSON.stringify(salvas);
   const [pending, startTransition] = useTransition();
 
   const alterar = (i: number, campo: keyof OpcaoPrecoForm, valor: unknown) => {
@@ -43,6 +47,7 @@ export function OpcoesPreco({
         toast.error(r.erro);
         return;
       }
+      setSalvas(proximas);
       toast.success(
         proximas.length === 0
           ? "Opções removidas — o contrato voltou ao valor fechado"
@@ -151,6 +156,7 @@ export function OpcoesPreco({
               Voltar ao valor fechado
             </Button>
           )}
+          {naoSalvo && <AvisoNaoSalvo />}
         </div>
       )}
 

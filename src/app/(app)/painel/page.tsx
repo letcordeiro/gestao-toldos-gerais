@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -21,7 +22,7 @@ import {
   perdasPorMotivo,
 } from "@/lib/metricas";
 import { buscarInstalacoes, contarPorGaveta } from "@/lib/instalacoes";
-import { SITUACOES_ABERTAS } from "@/lib/chamados";
+import { SITUACOES_ABERTAS, vendedorVeChamado } from "@/lib/chamados";
 import {
   Card,
   CardContent,
@@ -111,10 +112,21 @@ export default async function PainelPage() {
     : 0;
 
   // ---- Chamados abertos ----------------------------------------------------
-  const [{ nChamados }] = await db
-    .select({ nChamados: sql<number>`count(*)` })
+  // Mesmo recorte da lista /chamados: vendedor conta só o que é dele
+  // (`vendedorVeChamado`). Antes contava os da equipe inteira, e o cartão
+  // prometia um número que a lista, ao abrir, não mostrava.
+  const chamadosAbertos = await db
+    .select({
+      responsavelId: chamados.responsavelId,
+      vendedorDoAtendimentoId: atendimentos.vendedorId,
+    })
     .from(chamados)
+    .innerJoin(atendimentos, eq(chamados.atendimentoId, atendimentos.id))
     .where(inArray(chamados.situacao, SITUACOES_ABERTAS));
+  const nChamados = veTudo
+    ? chamadosAbertos.length
+    : chamadosAbertos.filter((c) => vendedorVeChamado(c, usuario.vendedorId))
+        .length;
 
   // ---- Métricas, perdas e esquecidos ---------------------------------------
   const metricas = await metricasDoFunil(escopoVendedorId);
@@ -137,6 +149,11 @@ export default async function PainelPage() {
         .orderBy(vendedores.nome)
     : [];
 
+  // Cada cartão abre a lista já no recorte do número, com os filtros que a
+  // lista já aceita pela URL — clicar em "Aprovados" e cair em tudo obrigava a
+  // filtrar de novo. "Em aberto" e "A cobrar retorno" não têm filtro próprio:
+  // a visão padrão de /atendimentos já esconde as fases fora da listagem e
+  // traz os avisos de cobrança no topo.
   const kpis = [
     {
       label: "Atendimentos em aberto",
@@ -147,13 +164,13 @@ export default async function PainelPage() {
       label: "Orçamentos aguardando",
       valor: String(enviados.n),
       sub: "enviados sem desfecho",
-      href: "/orcamentos",
+      href: "/orcamentos?status=enviado",
     },
     {
       label: "Aprovados",
       valor: String(aprovados.n),
       sub: formatarCentavos(aprovados.valor),
-      href: "/orcamentos",
+      href: "/orcamentos?status=aprovado",
     },
     {
       label: "Chamados abertos",
@@ -227,9 +244,10 @@ export default async function PainelPage() {
           ) : (
             <ul className="divide-y">
               {doDia.slice(0, 6).map((t) => (
-                <li
+                <CartaoClicavel
                   key={t.id}
-                  className="flex items-center justify-between gap-3 py-2 text-sm"
+                  href={t.atendimentoId ? `/atendimentos/${t.atendimentoId}` : null}
+                  className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm"
                 >
                   <span className="min-w-0">
                     <span className="block truncate font-medium">
@@ -260,7 +278,7 @@ export default async function PainelPage() {
                       Abrir
                     </Button>
                   )}
-                </li>
+                </CartaoClicavel>
               ))}
               {doDia.length > 6 && (
                 <li className="pt-2 text-xs text-muted-foreground">

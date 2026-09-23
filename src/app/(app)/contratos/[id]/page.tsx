@@ -208,6 +208,8 @@ export default async function ContratoPage({
       {ehComercial ? (
         <AcoesContrato
           contratoId={contrato.id}
+          numero={contrato.numero}
+          versao={contrato.versao}
           status={status}
           publicToken={contrato.publicToken}
           urlBase={base}
@@ -363,7 +365,10 @@ export default async function ContratoPage({
             </CardContent>
           </Card>
 
-          <Card>
+          {/* overflow-visible: o Card corta o que passa da borda, e isso
+              anulava o `sticky` do totalizador do plano — ele nunca grudava,
+              nem no computador. */}
+          <Card className="overflow-visible">
             <CardHeader>
               <CardTitle className="text-base">Plano de pagamento</CardTitle>
             </CardHeader>

@@ -80,6 +80,7 @@ export function GatilhoDialog({
               name="nome"
               defaultValue={gatilho?.nome}
               placeholder="Ex.: Follow-up do orçamento"
+              required
             />
           </div>
 
@@ -111,6 +112,7 @@ export function GatilhoDialog({
                   name="faseId"
                   defaultValue={gatilho?.faseId ?? ""}
                   className={SELECT_CLASSES}
+                  required
                 >
                   <option value="">Selecione…</option>
                   {fases.map((f) => (
@@ -134,6 +136,7 @@ export function GatilhoDialog({
                 name="tarefaTitulo"
                 defaultValue={gatilho?.tarefaTitulo}
                 placeholder="Ex.: Perguntar se o cliente viu a proposta"
+                required
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">

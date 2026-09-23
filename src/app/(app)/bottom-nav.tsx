@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { rotaAtiva } from "./rota-ativa";
 
 type Item = { href: string; label: string; curto?: string; icon: string };
 type Grupo = { label: string; curto?: string; icon: string; itens: Item[] };
@@ -51,8 +52,7 @@ export function BottomNav({
   const path = usePathname();
   const [aberto, setAberto] = useState(false);
 
-  const ativo = (href: string) =>
-    path === href || path.startsWith(`${href}/`);
+  const ativo = (href: string) => rotaAtiva(path, href);
   const grupoAtivo = grupo?.itens.some((i) => ativo(i.href)) ?? false;
 
   return (

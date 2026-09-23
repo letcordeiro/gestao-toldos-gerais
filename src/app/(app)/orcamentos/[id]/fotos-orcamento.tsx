@@ -62,7 +62,10 @@ export function FotosOrcamento({
                       toast.success("Foto removida");
                     })
                   }
-                  className="absolute right-1 top-1 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                  // Celular não tem hover: escondido até passar o mouse, o botão
+                  // simplesmente não existia para quem usa pelo telefone. Só o
+                  // desktop esconde, e o foco de teclado também revela.
+                  className="absolute right-1 top-1 inline-flex min-h-10 items-center rounded-md bg-black/60 px-3 text-sm font-medium text-white opacity-100 transition-opacity focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-white sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 disabled:opacity-50"
                 >
                   Remover
                 </button>

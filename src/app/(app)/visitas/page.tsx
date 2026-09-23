@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { asc, eq, gte, and, type SQL } from "drizzle-orm";
 import { format, isSameDay, startOfDay } from "date-fns";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/visitas";
 import { EMPRESA } from "@/lib/empresa";
 import { linkWhatsApp } from "@/lib/whatsapp";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SituacaoVisitaSelect, ExcluirVisitaButton } from "./acoes-visita";
 import { VisitaDialog } from "./visita-dialog";
@@ -52,6 +54,7 @@ export default async function VisitasPage({
       observacoes: visitas.observacoes,
       situacao: visitas.situacao,
       atendimentoId: visitas.atendimentoId,
+      vendedorId: visitas.vendedorId,
       clienteNome: clientes.nome,
       clienteTelefone: clientes.telefone,
       vendedorNome: vendedores.nome,
@@ -189,7 +192,7 @@ export default async function VisitasPage({
                   {dia.visitas.map((v) => {
                     const mapa = linkDoEndereco(v.endereco);
                     return (
-                      <li key={v.id} className="flex flex-wrap gap-3 p-3">
+                      <CartaoClicavel href={`/atendimentos/${v.atendimentoId}`} key={v.id} className="flex flex-wrap gap-3 p-3">
                         <div className="w-16 shrink-0">
                           <p className="font-semibold tabular-nums">
                             {format(v.inicioEm, "HH:mm")}
@@ -203,7 +206,7 @@ export default async function VisitasPage({
                           <p className="font-medium">
                             <Link
                               href={`/atendimentos/${v.atendimentoId}`}
-                              className="hover:underline"
+                              className="text-primary hover:underline"
                             >
                               {v.clienteNome}
                             </Link>
@@ -241,9 +244,13 @@ export default async function VisitasPage({
                           )}
                         </div>
 
-                        <div className="flex shrink-0 items-start gap-1.5">
+                        {/* No celular os alvos crescem para 40px e se afastam:
+                            seletor, WhatsApp, editar e lixeira ficavam colados
+                            em 28px, e o dedo acertava o vizinho. Ocupa a linha
+                            inteira e quebra, senão estoura a largura da tela. */}
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:items-start sm:gap-1.5">
                           <span
-                            className="mt-2 size-2 rounded-full"
+                            className="size-2 rounded-full sm:mt-2"
                             style={{
                               backgroundColor:
                                 SITUACAO_VISITA_COR[v.situacao],
@@ -257,6 +264,7 @@ export default async function VisitasPage({
                           <Button
                             size="sm"
                             variant="ghost"
+                            className="h-10 px-3 sm:h-7 sm:px-2.5"
                             nativeButton={false}
                             render={
                               <a
@@ -268,9 +276,40 @@ export default async function VisitasPage({
                           >
                             WhatsApp
                           </Button>
-                          <ExcluirVisitaButton visitaId={v.id} />
+                          {/* Mudar o horário é o caso comum; antes só dava
+                              para apagar e marcar de novo. */}
+                          <VisitaDialog
+                            visita={{
+                              id: v.id,
+                              inicioEm: v.inicioEm,
+                              duracaoMin: v.duracaoMin,
+                              endereco: v.endereco,
+                              observacoes: v.observacoes,
+                              vendedorId: v.vendedorId,
+                            }}
+                            atendimentoId={v.atendimentoId}
+                            responsaveis={listaResponsaveis}
+                            ehAtendente={usuario.papel === "atendente"}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Editar visita"
+                                title="Editar visita"
+                                className="size-10 sm:size-7"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                            }
+                          />
+                          <ExcluirVisitaButton
+                            visitaId={v.id}
+                            clienteNome={v.clienteNome}
+                            data={format(v.inicioEm, "dd/MM/yyyy")}
+                            hora={format(v.inicioEm, "HH:mm")}
+                          />
                         </div>
-                      </li>
+                      </CartaoClicavel>
                     );
                   })}
                 </ul>

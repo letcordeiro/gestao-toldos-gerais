@@ -80,6 +80,9 @@ export async function salvarCliente(
 
   revalidatePath("/cadastros/clientes");
   revalidatePath("/atendimentos");
+  // A ficha do cliente também tem "Editar": sem isto ela continuava mostrando
+  // o telefone antigo depois de salvar.
+  if (dados.id) revalidatePath(`/cadastros/clientes/${dados.id}`);
   return { ok: true };
 }
 

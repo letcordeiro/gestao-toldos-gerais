@@ -130,8 +130,25 @@ export function VisitaDialog({
       .catch(() => {});
   }, [aberto, visita, alvo]);
 
+  // Em edição, cada abertura parte do que está gravado. O diálogo mora na
+  // linha da lista e não desmonta ao fechar: sem isto, um horário mexido e
+  // cancelado voltava na próxima abertura como se tivesse valido.
+  const abrirOuFechar = (open: boolean) => {
+    if (open && visita) {
+      setInicio(paraInput(visita.inicioEm));
+      setDuracao(String(visita.duracaoMin));
+      setQuemVai(String(visita.vendedorId ?? ""));
+      setEndereco(visita.endereco ?? "");
+    }
+    setAberto(open);
+  };
+
+  // Sem cliente não há o que salvar; o botão fica travado, mas precisa dizer
+  // por quê — botão cinza sem explicação parece defeito.
+  const faltaCliente = alvo == null;
+
   return (
-    <Dialog open={aberto} onOpenChange={setAberto}>
+    <Dialog open={aberto} onOpenChange={abrirOuFechar}>
       <DialogTrigger render={trigger} />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -221,13 +238,22 @@ export function VisitaDialog({
                 className={SELECT}
               >
                 <option value="">
-                  {ehAtendente ? "Selecione…" : "Eu mesma"}
+                  {ehAtendente ? "Selecione…" : "Para mim"}
                 </option>
                 {responsaveis.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.nome}
                   </option>
                 ))}
+                {/* Visita de alguém que foi desativado: sem esta opção o
+                    seletor caía em "Para mim" e, ao salvar, a visita trocava
+                    de responsável sem ninguém pedir. */}
+                {visita?.vendedorId != null &&
+                  !responsaveis.some((r) => r.id === visita.vendedorId) && (
+                    <option value={visita.vendedorId}>
+                      Responsável atual (desativado)
+                    </option>
+                  )}
               </select>
             </div>
           )}
@@ -249,10 +275,15 @@ export function VisitaDialog({
             <Button type="button" variant="outline" onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending || alvo == null}>
+            <Button type="submit" disabled={pending || faltaCliente}>
               {pending ? "Salvando…" : "Salvar"}
             </Button>
           </div>
+          {faltaCliente && (
+            <p className="text-right text-xs text-muted-foreground">
+              Escolha o cliente para poder salvar.
+            </p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

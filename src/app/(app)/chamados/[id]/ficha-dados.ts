@@ -1,13 +1,14 @@
 import "server-only";
 import { usuarioAtual } from "@/lib/auth";
+import { vendedorVeChamado } from "@/lib/chamados";
 import { dadosDaOrdem, type OrdemCarregada } from "@/lib/gerar-ordem-manutencao";
 
 /**
  * Carrega a ficha SE quem pediu pode vê-la.
  *
- * A regra — vendedor só alcança a ficha dos próprios clientes — vale para ver,
- * imprimir e baixar. Estava escrita igual em cada tela; uma tela nova era uma
- * chance de esquecer. Aqui é uma linha só, no mesmo lugar.
+ * A regra de quem vê é `vendedorVeChamado` — a mesma da lista e da tela do
+ * chamado. Estava escrita em cada tela, e cada tela nova era uma chance de
+ * esquecer (a tela do chamado esqueceu).
  */
 export async function fichaPermitida(
   chamadoId: number
@@ -19,7 +20,13 @@ export async function fichaPermitida(
   if (!carregada) return null;
   if (
     usuario.papel === "vendedor" &&
-    carregada.vendedorId !== usuario.vendedorId
+    !vendedorVeChamado(
+      {
+        responsavelId: carregada.responsavelId,
+        vendedorDoAtendimentoId: carregada.vendedorId,
+      },
+      usuario.vendedorId
+    )
   ) {
     return null;
   }

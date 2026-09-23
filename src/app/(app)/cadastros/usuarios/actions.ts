@@ -34,7 +34,7 @@ const vendedorSchema = z
     path: ["senha"],
   })
   .refine((d) => !d.senha || (d.email && d.email.length > 0), {
-    message: "Para dar acesso ao vendedor, informe o e-mail dele",
+    message: "Para dar acesso ao usuário, informe o e-mail dele",
     path: ["senha"],
   });
 
@@ -125,11 +125,18 @@ export async function redefinirSenhaUsuario(
   return { ok: true };
 }
 
-export async function alternarAtivoVendedor(id: number, ativo: boolean) {
-  await exigirGestor();
-  await db
-    .update(vendedores)
-    .set({ ativo })
-    .where(eq(vendedores.id, z.coerce.number().int().positive().parse(id)));
+export async function alternarAtivoVendedor(
+  id: number,
+  ativo: boolean
+): Promise<{ erro?: string; ok?: boolean }> {
+  const gestor = await exigirGestor();
+  const usuarioId = z.coerce.number().int().positive().parse(id);
+  // O login exige usuário ativo: desativar a si mesmo tranca o gestor do lado
+  // de fora, igual a remover o próprio acesso.
+  if (!ativo && gestor.vendedorId === usuarioId) {
+    return { erro: "Você não pode desativar o próprio usuário." };
+  }
+  await db.update(vendedores).set({ ativo }).where(eq(vendedores.id, usuarioId));
   revalidatePath("/cadastros/usuarios");
+  return { ok: true };
 }

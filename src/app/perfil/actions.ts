@@ -24,7 +24,7 @@ const perfilSchema = z.object({
   telefoneFixo: z.string().trim().optional(),
 });
 
-export type PerfilState = { erro?: string };
+export type PerfilState = { erro?: string; ok?: boolean };
 
 export async function salvarPerfil(
   _prev: PerfilState,
@@ -57,7 +57,12 @@ export async function salvarPerfil(
 
   revalidatePath("/perfil");
   revalidatePath("/painel");
-  redirect("/painel");
+  // Só o PRIMEIRO acesso segue para o Painel: é o fim do cadastro obrigatório.
+  // Quem só veio atualizar um telefone era jogado para fora da tela sem saber
+  // se tinha salvado. `perfilCompleto` é lido antes do update, então diz como
+  // o cadastro estava quando a pessoa chegou aqui.
+  if (!usuario.perfilCompleto) redirect("/painel");
+  return { ok: true };
 }
 
 // --- Troca de senha (Senha atual + Nova + Confirmar) ---

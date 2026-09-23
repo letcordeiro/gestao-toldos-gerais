@@ -60,6 +60,22 @@ const orcamentoSchema = z.object({
 
 export type OrcamentoFormState = { erro?: string };
 
+/**
+ * Erro de validação na língua de quem preenche.
+ *
+ * Item sem descrição caía na mensagem padrão do Zod — em inglês técnico, sem
+ * dizer QUAL linha. Num orçamento de quinze itens a pessoa relia tudo.
+ */
+function mensagemDeErro(issue: z.core.$ZodIssue): string {
+  const [campo, indice, sub] = issue.path;
+  if (campo === "itens" && typeof indice === "number") {
+    const n = indice + 1;
+    if (sub === "descricao") return `O item ${n} está sem descrição.`;
+    return `Confira o item ${n}.`;
+  }
+  return issue.message;
+}
+
 type ItemConvertido = {
   descricao: string;
   valorMin: number | null;
@@ -179,7 +195,7 @@ export async function criarOrcamento(
   });
 
   if (!parsed.success) {
-    return { erro: parsed.error.issues[0].message };
+    return { erro: mensagemDeErro(parsed.error.issues[0]) };
   }
   const dados = parsed.data;
 
@@ -311,7 +327,7 @@ export async function atualizarOrcamento(
   });
 
   if (!parsed.success) {
-    return { erro: parsed.error.issues[0].message };
+    return { erro: mensagemDeErro(parsed.error.issues[0]) };
   }
   const dados = parsed.data;
 

@@ -43,6 +43,8 @@ export function MenuSuspenso({
         render={
           <button
             type="button"
+            // Mesmo data-tour do "Mais" do celular: o tutorial aponta para ele.
+            data-tour="gestor"
             className={cn(
               "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
               ativo

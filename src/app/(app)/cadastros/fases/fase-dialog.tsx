@@ -99,7 +99,7 @@ export function FaseDialog({
                 id="cor"
                 name="cor"
                 type="color"
-                className="h-9 p-1"
+                className="h-9 p-1 md:h-9"
                 defaultValue={fase?.cor ?? "#3B82F6"}
               />
             </div>

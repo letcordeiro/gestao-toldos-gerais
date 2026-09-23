@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { format } from "date-fns";
@@ -126,7 +127,11 @@ export default async function PesquisasPage() {
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {linhas.map((l) => (
-            <li key={l.id} className="flex items-start gap-3 p-3">
+            <CartaoClicavel
+              key={l.id}
+              href={`/atendimentos/${l.atendimentoId}`}
+              className="flex items-start gap-3 p-3"
+            >
               <span
                 className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
                 style={{
@@ -140,7 +145,7 @@ export default async function PesquisasPage() {
                 <p className="text-sm font-medium">
                   <Link
                     href={`/atendimentos/${l.atendimentoId}`}
-                    className="hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {l.clienteNome}
                   </Link>
@@ -157,7 +162,7 @@ export default async function PesquisasPage() {
                   </p>
                 )}
               </div>
-            </li>
+            </CartaoClicavel>
           ))}
         </ul>
       )}

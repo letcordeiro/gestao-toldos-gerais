@@ -118,9 +118,16 @@ export async function alternarGatilho(id: number, ativo: boolean) {
   revalidatePath("/cadastros/gatilhos");
 }
 
-export async function excluirGatilho(id: number) {
+export async function excluirGatilho(id: number): Promise<{ erro?: string }> {
   await exigirGestor();
   const gid = z.coerce.number().int().positive().parse(id);
-  await db.delete(gatilhos).where(eq(gatilhos.id, gid));
+  // Devolve o erro em vez de estourar: a tela mostrava "excluído" sem saber
+  // se o registro tinha mesmo saído do banco.
+  try {
+    await db.delete(gatilhos).where(eq(gatilhos.id, gid));
+  } catch {
+    return { erro: "Não deu para excluir. Tente de novo." };
+  }
   revalidatePath("/cadastros/gatilhos");
+  return {};
 }

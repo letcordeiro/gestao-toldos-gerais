@@ -45,11 +45,15 @@ export default async function PerfilPage() {
     <main className="flex min-h-screen items-start justify-center bg-background p-4 pt-10">
       <div className="w-full max-w-lg space-y-4">
         {!primeiraVez && (
+          // Esta tela fica FORA do grupo (app) de propósito — o layout de lá
+          // manda o vendedor com cadastro incompleto para cá, e dentro do
+          // grupo isso viraria um laço. Por isso não tem menu: a saída é este
+          // link, e ele leva ao início (o Painel), não a uma lista qualquer.
           <Link
-            href="/atendimentos"
-            className="inline-block text-sm text-muted-foreground hover:underline"
+            href="/painel"
+            className="inline-flex min-h-10 items-center text-sm text-primary hover:underline"
           >
-            ← Voltar para o sistema
+            ← Voltar ao Painel
           </Link>
         )}
         <Card>

@@ -152,3 +152,31 @@ export function linhasDaFicha(
   if (atual) linhas.push(atual);
   return Array.from({ length: total }, (_, i) => linhas[i] ?? "");
 }
+
+/**
+ * O vendedor enxerga este chamado?
+ *
+ * A mesma regra para a lista, a tela do chamado e a ficha impressa. Eram três
+ * regras escritas em três lugares — e a tela do chamado não tinha nenhuma: o
+ * vendedor abria o chamado de cliente dos outros digitando o endereço.
+ *
+ * - responsável dele: vê;
+ * - sem responsável: vê, senão o chamado fica órfão e ninguém atende;
+ * - o cliente é dele (o atendimento é dele): vê — é o cliente que ele vendeu,
+ *   mesmo que outra pessoa esteja cuidando do chamado.
+ * Compara por id, nunca por nome: dois "João" veriam um o do outro.
+ */
+export function vendedorVeChamado(
+  chamado: {
+    responsavelId: number | null;
+    vendedorDoAtendimentoId: number | null;
+  },
+  vendedorId: number | null
+): boolean {
+  if (vendedorId == null) return false;
+  return (
+    chamado.responsavelId == null ||
+    chamado.responsavelId === vendedorId ||
+    chamado.vendedorDoAtendimentoId === vendedorId
+  );
+}

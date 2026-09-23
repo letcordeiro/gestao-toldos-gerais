@@ -43,13 +43,29 @@ export function TutorialInicial({
   const [i, setI] = useState(0);
   const [rect, setRect] = useState<Retangulo | null>(null);
 
+  // Marca como visto JÁ ao abrir, não só no "Pular"/"Concluir": o recorte
+  // deixa clicar no botão destacado, a pessoa navegava para fora do painel no
+  // meio do tour e ele recomeçava do passo 1 na próxima visita.
   useEffect(() => {
     try {
-      if (!localStorage.getItem(chaveStorage)) setAberto(true);
+      if (!localStorage.getItem(chaveStorage)) {
+        localStorage.setItem(chaveStorage, new Date().toISOString());
+        setAberto(true);
+      }
     } catch {
       // sem localStorage: não força o tour
     }
   }, [chaveStorage]);
+
+  // Esc = Pular, como em qualquer janela do sistema.
+  useEffect(() => {
+    if (!aberto) return;
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") setAberto(false);
+    }
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [aberto]);
 
   const primeiroNome = (nome ?? "").split(" ")[0];
 
@@ -88,20 +104,17 @@ export function TutorialInicial({
           "Não lembra onde fica alguma coisa? Toque aqui e escreva o que procura — 'garantia', 'comissão', 'agenda' — que o sistema te leva. No computador, a tecla / abre essa busca de qualquer lugar.",
       },
       {
-        alvo: "clientes",
-        titulo: "Clientes",
-        texto:
-          "A lista de todos os clientes. Dá pra editar os dados e ativar ou inativar cada um.",
+        // "clientes" e "vendedores" apontavam para data-tour que não existe
+        // em lugar nenhum: a tela escurecia e o balão ficava no meio,
+        // explicando uma coisa sem mostrar onde ela está. Clientes e Usuários
+        // moram no "Mais" — é ele que o passo mostra.
+        alvo: "gestor",
+        titulo: "Mais — o resto do sistema",
+        texto: ehGestor
+          ? "O que não é do dia a dia mora aqui: Clientes, Chamados, Cotações e Satisfação — e, só para você, as configurações e os Usuários (sua equipe)."
+          : "O que não é do dia a dia mora aqui: Clientes, Chamados, Cotações e Satisfação.",
       },
     ];
-    if (ehGestor) {
-      lista.push({
-        alvo: "vendedores",
-        titulo: "Vendedores",
-        texto:
-          "Sua equipe. Aqui você cadastra vendedores e copia o link para eles criarem o próprio acesso ao sistema.",
-      });
-    }
     if (temPerfil) {
       lista.push({
         alvo: "perfil",
@@ -114,7 +127,7 @@ export function TutorialInicial({
       alvo: null,
       titulo: "Pronto!",
       texto:
-        "É só isso. Se quiser rever, é só me chamar. Bom trabalho — e boas vendas!",
+        "É só isso. Se esquecer onde fica alguma coisa, é só tocar na lupa lá em cima e escrever o que procura. Bom trabalho — e boas vendas!",
     });
     return lista;
   }, [primeiroNome, ehGestor, temPerfil]);

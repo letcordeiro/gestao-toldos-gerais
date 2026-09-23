@@ -15,6 +15,9 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      // builds de conferência (NEXT_DIST_DIR=.next-xxx) — sem isto o lint
+      // enche de milhares de erros de código gerado
+      ".next-*/**",
       "out/**",
       "build/**",
       // saída da compilação dos testes (JS CommonJS gerado pelo tsc)

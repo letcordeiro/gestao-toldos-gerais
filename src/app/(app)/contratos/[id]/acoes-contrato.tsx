@@ -38,11 +38,16 @@ import {
 
 export function AcoesContrato({
   contratoId,
+  numero,
+  versao,
   status,
   publicToken,
   urlBase,
 }: {
   contratoId: number;
+  /** Número emitido (CT-…); null na minuta. Entra na pergunta da nova versão. */
+  numero: string | null;
+  versao: number;
   status: StatusContrato;
   publicToken: string | null;
   urlBase: string;
@@ -56,6 +61,12 @@ export function AcoesContrato({
     new Date().toISOString().slice(0, 10)
   );
   const [motivo, setMotivo] = useState("");
+  const [versaoAberto, setVersaoAberto] = useState(false);
+  // Para onde ir depois que a confirmação da nova versão terminar de fechar.
+  // Navegar com o diálogo ainda saindo deixa o fundo dele órfão e trava a
+  // tela seguinte (ver "Diálogo + navegação" no CLAUDE.md).
+  const [destino, setDestino] = useState<string | null>(null);
+  const proximaVersao = versao + 1;
 
   const linkPublico = publicToken ? `${urlBase}/contrato/${publicToken}` : null;
 
@@ -94,8 +105,9 @@ export function AcoesContrato({
       const r = await criarNovaVersao(contratoId);
       if (r.erro) toast.error(r.erro);
       else if (r.novoId) {
-        toast.success("Nova versão criada");
-        router.push(`/contratos/${r.novoId}`);
+        toast.success(`Versão ${proximaVersao} criada`);
+        setDestino(`/contratos/${r.novoId}`);
+        setVersaoAberto(false);
       }
     });
   };
@@ -165,10 +177,40 @@ export function AcoesContrato({
           </Dialog>
         )}
 
-        {podeFazer(status, "versionar") && (
-          <Button variant="outline" onClick={versionar} disabled={pending}>
-            Nova versão
-          </Button>
+        {/* Nova versão cancela a atual: não pode sair de um clique só.
+            Continua montado enquanto há destino: a action revalida a página,
+            o status vira "cancelado" e, sem o `destino` aqui, o diálogo
+            sumia antes de terminar de fechar — o onOpenChangeComplete nunca
+            disparava e a tela ficava parada no contrato cancelado. */}
+        {(podeFazer(status, "versionar") || destino) && (
+          <AlertDialog
+            open={versaoAberto}
+            onOpenChange={setVersaoAberto}
+            onOpenChangeComplete={(open) => {
+              if (open || !destino) return;
+              router.push(destino);
+              setDestino(null);
+            }}
+          >
+            <AlertDialogTrigger render={<Button variant="outline" />}>
+              Nova versão
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Criar a versão {proximaVersao}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  O contrato {numero ?? "atual"} passa a constar como
+                  cancelado, substituído por ela. Isso não se desfaz.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <Button onClick={versionar} disabled={pending}>
+                  {pending ? "Criando…" : `Criar versão ${proximaVersao}`}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
 
         {podeFazer(status, "aditivar") && (

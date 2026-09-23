@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,8 +20,14 @@ export function PerfilForm({
   };
   primeiraVez: boolean;
 }) {
+  // O toast sai daqui, com o retorno em mãos, e não de um useEffect em cima
+  // do estado. No primeiro acesso a action redireciona e nem volta.
   const [state, formAction, pending] = useActionState<PerfilState, FormData>(
-    salvarPerfil,
+    async (anterior, formData) => {
+      const resultado = await salvarPerfil(anterior, formData);
+      if (resultado.ok) toast.success("Dados salvos");
+      return resultado;
+    },
     {}
   );
 
@@ -69,7 +76,7 @@ export function PerfilForm({
       </div>
       {state.erro && <p className="text-sm text-destructive">{state.erro}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Salvando…" : "Salvar e continuar"}
+        {pending ? "Salvando…" : primeiraVez ? "Salvar e continuar" : "Salvar"}
       </Button>
     </form>
   );

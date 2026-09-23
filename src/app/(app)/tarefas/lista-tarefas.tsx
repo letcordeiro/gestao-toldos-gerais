@@ -1,5 +1,6 @@
 "use client";
 
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,9 +8,19 @@ import { toast } from "sonner";
 import { Check, Clock, MessageCircle, Pencil, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -129,6 +140,10 @@ function Item({
 }) {
   const router = useRouter();
   const [ocupado, setOcupado] = useState(false);
+  // O diálogo mora fora do menu: aberto de dentro de um item, ele morreria
+  // junto com o menu, que fecha no clique.
+  const [confirmando, setConfirmando] = useState(false);
+  const [excluirAoFechar, setExcluirAoFechar] = useState(false);
   const feita = tarefa.status !== "pendente";
 
   async function rodar(fn: () => Promise<void>, erro: string) {
@@ -143,8 +158,15 @@ function Item({
     }
   }
 
+  // Na tela de Tarefas, tocar na tarefa leva ao cliente dela. Dentro do
+  // próprio atendimento (mostrarCliente falso) não: já se está nele.
+  const destino =
+    mostrarCliente && tarefa.atendimentoId
+      ? `/atendimentos/${tarefa.atendimentoId}`
+      : null;
+
   return (
-    <li className="flex items-start gap-3 p-3">
+    <CartaoClicavel href={destino} className="flex items-start gap-3 p-3">
       <button
         type="button"
         aria-label={feita ? "Reabrir tarefa" : "Concluir tarefa"}
@@ -291,19 +313,52 @@ function Item({
                 <Undo2 className="size-4" /> Reabrir
               </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() =>
-                rodar(
-                  () => excluirTarefa(tarefa.id),
-                  "Não deu para excluir."
-                )
-              }
+              className="text-destructive"
+              onClick={() => setConfirmando(true)}
             >
               <Trash2 className="size-4" /> Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <AlertDialog
+          open={confirmando}
+          onOpenChange={setConfirmando}
+          // Excluir tira esta linha da lista — e o diálogo junto. Só depois do
+          // fechamento terminar, senão o fundo dele fica órfão engolindo clique
+          // (ver "Diálogo + navegação" no CLAUDE.md).
+          onOpenChangeComplete={(open) => {
+            if (open || !excluirAoFechar) return;
+            setExcluirAoFechar(false);
+            rodar(() => excluirTarefa(tarefa.id), "Não deu para excluir.");
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Excluir a tarefa &ldquo;{tarefa.titulo}&rdquo;?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setExcluirAoFechar(true);
+                  setConfirmando(false);
+                }}
+              >
+                Excluir
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-    </li>
+    </CartaoClicavel>
   );
 }

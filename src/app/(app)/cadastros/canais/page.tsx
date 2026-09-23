@@ -55,7 +55,6 @@ export default async function CanaisPage() {
 
       <div className="rounded-lg border bg-card">
         <Table>
-          <TableHead className="sr-only">Canais</TableHead>
           <TableHeader>
             <TableRow>
               <TableHead>Canal</TableHead>
@@ -69,6 +68,17 @@ export default async function CanaisPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* Tabela vazia sem texto parece tela quebrada; a frase diz o próximo passo. */}
+            {lista.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Nenhum canal cadastrado. Clique em “Novo canal” para cadastrar o primeiro.
+                </TableCell>
+              </TableRow>
+            )}
             {lista.map((c) => {
               const u = porCanal.get(c.id);
               return (

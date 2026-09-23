@@ -21,6 +21,7 @@ import {
   TIPO_CHAMADO_LABEL,
   avaliarGarantia,
   descricaoServico,
+  vendedorVeChamado,
   type SituacaoChamado,
 } from "@/lib/chamados";
 import { formatarCentavos } from "@/lib/format";
@@ -58,6 +59,7 @@ export default async function ChamadoPage({
       cliente: clientes,
       numero: orcamentos.numero,
       responsavelNome: vendedores.nome,
+      vendedorDoAtendimentoId: atendimentos.vendedorId,
     })
     .from(chamados)
     .innerJoin(atendimentos, eq(chamados.atendimentoId, atendimentos.id))
@@ -68,6 +70,22 @@ export default async function ChamadoPage({
 
   if (!linha) notFound();
   const { chamado, cliente } = linha;
+
+  // Sem isto o vendedor abria o chamado de cliente dos outros digitando o
+  // endereço — a lista e a ficha já barravam, esta tela não. 404 e não
+  // "sem permissão": não confirma nem que o chamado existe.
+  if (
+    !veTudo &&
+    !vendedorVeChamado(
+      {
+        responsavelId: chamado.responsavelId,
+        vendedorDoAtendimentoId: linha.vendedorDoAtendimentoId,
+      },
+      usuario.vendedorId
+    )
+  ) {
+    notFound();
+  }
 
   // Garantia: conta a partir da conclusão da instalação do serviço ligado ao
   // chamado. O prazo vem do contrato, se existir; senão, o padrão da casa.

@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarMotivo, excluirMotivo } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoMotivoSwitch({ id, ativo }: { id: number; ativo: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -23,22 +22,12 @@ export function AtivoMotivoSwitch({ id, ativo }: { id: number; ativo: boolean })
 }
 
 export function ExcluirMotivoButton({ id, nome }: { id: number; nome: string }) {
-  const [pending, startTransition] = useTransition();
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          const r = await excluirMotivo(id);
-          if (r.erro) toast.error(r.erro);
-          else toast.success(`“${nome}” excluído`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir o motivo “${nome}”?`}
+      descricao="Essa ação não pode ser desfeita. Motivo que já foi usado em atendimento não pode ser excluído — nesse caso, desative."
+      excluir={() => excluirMotivo(id)}
+      sucesso={`“${nome}” excluído`}
+    />
   );
 }

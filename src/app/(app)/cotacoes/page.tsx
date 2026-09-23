@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { desc, sql } from "drizzle-orm";
 import { format } from "date-fns";
@@ -55,13 +56,13 @@ export default async function CotacoesPage() {
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {lista.map((c) => (
-            <li
+            <CartaoClicavel href={`/cotacoes/${c.id}`}
               key={c.id}
               className="flex flex-wrap items-center justify-between gap-3 p-3"
             >
               <div className="min-w-0">
                 <p className="font-medium">
-                  <Link href={`/cotacoes/${c.id}`} className="hover:underline">
+                  <Link href={`/cotacoes/${c.id}`} className="text-primary hover:underline">
                     {c.titulo}
                   </Link>
                 </p>
@@ -76,7 +77,7 @@ export default async function CotacoesPage() {
               <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
                 {c.responderam} de {c.convidados} responderam
               </span>
-            </li>
+            </CartaoClicavel>
           ))}
         </ul>
       )}

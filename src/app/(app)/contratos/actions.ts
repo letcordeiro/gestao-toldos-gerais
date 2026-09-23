@@ -494,6 +494,10 @@ export async function salvarPlanoPagamento(
         rotulo: l.rotulo,
         tipo: l.tipo,
         valor: l.valor,
+        // Sem esta linha o contrato com OPÇÕES de preço (plano em %) perdia
+        // os percentuais a cada "Salvar plano" ou modelo pronto: a soma
+        // voltava 0% e a emissão recusava (achado na auditoria de 23/09).
+        percentual: l.percentual ?? null,
         meio: l.meio,
         numeroParcelas: l.numeroParcelas,
         gatilho: l.gatilho,
@@ -705,6 +709,12 @@ export async function criarNovaVersao(
       retencaoPercent: antigo.retencaoPercent,
       multaPercent: antigo.multaPercent,
       jurosMesPercent: antigo.jurosMesPercent,
+      // Os três campos de 18/09 também são negociados com o cliente. Sem
+      // copiar aqui, a versão nova nascia com o padrão do banco (0,5% / 10% /
+      // R$ 800) e o valor combinado sumia sem aviso.
+      multaContratadaDiaPercent: antigo.multaContratadaDiaPercent,
+      multaContratadaTetoPercent: antigo.multaContratadaTetoPercent,
+      paralisacaoDiaria: antigo.paralisacaoDiaria,
       flagMedidas: antigo.flagMedidas,
       flagClima: antigo.flagClima,
       flagEnergia: antigo.flagEnergia,

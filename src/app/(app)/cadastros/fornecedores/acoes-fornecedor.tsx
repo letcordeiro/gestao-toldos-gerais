@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarFornecedor, excluirFornecedor } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoFornecedorSwitch({
   id,
@@ -28,29 +27,13 @@ export function AtivoFornecedorSwitch({
   );
 }
 
-export function ExcluirFornecedorButton({
-  id,
-  nome,
-}: {
-  id: number;
-  nome: string;
-}) {
-  const [pending, startTransition] = useTransition();
+export function ExcluirFornecedorButton({ id, nome }: { id: number; nome: string }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          const r = await excluirFornecedor(id);
-          if (r.erro) toast.error(r.erro);
-          else toast.success(`“${nome}” excluído`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir o fornecedor “${nome}”?`}
+      descricao="Essa ação não pode ser desfeita. Fornecedor que já participou de cotação não pode ser excluído — nesse caso, desative."
+      excluir={() => excluirFornecedor(id)}
+      sucesso={`“${nome}” excluído`}
+    />
   );
 }

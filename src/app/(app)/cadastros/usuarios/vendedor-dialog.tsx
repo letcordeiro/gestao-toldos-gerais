@@ -56,7 +56,7 @@ export function VendedorDialog({
           {vendedor && <input type="hidden" name="id" value={vendedor.id} />}
           <div className="space-y-1.5">
             <Label htmlFor="nome">Nome *</Label>
-            <Input id="nome" name="nome" defaultValue={vendedor?.nome} />
+            <Input id="nome" name="nome" defaultValue={vendedor?.nome} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -94,7 +94,7 @@ export function VendedorDialog({
             </p>
           </div>
           <p className="text-xs text-muted-foreground">
-            O próprio vendedor confirma/completa esses dados no primeiro acesso.
+            O próprio usuário confirma/completa esses dados no primeiro acesso.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail (login)</Label>
@@ -128,13 +128,13 @@ export function VendedorDialog({
               placeholder={
                 vendedor?.temAcesso
                   ? "•••••••• (deixe em branco pra manter)"
-                  : "defina uma senha pra este vendedor entrar"
+                  : "defina uma senha pra este usuário entrar"
               }
             />
             <p className="text-xs text-muted-foreground">
               {vendedor?.temAcesso
-                ? "Este vendedor já tem acesso. Preencha só se quiser trocar a senha."
-                : "Com e-mail + senha, o vendedor entra no sistema e vira o responsável automático dos orçamentos dele."}
+                ? "Este usuário já tem acesso. Preencha só se quiser trocar a senha."
+                : "Com e-mail + senha, o usuário entra no sistema. Se for vendedor, vira o responsável automático dos orçamentos dele."}
             </p>
           </div>
           {state.erro && (

@@ -9,13 +9,19 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  if (!token) {
-    return NextResponse.json({ erro: "token inválido" }, { status: 400 });
-  }
 
-  const proposta = await gerarProposta(eq(orcamentos.publicToken, token));
+  const proposta = token
+    ? await gerarProposta(eq(orcamentos.publicToken, token))
+    : null;
   if (!proposta) {
-    return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
+    // Quem abre isto é o cliente, no celular: JSON cru na tela não diz nada.
+    // A página HTML do mesmo token já explica em português e dá os contatos.
+    // Location relativo de propósito — atrás do Traefik o host da requisição
+    // nem sempre é o domínio público.
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/proposta/${encodeURIComponent(token ?? "")}` },
+    });
   }
 
   return new NextResponse(new Uint8Array(proposta.buffer), {

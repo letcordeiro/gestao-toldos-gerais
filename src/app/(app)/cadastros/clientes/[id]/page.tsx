@@ -14,6 +14,9 @@ import {
 } from "@/db/schema";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { linkWhatsApp } from "@/lib/whatsapp";
+import { ClienteDialog } from "../cliente-dialog";
 import {
   Table,
   TableBody,
@@ -22,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatarCentavos } from "@/lib/format";
-import { LinhaClicavel } from "../../../orcamentos/linha-clicavel";
+import { LinhaClicavel } from "@/components/shared/item-clicavel";
 
 export const metadata = { title: "Histórico do cliente" };
 
@@ -196,6 +199,41 @@ export default async function HistoricoClientePage({
             {cliente.nome}
             {!cliente.ativo && <Badge variant="outline">Inativo</Badge>}
           </h1>
+        </div>
+        {/* A ficha não tinha ação nenhuma: para corrigir um telefone era
+            preciso voltar à lista e achar o cliente de novo. */}
+        <div className="flex flex-wrap gap-2">
+          <ClienteDialog
+            cliente={{
+              id: cliente.id,
+              nome: cliente.nome,
+              telefone: cliente.telefone,
+              email: cliente.email,
+              endereco: cliente.endereco,
+              numero: cliente.numero,
+              complemento: cliente.complemento,
+              bairro: cliente.bairro,
+              cidade: cliente.cidade,
+              cep: cliente.cep,
+              documento: cliente.documento,
+            }}
+            trigger={<Button variant="outline">Editar</Button>}
+          />
+          {cliente.telefone && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <a
+                  href={linkWhatsApp(cliente.telefone)}
+                  target="_blank"
+                  rel="noopener"
+                />
+              }
+            >
+              WhatsApp
+            </Button>
+          )}
         </div>
       </div>
 

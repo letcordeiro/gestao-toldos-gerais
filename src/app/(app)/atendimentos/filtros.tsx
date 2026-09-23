@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,10 +30,43 @@ export function FiltrosFunil({
   dir?: string;
 }) {
   const router = useRouter();
+  // A busca espera a pessoa parar de digitar (~300 ms) antes de navegar. Um
+  // router.replace por tecla refazia a consulta inteira a cada letra e a lista
+  // piscava enquanto se digitava o nome.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const campo = useRef<HTMLInputElement>(null);
+  // O que está no campo agora e o último termo que ESTE campo mandou para a URL.
+  const qDigitado = useRef(q ?? "");
+  const qEnviado = useRef(q ?? "");
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    []
+  );
+
+  // O campo é não controlado; quando a busca muda por fora (o "limpar filtro"
+  // da lista, voltar no navegador), ele precisa acompanhar. Mudança que o
+  // próprio campo mandou é ignorada, senão a resposta atrasada de "ab"
+  // apagaria o "c" digitado enquanto ela vinha.
+  useEffect(() => {
+    const daUrl = q ?? "";
+    if (daUrl === qEnviado.current) return;
+    qEnviado.current = daUrl;
+    qDigitado.current = daUrl;
+    if (campo.current) campo.current.value = daUrl;
+  }, [q]);
 
   function atualizar(mudanca: { q?: string; fase?: string }) {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
     const params = new URLSearchParams();
-    const novoQ = mudanca.q ?? q ?? "";
+    // Trocar a fase no meio da digitação leva junto o que já foi digitado.
+    const novoQ = mudanca.q ?? qDigitado.current;
+    qEnviado.current = novoQ;
     const novaFase = mudanca.fase ?? fase ?? "";
     if (novoQ) params.set("q", novoQ);
     if (novaFase) params.set("fase", novaFase);
@@ -48,8 +82,16 @@ export function FiltrosFunil({
       <Input
         placeholder="Buscar por nome ou telefone…"
         className="w-64 bg-card"
+        ref={campo}
         defaultValue={q ?? ""}
-        onChange={(e) => atualizar({ q: e.target.value.trim() })}
+        onChange={(e) => {
+          qDigitado.current = e.target.value.trim();
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(
+            () => atualizar({ q: qDigitado.current }),
+            300
+          );
+        }}
       />
       <Select
         value={fase ?? "todas"}

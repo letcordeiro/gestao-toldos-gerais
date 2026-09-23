@@ -1,10 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarInstalador, excluirInstalador } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoInstaladorSwitch({
   id,
@@ -28,29 +27,13 @@ export function AtivoInstaladorSwitch({
   );
 }
 
-export function ExcluirInstaladorButton({
-  id,
-  nome,
-}: {
-  id: number;
-  nome: string;
-}) {
-  const [pending, startTransition] = useTransition();
+export function ExcluirInstaladorButton({ id, nome }: { id: number; nome: string }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          const r = await excluirInstalador(id);
-          if (r.erro) toast.error(r.erro);
-          else toast.success(`“${nome}” excluído`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir o instalador “${nome}”?`}
+      descricao="Essa ação não pode ser desfeita. Instalador que já participou de instalação não pode ser excluído — nesse caso, desative."
+      excluir={() => excluirInstalador(id)}
+      sucesso={`“${nome}” excluído`}
+    />
   );
 }

@@ -2,9 +2,9 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarGatilho, excluirGatilho } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoGatilhoSwitch({
   id,
@@ -29,28 +29,13 @@ export function AtivoGatilhoSwitch({
   );
 }
 
-export function ExcluirGatilhoButton({
-  id,
-  nome,
-}: {
-  id: number;
-  nome: string;
-}) {
-  const [pending, startTransition] = useTransition();
+export function ExcluirGatilhoButton({ id, nome }: { id: number; nome: string }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          await excluirGatilho(id);
-          toast.success(`“${nome}” excluída`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir a automação “${nome}”?`}
+      descricao="Ela para de criar tarefas. As tarefas que já criou continuam na lista. Essa ação não pode ser desfeita. Se quiser só pausar, use o botão de ativo/inativo."
+      excluir={() => excluirGatilho(id)}
+      sucesso={`“${nome}” excluída`}
+    />
   );
 }

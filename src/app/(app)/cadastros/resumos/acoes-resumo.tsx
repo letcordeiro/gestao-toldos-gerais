@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { alternarResumo, enviarResumoAgora, excluirResumo } from "./actions";
+import { ExcluirConfirmado } from "../excluir-confirmado";
 
 export function AtivoResumoSwitch({ id, ativo }: { id: number; ativo: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -46,21 +47,12 @@ export function EnviarAgoraButton({ id }: { id: number }) {
 }
 
 export function ExcluirResumoButton({ id, nome }: { id: number; nome: string }) {
-  const [pending, startTransition] = useTransition();
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-destructive"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          await excluirResumo(id);
-          toast.success(`“${nome}” excluído`);
-        })
-      }
-    >
-      Excluir
-    </Button>
+    <ExcluirConfirmado
+      titulo={`Excluir o resumo “${nome}”?`}
+      descricao="O e-mail deixa de ser enviado para os destinatários dele. Essa ação não pode ser desfeita. Se quiser só pausar, use o botão de ativo/inativo."
+      excluir={() => excluirResumo(id)}
+      sucesso={`“${nome}” excluído`}
+    />
   );
 }

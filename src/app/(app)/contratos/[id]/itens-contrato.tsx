@@ -25,6 +25,10 @@ export function ItensContrato({
   editavel: boolean;
 }) {
   const [itens, setItens] = useState<ItemContrato[]>(itensIniciais);
+  // O que está gravado. A emissão lê o banco, não a tela: sem este aviso a
+  // lista parecia pronta e o "Emitir contrato" recusava depois.
+  const [salvos, setSalvos] = useState<ItemContrato[]>(itensIniciais);
+  const naoSalvo = JSON.stringify(itens) !== JSON.stringify(salvos);
   const [pending, startTransition] = useTransition();
 
   const alterar = (i: number, campo: keyof ItemContrato, valor: string) => {
@@ -37,7 +41,10 @@ export function ItensContrato({
     startTransition(async () => {
       const r = await salvarItensContrato(contratoId, itens);
       if (r.erro) toast.error(r.erro);
-      else toast.success("Itens salvos");
+      else {
+        setSalvos(itens);
+        toast.success("Itens salvos");
+      }
     });
   };
 
@@ -132,8 +139,21 @@ export function ItensContrato({
           <Button type="button" size="sm" disabled={pending} onClick={salvar}>
             {pending ? "Salvando…" : "Salvar itens"}
           </Button>
+          {naoSalvo && <AvisoNaoSalvo />}
         </div>
       )}
     </div>
+  );
+}
+
+/** Mesmo aviso nos três cartões do contrato (itens, opções e plano). */
+export function AvisoNaoSalvo() {
+  return (
+    <span
+      role="status"
+      className="self-center text-sm font-medium text-brand-orange-dark"
+    >
+      Alterações não salvas
+    </span>
   );
 }

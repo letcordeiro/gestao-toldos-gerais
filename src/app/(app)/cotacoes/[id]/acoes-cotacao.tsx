@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { SITUACAO_COTACAO_LABEL, type SituacaoCotacao } from "@/lib/cotacoes";
 import { limparResposta, mudarSituacaoCotacao } from "../actions";
 
@@ -65,24 +75,56 @@ export function CopiarLink({ url }: { url: string }) {
   );
 }
 
-export function LimparRespostaButton({ conviteId }: { conviteId: number }) {
+/**
+ * Apaga a resposta do fornecedor para ele cotar de novo. Pergunta antes: os
+ * preços somem de vez, e a explicação morava num `title` que no celular
+ * ninguém vê.
+ */
+export function LimparRespostaButton({
+  conviteId,
+  fornecedorNome,
+}: {
+  conviteId: number;
+  fornecedorNome: string;
+}) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [aberto, setAberto] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+
+  const apagar = async () => {
+    setOcupado(true);
+    try {
+      await limparResposta(conviteId);
+      toast.success("Resposta apagada — o link volta a aceitar cotação");
+      setAberto(false);
+      router.refresh();
+    } catch {
+      toast.error("Não foi possível apagar a cotação. Tente de novo.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      disabled={pending}
-      title="Apaga a resposta para o fornecedor cotar de novo"
-      onClick={() =>
-        startTransition(async () => {
-          await limparResposta(conviteId);
-          toast.success("Resposta apagada — o link volta a aceitar cotação");
-          router.refresh();
-        })
-      }
-    >
-      <RotateCcw className="size-4" /> Refazer
-    </Button>
+    <AlertDialog open={aberto} onOpenChange={setAberto}>
+      <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+        <RotateCcw className="size-4" /> Pedir de novo
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Apagar a cotação de {fornecedorNome}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Os preços que ele enviou somem e o link dele volta a aceitar
+            resposta.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <Button variant="destructive" disabled={ocupado} onClick={apagar}>
+            {ocupado ? "Apagando…" : "Apagar e pedir de novo"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

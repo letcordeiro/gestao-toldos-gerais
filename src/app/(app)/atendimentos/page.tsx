@@ -1,3 +1,4 @@
+import { LinhaClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { and, asc, desc, eq, like, notInArray, or, sql } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
@@ -119,8 +120,19 @@ export default async function AtendimentosPage({
       )
     );
   if (q) {
+    // Telefone é gravado com máscara ("(31) 99614-6810"), e quem busca digita
+    // só os números. Quando o termo é um número, compara também contra o
+    // telefone sem máscara — senão "31996146810" não achava ninguém.
+    const digitos = q.replace(/[()\-\s]/g, "");
+    const ehNumero = /^\d{4,}$/.test(digitos);
     filtros.push(
-      or(like(clientes.nome, `%${q}%`), like(clientes.telefone, `%${q}%`))
+      or(
+        like(clientes.nome, `%${q}%`),
+        like(clientes.telefone, `%${q}%`),
+        ehNumero
+          ? sql`replace(replace(replace(replace(${clientes.telefone}, '(', ''), ')', ''), '-', ''), ' ', '') like ${`%${digitos}%`}`
+          : undefined
+      )
     );
   }
 
@@ -366,14 +378,36 @@ export default async function AtendimentosPage({
               <TableRow>
                 <TableCell
                   colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
+                  className="h-24 whitespace-normal text-center text-muted-foreground"
                 >
-                  Nenhum atendimento encontrado.
+                  {/* Com filtro, o vazio é do filtro, não do funil: diz isso e
+                      dá a saída. Sem filtro, diz o que fazer para começar. */}
+                  {q || fase ? (
+                    <>
+                      Nenhum atendimento com esse filtro.{" "}
+                      <Link
+                        href={
+                          ordem
+                            ? `/atendimentos?${new URLSearchParams({
+                                ordem,
+                                ...(dir ? { dir } : {}),
+                              }).toString()}`
+                            : "/atendimentos"
+                        }
+                        scroll={false}
+                        className="text-primary hover:underline"
+                      >
+                        Limpar filtro
+                      </Link>
+                    </>
+                  ) : (
+                    "Nenhum atendimento ainda. Use Novo atendimento, aqui em cima, para registrar o primeiro cliente."
+                  )}
                 </TableCell>
               </TableRow>
             )}
             {linhasOrdenadas.map((linha) => (
-              <TableRow key={linha.id}>
+              <LinhaClicavel key={linha.id} href={`/atendimentos/${linha.id}`}>
                 <TableCell className="font-medium">
                   {/* Verde, como na lista de Clientes: é por aqui que se chega
                       na tela do atendimento (e nos botões de abrir chamado,
@@ -407,7 +441,7 @@ export default async function AtendimentosPage({
                 <TableCell className="hidden max-w-xs truncate text-muted-foreground md:table-cell">
                   {linha.observacoes}
                 </TableCell>
-              </TableRow>
+              </LinhaClicavel>
             ))}
           </TableBody>
         </Table>

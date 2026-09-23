@@ -240,7 +240,11 @@ export default async function OrcamentoPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {podeEditar && (
-            <StatusSelect orcamentoId={orc.id} status={orc.status} />
+            <StatusSelect
+              orcamentoId={orc.id}
+              status={orc.status}
+              podeAgendar={envioAutomaticoDisponivel && orc.enviadoEm == null}
+            />
           )}
           <Button
             variant="outline"

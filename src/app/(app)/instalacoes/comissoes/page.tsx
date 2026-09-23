@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -135,7 +136,7 @@ export default async function ComissoesPage({
                   {linhas.map((c) => {
                     const valor = valorDaComissao(c, c.valorOrcamento);
                     return (
-                      <li
+                      <CartaoClicavel href={`/orcamentos/${c.orcamentoId}/ficha`}
                         key={c.linhaId}
                         className="flex flex-wrap items-center justify-between gap-2 p-3"
                       >
@@ -143,7 +144,7 @@ export default async function ComissoesPage({
                           <p className="text-sm font-medium">
                             <Link
                               href={`/orcamentos/${c.orcamentoId}/ficha`}
-                              className="hover:underline"
+                              className="text-primary hover:underline"
                             >
                               {c.clienteNome}
                             </Link>{" "}
@@ -179,7 +180,7 @@ export default async function ComissoesPage({
                             paga={c.pagoEm != null}
                           />
                         </div>
-                      </li>
+                      </CartaoClicavel>
                     );
                   })}
                 </ul>

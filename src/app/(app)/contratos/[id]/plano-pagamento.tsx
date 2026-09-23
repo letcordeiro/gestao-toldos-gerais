@@ -20,6 +20,7 @@ import {
   type TipoPagamento,
 } from "@/lib/contratos";
 import { aplicarPresetPlano, salvarPlanoPagamento } from "../actions";
+import { AvisoNaoSalvo } from "./itens-contrato";
 
 const SELECT =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
@@ -66,6 +67,10 @@ export function PlanoPagamento({
   modoOpcoes?: boolean;
 }) {
   const [linhas, setLinhas] = useState<LinhaPagamento[]>(linhasIniciais);
+  // O que está gravado. A emissão confere o banco, não a tela: o totalizador
+  // dizia "Confere" com linhas por salvar e o "Emitir contrato" recusava.
+  const [salvas, setSalvas] = useState<LinhaPagamento[]>(linhasIniciais);
+  const naoSalvo = JSON.stringify(linhas) !== JSON.stringify(salvas);
   const [pending, startTransition] = useTransition();
   // Painel do gerador "N parcelas a cada X dias" — só abre quando pedido.
   const [gerador, setGerador] = useState<{
@@ -145,7 +150,10 @@ export function PlanoPagamento({
     startTransition(async () => {
       const r = await salvarPlanoPagamento(contratoId, normalizadas);
       if (r.erro) toast.error(r.erro);
-      else toast.success("Plano de pagamento salvo");
+      else {
+        setSalvas(normalizadas);
+        toast.success("Plano de pagamento salvo");
+      }
     });
   };
 
@@ -160,11 +168,12 @@ export function PlanoPagamento({
       const { gerarPreset, gerarPresetPercentual } = await import(
         "@/lib/contratos"
       );
-      setLinhas(
-        modoOpcoes
-          ? gerarPresetPercentual(preset, opcoes)
-          : gerarPreset(preset, valorTotal, opcoes)
-      );
+      // O preset já foi gravado pela action: a tela e o banco andam juntos.
+      const geradas = modoOpcoes
+        ? gerarPresetPercentual(preset, opcoes)
+        : gerarPreset(preset, valorTotal, opcoes);
+      setLinhas(geradas);
+      setSalvas(geradas);
       setGerador(null);
       toast.success("Plano gerado");
     });
@@ -547,13 +556,19 @@ export function PlanoPagamento({
         ))}
       </div>
 
-      {/* Totalizador sempre visível: soma das linhas × valor total */}
+      {/* Totalizador sempre visível: soma das linhas × valor total.
+          No celular ele para ACIMA da barra de navegação fixa do rodapé
+          (bottom-nav.tsx: 61px de conteúdo + o respiro de baixo, que é o
+          maior entre 0,75rem e a área segura do iPhone). Em bottom-2 a barra
+          cobria o totalizador e ninguém via se a soma tinha fechado.
+          O fundo é OPACO (tom misturado com o card): translúcido, as linhas
+          que passam por baixo apareciam através do texto. */}
       <div
         className={cn(
-          "sticky bottom-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm",
+          "sticky bottom-[calc(max(env(safe-area-inset-bottom),0.75rem)_+_4.375rem)] md:bottom-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm shadow-sm",
           validacao.ok
-            ? "border-primary/40 bg-primary/5"
-            : "border-destructive bg-destructive/10"
+            ? "border-primary/40 bg-[color-mix(in_oklch,var(--primary)_5%,var(--card))]"
+            : "border-destructive bg-[color-mix(in_oklch,var(--destructive)_10%,var(--card))]"
         )}
         role="status"
         aria-live="polite"
@@ -583,7 +598,9 @@ export function PlanoPagamento({
           )}
         >
           {validacao.ok
-            ? "Confere"
+            ? naoSalvo
+              ? "Confere — falta salvar"
+              : "Confere"
             : modoOpcoes
               ? `${somaPercent > 100 ? "Sobra" : "Falta"} ${
                   Math.round(Math.abs(100 - somaPercent) * 100) / 100
@@ -602,6 +619,7 @@ export function PlanoPagamento({
           <Button type="button" size="sm" disabled={pending} onClick={salvar}>
             {pending ? "Salvando…" : "Salvar plano"}
           </Button>
+          {naoSalvo && <AvisoNaoSalvo />}
         </div>
       )}
     </div>

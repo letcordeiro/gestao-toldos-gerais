@@ -64,6 +64,34 @@ export function ResumoDialog({
     if (state.ok) setAberto(false);
   }, [state]);
 
+  // Toda abertura parte do que está salvo. Antes, "Cancelar" depois de remover
+  // um destinatário não desfazia nada: a lista vivia no estado e voltava
+  // alterada na próxima abertura, pronta para ser salva sem querer.
+  function reiniciar() {
+    setLista(resumo?.destinatarios ?? []);
+    setEmail("");
+    setTipo("para");
+  }
+
+  // E-mail digitado e não "Incluído" sumia ao salvar — quem digita e clica em
+  // Salvar acha que incluiu. Se o campo tem um e-mail válido, ele entra na
+  // lista antes do envio. (Inválido o navegador já barra: o campo é
+  // type="email" e está dentro do formulário.)
+  function enviar(formData: FormData) {
+    const limpo = email.trim();
+    const valido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpo);
+    const repetido = lista.some(
+      (d) => d.email.toLowerCase() === limpo.toLowerCase()
+    );
+    if (valido && !repetido && lista.length < MAX_DESTINATARIOS) {
+      const nova = [...lista, { email: limpo, tipo }];
+      formData.set("destinatarios", JSON.stringify(nova));
+      setLista(nova);
+      setEmail("");
+    }
+    formAction(formData);
+  }
+
   function adicionar() {
     const limpo = email.trim();
     if (!limpo || lista.length >= MAX_DESTINATARIOS) return;
@@ -73,13 +101,19 @@ export function ResumoDialog({
   }
 
   return (
-    <Dialog open={aberto} onOpenChange={setAberto}>
+    <Dialog
+      open={aberto}
+      onOpenChange={(v) => {
+        if (v) reiniciar();
+        setAberto(v);
+      }}
+    >
       <DialogTrigger render={trigger} />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{resumo ? "Editar resumo" : "Novo resumo"}</DialogTitle>
         </DialogHeader>
-        <form action={formAction} className="space-y-3">
+        <form action={enviar} className="space-y-3">
           {resumo && <input type="hidden" name="id" value={resumo.id} />}
           <input
             type="hidden"
@@ -95,6 +129,7 @@ export function ResumoDialog({
                 name="nome"
                 defaultValue={resumo?.nome}
                 placeholder="Ex.: Resumo da manhã"
+                required
               />
             </div>
             <div className="space-y-1.5">

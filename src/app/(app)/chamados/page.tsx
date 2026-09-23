@@ -1,3 +1,4 @@
+import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { differenceInCalendarDays } from "date-fns";
@@ -15,11 +16,14 @@ import {
   SITUACAO_CHAMADO_LABEL,
   SITUACOES_ABERTAS,
   TIPO_CHAMADO_LABEL,
+  vendedorVeChamado,
   type SituacaoChamado,
 } from "@/lib/chamados";
 import { PRIORIDADE_COR } from "@/lib/tarefas";
+import { combinaBusca } from "@/lib/busca-cliente";
 import { Button } from "@/components/ui/button";
 import { ChamadoDialog } from "./chamado-dialog";
+import { BuscaChamados } from "./busca-chamados";
 import { atendimentosParaChamado } from "./actions";
 
 export const metadata = { title: "Chamados" };
@@ -27,9 +31,10 @@ export const metadata = { title: "Chamados" };
 export default async function ChamadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string }>;
 }) {
-  const { ver } = await searchParams;
+  const { ver, q } = await searchParams;
+  const busca = q?.trim() ?? "";
   const usuario = await exigirUsuario();
   const veTudo = veFunilInteiro(usuario.papel);
   const mostrarFechados = ver === "fechados";
@@ -45,6 +50,7 @@ export default async function ChamadosPage({
       criadoEm: chamados.criadoEm,
       atendimentoId: chamados.atendimentoId,
       responsavelId: chamados.responsavelId,
+      vendedorDoAtendimentoId: atendimentos.vendedorId,
       clienteNome: clientes.nome,
       numero: orcamentos.numero,
       responsavelNome: vendedores.nome,
@@ -61,14 +67,27 @@ export default async function ChamadosPage({
     )
     .orderBy(desc(chamados.criadoEm));
 
-  // Vendedor só vê o que é dele. Compara por id, não por nome: dois "João" no
-  // cadastro fariam um ver os chamados do outro. Chamado ainda sem responsável
-  // continua visível — senão ele fica órfão e ninguém atende.
-  const lista = veTudo
+  // Vendedor só vê o que é dele — regra em `vendedorVeChamado`, a mesma da
+  // tela do chamado e da ficha impressa.
+  const visiveis = veTudo
     ? linhas
-    : linhas.filter(
-        (l) => l.responsavelId == null || l.responsavelId === usuario.vendedorId
-      );
+    : linhas.filter((l) => vendedorVeChamado(l, usuario.vendedorId));
+  // Busca por assunto ou cliente, sem acento e sem caixa — a mesma regra do
+  // seletor de cliente. Em memória, depois do filtro de quem pode ver.
+  const lista = busca
+    ? visiveis.filter((l) =>
+        combinaBusca(`${l.assunto} ${l.clienteNome}`, busca)
+      )
+    : visiveis;
+
+  // O par abertos/encerrados não pode desfazer a busca.
+  const linkAlternar = (() => {
+    const params = new URLSearchParams();
+    if (!mostrarFechados) params.set("ver", "fechados");
+    if (busca) params.set("q", busca);
+    const query = params.toString();
+    return query ? `/chamados?${query}` : "/chamados";
+  })();
 
   // Para abrir o chamado daqui, sem ter que achar o atendimento antes.
   const opcoesAtendimento = await atendimentosParaChamado();
@@ -101,7 +120,7 @@ export default async function ChamadosPage({
             variant="outline"
             nativeButton={false}
             render={
-              <Link href={mostrarFechados ? "/chamados" : "/chamados?ver=fechados"} />
+              <Link href={linkAlternar} scroll={false} />
             }
           >
             {mostrarFechados ? "Ver abertos" : "Ver encerrados"}
@@ -115,18 +134,22 @@ export default async function ChamadosPage({
         </div>
       </div>
 
+      <BuscaChamados q={busca} ver={ver} />
+
       {lista.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          {mostrarFechados
-            ? "Nenhum chamado encerrado."
-            : "Nenhum chamado aberto."}
+          {busca
+            ? `Nenhum chamado ${mostrarFechados ? "encerrado" : "aberto"} com “${busca}”.`
+            : mostrarFechados
+              ? "Nenhum chamado encerrado."
+              : "Nenhum chamado aberto."}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {lista.map((c) => {
             const dias = differenceInCalendarDays(new Date(), c.criadoEm);
             return (
-              <li key={c.id} className="flex items-start gap-3 p-3">
+              <CartaoClicavel href={`/chamados/${c.id}`} key={c.id} className="flex items-start gap-3 p-3">
                 <span
                   className="mt-1.5 size-2.5 shrink-0 rounded-full"
                   style={{
@@ -137,7 +160,10 @@ export default async function ChamadosPage({
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
-                    <Link href={`/chamados/${c.id}`} className="hover:underline">
+                    <Link
+                      href={`/chamados/${c.id}`}
+                      className="text-primary hover:underline"
+                    >
                       {c.assunto}
                     </Link>
                   </p>
@@ -173,14 +199,14 @@ export default async function ChamadosPage({
                       </span>
                     )}
                     <span>
-                      · aberto há {dias === 0 ? "hoje" : `${dias} dia(s)`}
+                      · {dias === 0 ? "aberto hoje" : dias === 1 ? "aberto há 1 dia" : `aberto há ${dias} dias`}
                     </span>
                     {veTudo && c.responsavelNome && (
                       <span>· {c.responsavelNome}</span>
                     )}
                   </p>
                 </div>
-              </li>
+              </CartaoClicavel>
             );
           })}
         </ul>

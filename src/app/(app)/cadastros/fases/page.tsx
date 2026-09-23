@@ -106,6 +106,18 @@ export default async function FasesPage({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* Tabela vazia sem texto parece tela quebrada; a frase diz o próximo passo. */}
+            {linhas.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Nenhuma fase cadastrada. Clique em “Nova fase” para montar o
+                  funil.
+                </TableCell>
+              </TableRow>
+            )}
             {linhas.map((fase) => (
               <TableRow key={fase.id}>
                 <TableCell className="text-muted-foreground">

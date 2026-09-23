@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { usuarioAtual } from "@/lib/auth";
+import { vendedorVeChamado } from "@/lib/chamados";
 import {
   gerarOrdemManutencao,
   nomeArquivoOrdem,
@@ -29,8 +30,14 @@ export async function GET(
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 
-  // Vendedor só imprime a ficha dos próprios clientes.
-  if (usuario.papel === "vendedor" && doc.vendedorId !== usuario.vendedorId) {
+  // A mesma regra da lista e da tela do chamado.
+  if (
+    usuario.papel === "vendedor" &&
+    !vendedorVeChamado(
+      { responsavelId: doc.responsavelId, vendedorDoAtendimentoId: doc.vendedorId },
+      usuario.vendedorId
+    )
+  ) {
     return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
   }
 

@@ -89,11 +89,18 @@ export async function alternarResumo(id: number, ativo: boolean) {
   revalidatePath("/cadastros/resumos");
 }
 
-export async function excluirResumo(id: number) {
+export async function excluirResumo(id: number): Promise<{ erro?: string }> {
   await exigirGestor();
   const rid = z.coerce.number().int().positive().parse(id);
-  await db.delete(resumos).where(eq(resumos.id, rid));
+  // Devolve o erro em vez de estourar: a tela mostrava "excluído" sem saber
+  // se o registro tinha mesmo saído do banco.
+  try {
+    await db.delete(resumos).where(eq(resumos.id, rid));
+  } catch {
+    return { erro: "Não deu para excluir. Tente de novo." };
+  }
   revalidatePath("/cadastros/resumos");
+  return {};
 }
 
 /** "Enviar agora": ignora a frequência para dar para testar na hora. */
