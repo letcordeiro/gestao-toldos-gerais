@@ -229,34 +229,79 @@ export default async function ImprimirFichaPage({
           ))}
         </div>
 
-        {/* Croqui: o quadriculado é um fundo em CSS — imprime igual em
-            qualquer navegador, sem depender de imagem ou PDF. */}
-        <div className="mt-1 border border-neutral-400 p-1">
+        <div className="mt-1 border border-neutral-400 bg-white p-1">
           <p className="text-[6.5px] font-bold uppercase tracking-wide text-neutral-500">
             Desenho / Croqui
           </p>
-          <div className="croqui mt-1" />
+          <Quadriculado />
         </div>
       </div>
 
       <style>{`
-        .croqui {
-          height: 165mm;
-          background-color: #fff;
-          background-image:
-            linear-gradient(to right, #c8c8c8 0.4px, transparent 0.4px),
-            linear-gradient(to bottom, #c8c8c8 0.4px, transparent 0.4px);
-          background-size: 4.6mm 4.6mm;
-        }
         @media print {
           @page { size: A4 portrait; margin: 8mm; }
           html, body { background: #fff !important; }
-          .croqui { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           /* esconde a moldura do sistema (menu, rodapé) ao imprimir */
           header, nav, footer { display: none !important; }
           main { padding: 0 !important; max-width: none !important; }
         }
       `}</style>
     </div>
+  );
+}
+
+/**
+ * Área do croqui: folha branca quadriculada.
+ *
+ * Era um fundo em CSS (linear-gradient de 0,4px a cada 4,6mm) e saía CINZA na
+ * impressão (23/09/2026). Fundo em CSS é imagem de fundo: o navegador
+ * rasteriza em baixa resolução para imprimir, a linha fina borra e a área
+ * inteira vira um cinza chapado — e ainda some de vez quando "imprimir
+ * fundos" está desligado. Aqui são LINHAS de verdade, em SVG: vetor, sai
+ * nítido em qualquer impressora e não depende de configuração de fundo.
+ *
+ * As linhas são desenhadas mais largas que a caixa e o excesso é cortado,
+ * então a grade fecha a largura certa em qualquer tamanho de papel.
+ */
+function Quadriculado() {
+  const MM = 96 / 25.4; // px por milímetro (CSS: 96px = 1 polegada)
+  const passo = 5 * MM; // quadrado de 5 mm
+  const altura = 165 * MM;
+  const largura = 210 * MM; // mais larga que a caixa; o resto é cortado
+  const colunas = Math.ceil(largura / passo);
+  const linhas = Math.floor(altura / passo);
+  const cor = "#b8b8b8";
+  return (
+    <svg
+      aria-hidden
+      width="100%"
+      height={linhas * passo}
+      className="mt-1 block bg-white"
+      style={{ overflow: "hidden" }}
+    >
+      <rect width="100%" height="100%" fill="#fff" />
+      {Array.from({ length: colunas + 1 }, (_, i) => (
+        <line
+          key={`v${i}`}
+          x1={i * passo}
+          y1={0}
+          x2={i * passo}
+          y2={linhas * passo}
+          stroke={cor}
+          strokeWidth={0.6}
+        />
+      ))}
+      {Array.from({ length: linhas + 1 }, (_, i) => (
+        <line
+          key={`h${i}`}
+          x1={0}
+          y1={i * passo}
+          x2={largura}
+          y2={i * passo}
+          stroke={cor}
+          strokeWidth={0.6}
+        />
+      ))}
+    </svg>
   );
 }
