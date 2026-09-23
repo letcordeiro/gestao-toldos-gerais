@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
 import { usuarioAtual } from "@/lib/auth";
-import { gerarOrdemManutencao } from "@/lib/gerar-ordem-manutencao";
-
-/** Nome de arquivo sem acento nem espaço — cabeçalho HTTP não aceita. */
-function apelido(nome: string): string {
-  return (
-    nome
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .toLowerCase() || "cliente"
-  );
-}
+import {
+  gerarOrdemManutencao,
+  nomeArquivoOrdem,
+} from "@/lib/gerar-ordem-manutencao";
 
 /**
  * Ordem de Manutenção em PDF. Uso INTERNO: é o papel que a equipe leva ao
@@ -47,7 +38,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(doc.buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${baixar ? "attachment" : "inline"}; filename="ordem-manutencao-${apelido(doc.clienteNome)}.pdf"`,
+      "Content-Disposition": `${baixar ? "attachment" : "inline"}; filename="${nomeArquivoOrdem(doc.clienteNome)}"`,
     },
   });
 }

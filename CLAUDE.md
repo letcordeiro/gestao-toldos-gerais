@@ -784,6 +784,62 @@ percebeu: as telas continuavam funcionando, só não havia como chegar nelas.
 estiver no menu nem na lista de exceções (alcançada por botão ou redirect) —
 e também se um item de menu apontar para tela que não existe.
 
+## Busca de telas (23/09/2026)
+
+O sistema passou de trinta telas e seis cabem na barra: o resto está no menu
+"Mais", em gavetas que fazem sentido para quem montou o menu e nem sempre para
+quem procura. A busca resolve isso — lupa no cabeçalho (campo escrito
+"Buscar tela" no desktop, só o ícone no celular), atalho **`/`** e **Ctrl/⌘+K**.
+
+- `src/lib/telas.ts` — o filtro, **puro e testado** (`src/lib/telas.test.ts`).
+  Reaproveita `normalizar`/`combinaBusca` de `busca-cliente.ts`.
+  - **APELIDOS**: como cada tela é chamada quando ninguém está olhando para o
+    menu — "garantia" abre Chamados, "agenda" abre Visitas, "contrato" cai em
+    Orçamentos (foi para lá que a lista de contratos foi). Sem isso a busca só
+    serve para quem já sabe o nome oficial, e aí não resolve nada.
+  - **Peso**: o rótulo ganha da ajuda. Quem digita "orc" quer Orçamentos em
+    primeiro, não "Motivos de perda" porque a ajuda dela fala em orçamento.
+  - **TELAS_EXTRAS**: as que não estão no menu de propósito (Meu perfil, Novo
+    orçamento, Nova cotação, Comissões). Ficam **fora de `layout.tsx`** porque
+    `teste-menu.mjs` lê os `href:` de lá — repetir a rota ali confunde o teste.
+    Cada uma tem `so` (gestor/comercial/vendedor) e o layout filtra: oferecer o
+    que a pessoa não pode abrir é sujeira.
+- A lista vem dos **MESMOS grupos do menu**, montada em `layout.tsx`. Tela nova
+  entra na busca sozinha; ninguém precisa lembrar de cadastrar em dois lugares.
+  A etiqueta do resultado ("Barra", "Menu Mais", "Configurações") ensina onde a
+  tela mora — da segunda vez a pessoa vai direto.
+- **O foco não vem de graça**: `initialFocus` do diálogo do Base UI não bastou
+  (o foco ficava no botão que abriu e as primeiras letras se perdiam). O
+  componente foca o campo no `useEffect` e **de novo 80 ms depois**, porque a
+  gestão de foco do Base UI roda depois do efeito.
+- Escolher uma tela usa o padrão de `onOpenChangeComplete` — ver "Diálogo +
+  navegação: nunca no mesmo instante".
+
+## Ordem de Manutenção: ver, imprimir, PDF e compartilhar (23/09/2026)
+
+Antes só dava para **imprimir** ou **baixar**: quem queria apenas conferir o
+que estava escrito caía na janela de impressão. Agora `/chamados/[id]/ficha`
+mostra a ficha na tela, igualzinha ao papel, com as quatro ações em cima.
+
+- `ficha-ordem.tsx` — o desenho em HTML, **um só**, usado pela tela de ver e
+  pela de imprimir. Eram duas cópias; ficha copiada é ficha que um dia ganha
+  campo só de um lado.
+- `ficha-dados.ts` — `fichaPermitida(id)` concentra a regra de quem pode ver
+  (vendedor só alcança a ficha dos próprios clientes). Estava repetida em cada
+  tela, e cada tela nova era uma chance de esquecer.
+- `acoes-ordem.tsx` — Imprimir · Ver PDF · Baixar PDF · **Compartilhar**.
+  - **Compartilhar manda o ARQUIVO, não o link**: o link só abre para quem tem
+    login, e quem recebe a ficha é o instalador, que não tem.
+  - Navegador que não sabe `navigator.canShare({files})` — quase todo navegador
+    de computador — **baixa o PDF e avisa no toast**. É o mesmo destino em dois
+    passos, e melhor do que um botão que não faz nada.
+  - Fechar a janela de compartilhamento devolve `AbortError`: **não é erro**,
+    não mostra aviso nenhum.
+- `nomeArquivoOrdem()` vive em `lib/gerar-ordem-manutencao.ts` e serve a rota
+  do PDF e o botão de compartilhar — o nome do arquivo é o mesmo nos dois.
+- Na tela do chamado: **Ver ficha** (a porta de tudo) e **Imprimir ficha** (o
+  caminho de todo dia). "Baixar PDF" saiu de lá — agora mora dentro da ficha.
+
 ## A lista de contratos foi absorvida pela de orçamentos (27/08/2026)
 
 As duas listas eram a mesma tabela — Número, Cliente, Status, Valor, Data — e a

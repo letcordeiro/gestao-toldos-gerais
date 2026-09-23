@@ -161,10 +161,18 @@ export default async function ChamadoPage({
             responsaveis={listaResponsaveis}
             trigger={<Button variant="outline">Editar</Button>}
           />
-          {/* Vai para a página de impressão, e NÃO direto para o PDF: celular
-              não imprime PDF — abre o arquivo e para por aí. No diálogo que
-              essa página abre já tem "Salvar como PDF" para quem quer o
-              arquivo, e o PDF continua em /chamados/[id]/pdf para mandar. */}
+          {/* "Ver ficha" é a porta de tudo que se faz com a Ordem de
+              Manutenção: olhar, imprimir, ver o PDF, baixar e compartilhar.
+              "Imprimir" fica aqui também porque é o caminho de todo dia — e
+              vai para a página HTML, NUNCA direto para o PDF: celular abre o
+              PDF e para por aí, sem janela de impressão. */}
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/chamados/${chamado.id}/ficha`} />}
+          >
+            Ver ficha
+          </Button>
           <Button
             variant="outline"
             nativeButton={false}
@@ -173,19 +181,6 @@ export default async function ChamadoPage({
             }
           >
             Imprimir ficha
-          </Button>
-          <Button
-            variant="ghost"
-            nativeButton={false}
-            render={
-              <a
-                href={`/chamados/${chamado.id}/pdf?download=1`}
-                target="_blank"
-                rel="noopener"
-              />
-            }
-          >
-            Baixar PDF
           </Button>
           <Button
             nativeButton={false}

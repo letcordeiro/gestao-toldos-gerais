@@ -23,6 +23,18 @@ import {
   type DadosOrdemManutencao,
 } from "@/app/(app)/chamados/[id]/pdf/ordem-manutencao-pdf";
 
+/** Nome de arquivo sem acento nem espaço — cabeçalho HTTP não aceita. */
+export function nomeArquivoOrdem(clienteNome: string): string {
+  const apelido =
+    clienteNome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "cliente";
+  return `ordem-manutencao-${apelido}.pdf`;
+}
+
 export type OrdemGerada = {
   clienteNome: string;
   /** Dono do atendimento — a rota usa para barrar vendedor de outro cliente. */
