@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { NavLinks } from "./nav-links";
 import { BottomNav } from "./bottom-nav";
 import { MenuSuspenso } from "./menu-config";
+import { BuscaTelas } from "./busca-telas";
+import { TELAS_EXTRAS, type Tela } from "@/lib/telas";
 
 async function sair() {
   "use server";
@@ -20,13 +22,15 @@ async function sair() {
 // etapas e não é um passo do funil (ordem pedida pela Letícia em 31/08/2026).
 // O de uso semanal foi para "Mais"; o que se ajusta uma vez, para a engrenagem.
 // curto: rótulo compacto do menu inferior (mobile).
+// ajuda: não aparece na barra — é o que a BUSCA lê para achar a tela por
+// aquilo que ela faz, e não só pelo nome que está no botão.
 const NAV = [
-  { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false },
-  { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false },
-  { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false },
-  { href: "/visitas", label: "Visitas", curto: "Visitas", icon: "visitas", soGestor: false },
-  { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false },
-  { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false },
+  { href: "/painel", label: "Painel", curto: "Painel", icon: "painel", soGestor: false, ajuda: "O resumo do seu dia" },
+  { href: "/atendimentos", label: "Atendimentos", curto: "Atend.", icon: "atendimentos", soGestor: false, ajuda: "O funil de quem procurou a gente" },
+  { href: "/orcamentos", label: "Orçamentos", curto: "Orçam.", icon: "orcamentos", soGestor: false, ajuda: "Propostas enviadas e contratos" },
+  { href: "/visitas", label: "Visitas", curto: "Visitas", icon: "visitas", soGestor: false, ajuda: "Medição e visita técnica marcadas" },
+  { href: "/instalacoes", label: "Instalações", curto: "Instal.", icon: "instalacoes", soGestor: false, ajuda: "Obra marcada, entrega e cobrança" },
+  { href: "/tarefas", label: "Tarefas", curto: "Tarefas", icon: "tarefas", soGestor: false, ajuda: "O que está pendente, de todas as etapas" },
 ];
 
 // Telas de uso semanal: entram no menu "Mais" em vez de disputar espaço na
@@ -174,6 +178,30 @@ export default async function AppLayout({
     ],
   };
 
+  // A busca lê os MESMOS grupos do menu — tela nova entra nela sozinha, sem
+  // ninguém lembrar de cadastrar em dois lugares. O grupo vira a etiqueta do
+  // resultado: além de levar à tela, ensina onde ela mora no menu.
+  const telasBusca: Tela[] = [
+    ...navItens.map((i) => ({
+      href: i.href,
+      label: i.label,
+      ajuda: i.ajuda,
+      grupo: "Barra",
+    })),
+    ...MAIS.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: "Menu Mais" }))),
+    ...(ehGestor
+      ? CONFIG.flatMap((g) =>
+          g.itens.map((i) => ({ ...i, grupo: "Configurações" }))
+        )
+      : []),
+    ...TELAS_EXTRAS.filter((t) => {
+      if (t.so === "gestor") return ehGestor;
+      if (t.so === "comercial") return usuario.papel !== "atendente";
+      if (t.so === "vendedor") return usuario.vendedorId != null;
+      return true;
+    }).map((t) => ({ href: t.href, label: t.label, ajuda: t.ajuda, grupo: t.grupo })),
+  ];
+
   return (
     // print:min-h-0 é obrigatório. `min-h-screen` = "uma tela de altura", e na
     // IMPRESSÃO o Safari do iPhone entende "tela" como a altura do CELULAR, que
@@ -208,6 +236,7 @@ export default async function AppLayout({
               />
             </nav>
             <div className="flex shrink-0 items-center gap-1">
+              <BuscaTelas telas={telasBusca} />
               {usuario.vendedorId != null ? (
                 <Link
                   href="/perfil"

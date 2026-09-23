@@ -82,6 +82,12 @@ export function TutorialInicial({
           "Onde você monta a proposta, escolhe o modelo de toldo, lança os valores e envia no WhatsApp. O botão 'Novo orçamento' fica aqui dentro.",
       },
       {
+        alvo: "busca",
+        titulo: "Buscar tela",
+        texto:
+          "Não lembra onde fica alguma coisa? Toque aqui e escreva o que procura — 'garantia', 'comissão', 'agenda' — que o sistema te leva. No computador, a tecla / abre essa busca de qualquer lugar.",
+      },
+      {
         alvo: "clientes",
         titulo: "Clientes",
         texto:
