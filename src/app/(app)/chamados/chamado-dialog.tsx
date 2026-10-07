@@ -53,11 +53,24 @@ function paraInputData(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/**
+ * Lista vazia ÚNICA, fora do componente. Era `orcamentos = []` no parâmetro:
+ * um array novo a cada render. Como `orcamentos` é dependência do efeito
+ * abaixo, o efeito rodava, gravava o array novo no estado, o componente
+ * redesenhava, nascia OUTRO array novo… em loop, o tempo todo, mesmo com o
+ * diálogo fechado (o botão "Abrir chamado" já mantém o componente montado).
+ * O React ficava sem folga e a navegação do site inteiro parava de andar —
+ * o "não consigo clicar em Orçamentos" e a "barrinha do aviso que não some"
+ * (07/10/2026). Em produção o React não avisa; em dev aparece como
+ * "Maximum update depth exceeded".
+ */
+const SEM_ORCAMENTOS: { id: number; numero: string }[] = [];
+
 export function ChamadoDialog({
   chamado,
   atendimentoId,
   atendimentos = [],
-  orcamentos = [],
+  orcamentos = SEM_ORCAMENTOS,
   responsaveis = [],
   irParaChamado = false,
   trigger,

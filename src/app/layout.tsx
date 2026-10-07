@@ -38,7 +38,18 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
-        <Toaster position="top-center" richColors />
+        {/* Os avisos nascem ABAIXO da barra do menu (offset), nunca por cima.
+            Em cima dela eles tampavam Visitas/Instalações/Tarefas, e o mouse
+            a caminho do menu parava sobre eles — o sonner pausa o tempo de
+            fechar enquanto o mouse está em cima, então ficavam lá para
+            sempre (07/10/2026). O X fecha na hora, para quem usa toque. */}
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          offset={{ top: 72 }}
+          mobileOffset={{ top: 68 }}
+        />
       </body>
     </html>
   );

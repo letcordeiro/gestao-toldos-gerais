@@ -73,8 +73,13 @@ export function FiltrosFunil({
     // Filtrar não pode desfazer a ordenação escolhida.
     if (ordem) params.set("ordem", ordem);
     if (dir) params.set("dir", dir);
+    // Navegação que não muda nada não vai para o roteador: é uma viagem ao
+    // servidor à toa e mais uma transição na fila do roteador.
+    const destino = `/atendimentos?${params.toString()}`;
+    const atual = `/atendimentos?${new URLSearchParams(window.location.search).toString()}`;
+    if (destino === atual) return;
     // scroll: false — digitar na busca não pode jogar a página para o topo.
-    router.replace(`/atendimentos?${params.toString()}`, { scroll: false });
+    router.replace(destino, { scroll: false });
   }
 
   return (
@@ -102,9 +107,15 @@ export function FiltrosFunil({
             label: `${f.nome} (${f.total})`,
           })),
         ]}
-        onValueChange={(v) =>
-          atualizar({ fase: !v || v === "todas" ? "" : v })
-        }
+        // Escolher a fase que já está escolhida não navega. Proteção: as
+        // contagens dos rótulos mudam depois de salvar qualquer coisa nesta
+        // tela, e não pode sair navegação de algo que ninguém escolheu. (O
+        // travamento de 07/10/2026 era outro — ver chamado-dialog.tsx.)
+        onValueChange={(v) => {
+          const nova = !v || v === "todas" ? "" : v;
+          if (nova === (fase ?? "")) return;
+          atualizar({ fase: nova });
+        }}
       >
         <SelectTrigger className="w-[240px] bg-card">
           <SelectValue />

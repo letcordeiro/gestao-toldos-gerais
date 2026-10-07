@@ -939,7 +939,48 @@ de contratos ainda trazia uma coluna "Orçamento" que só apontava de volta.
 - **Criar contrato nunca passou pela lista**: sai do botão "Gerar contrato" na
   tela do orçamento, liberado pela fase de negócio fechado. Nada mudou aí.
 
+## Loop de render travava a navegação do site (07/10/2026)
+
+**A causa real do "não consigo clicar em Orçamentos"** (relatado em 02/09 e de
+novo em 07/10) e da "barrinha do aviso que não some depois do não avisar mais".
+
+`ChamadoDialog` tinha `orcamentos = []` como valor padrão da prop — um array
+NOVO a cada render — e `orcamentos` era dependência de um `useEffect` que
+gravava estado. Efeito grava → redesenha → array novo → efeito de novo… em
+loop, o tempo todo, **com o diálogo fechado** (o botão "Abrir chamado" já mantém
+o componente montado). Ele aparece em Atendimentos, Chamados, Visitas e na tela
+do atendimento.
+
+O React em loop não tem folga para concluir transições: depois de qualquer
+ação que atualiza a tela (mudar fase, "não avisar mais", criar atendimento), a
+navegação seguinte era BUSCADA no servidor (resposta 200) e nunca aplicada.
+Menu sem resposta até o F5; `router.refresh()` que não chegava, então o bloco
+do aviso ficava. Intermitente: dependia da ação mexer no que o loop toca.
+
+- **Em produção o React não avisa nada.** Só em `next dev` aparece "Maximum
+  update depth exceeded". Para caçar travamento de navegação, rodar em dev
+  (com `NEXT_DIST_DIR` próprio) e olhar o console.
+- Conserto: constante fora do componente (`SEM_ORCAMENTOS`).
+- **`npm run test:deps`** (`scripts/teste-deps-estaveis.mjs`, dentro do
+  `npm test`) falha se alguma prop com `= []`/`= {}` de padrão entrar em lista
+  de dependências de hook. Conferido: acusa o código antigo.
+- O que NÃO era a causa (testado e descartado): os `revalidatePath` extras do
+  commit 95d09c3, a corrida diálogo + navegação abaixo, e o seletor de fase do
+  filtro (ele ganhou uma proteção contra navegar para o mesmo lugar, mas não
+  era o culpado).
+
+## Avisos (toasts) abaixo da barra do menu (07/10/2026)
+
+O `<Toaster>` em `app/layout.tsx` usa `offset={{ top: 72 }}` (celular 68) e
+`closeButton`. Em cima da barra, os avisos tampavam Visitas/Instalações/
+Tarefas, e o mouse a caminho do menu parava sobre eles — o sonner **pausa o
+tempo de fechar enquanto o mouse está em cima**, então ficavam para sempre.
+
 ## Diálogo + navegação: nunca no mesmo instante (02/09/2026)
+
+> **Atualização 07/10/2026:** o travamento relatado em 02/09 NÃO era isto —
+> era o loop de render da seção acima. O padrão abaixo continua valendo como
+> boa prática, mas não explica aquele sintoma.
 
 `setAberto(false)` seguido de `router.push()` na mesma função **desmonta o
 diálogo no meio da animação de saída** e deixa o fundo dele órfão no
