@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { agendasGoogle } from "@/db/schema";
 import { cifrar, decifrar, temChaveDeCripto } from "@/lib/cripto";
-import { lerFreeBusy } from "@/lib/google-freebusy";
+import { freeBusyComErro, lerFreeBusy } from "@/lib/google-freebusy";
 import type { Intervalo } from "@/lib/disponibilidade";
 
 /**
@@ -68,16 +68,23 @@ type RespostaToken = {
 };
 
 async function pedirToken(corpo: Record<string, string>): Promise<RespostaToken> {
-  const r = await fetch(TOKEN, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      ...corpo,
-    }),
-  });
-  return (await r.json()) as RespostaToken;
+  // Rede fora ou resposta que não é JSON viravam exceção crua: tela de erro
+  // no retorno do Google e, na visita, a agenda sumia sem aviso (auditoria de
+  // 07/10/2026). Agora volta como erro comum, que quem chama já sabe tratar.
+  try {
+    const r = await fetch(TOKEN, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        ...corpo,
+      }),
+    });
+    return (await r.json()) as RespostaToken;
+  } catch {
+    return { error: "rede", error_description: "Não deu para falar com o Google agora." };
+  }
 }
 
 /** Guarda a conexão do vendedor. Conectar de novo substitui a anterior. */
@@ -206,6 +213,11 @@ export async function ocupadosDoVendedor(
       return { estado: "erro", mensagem: msg };
     }
     const dados = (await r.json()) as unknown;
+    if (freeBusyComErro(dados)) {
+      const msg = "O Google não devolveu a agenda agora.";
+      await registrarErro(vendedorId, msg);
+      return { estado: "erro", mensagem: msg };
+    }
     await registrarErro(vendedorId, null);
     return { estado: "ok", ocupados: lerFreeBusy(dados) };
   } catch {
@@ -260,7 +272,15 @@ async function tokenValido(
     grant_type: "refresh_token",
   });
   if (t.error || !t.access_token) {
-    await registrarErro(vendedorId, t.error_description ?? "acesso revogado");
+    // A mensagem do Google vem em inglês ("Token has been expired or
+    // revoked.") e era o que o vendedor via no perfil. Em modo Teste o app
+    // perde o acesso a cada 7 dias — isto vai aparecer toda semana.
+    await registrarErro(
+      vendedorId,
+      t.error === "rede"
+        ? "Não deu para falar com o Google agora."
+        : "O Google encerrou a conexão da agenda."
+    );
     return null;
   }
 

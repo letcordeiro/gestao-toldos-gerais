@@ -78,11 +78,19 @@ export default async function VisitasPage({
   // tela que a falta dela aparece, e ninguém entra no perfil sem motivo.
   // Só para quem recebe visita — a atendente marca a agenda dos outros, a
   // dela não entra na conta de horário livre de ninguém.
-  const convidarAgenda =
+  const recebeVisita =
     googleConfigurado() &&
     usuario.vendedorId != null &&
-    usuario.papel !== "atendente" &&
-    (await conexaoDoVendedor(usuario.vendedorId)) == null;
+    usuario.papel !== "atendente";
+  const minhaAgenda = recebeVisita
+    ? await conexaoDoVendedor(usuario.vendedorId!)
+    : null;
+  const convidarAgenda = recebeVisita && minhaAgenda == null;
+  // Conectada mas com erro (o Google derruba a conexão a cada 7 dias enquanto
+  // o app está em modo Teste): antes a faixa só aparecia para quem NUNCA
+  // conectou, e o vendedor não sabia que a agenda tinha parado de valer
+  // (auditoria de 07/10/2026).
+  const reconectarAgenda = recebeVisita && Boolean(minhaAgenda?.ultimoErro);
 
   const paraAgenda = linhas.map((l) => ({
     ...l,
@@ -119,6 +127,21 @@ export default async function VisitasPage({
         </div>
       </div>
 
+      {reconectarAgenda && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+          <p className="text-sm">
+            <strong className="font-medium">Sua agenda do Google parou de responder</strong>
+            <span className="text-muted-foreground">
+              {" "}
+              — enquanto isso, quem marca visita para você não vê seus
+              compromissos. Reconecte para voltar a valer.
+            </span>
+          </p>
+          <Button size="sm" nativeButton={false} render={<a href="/api/google/conectar" />}>
+            Reconectar agenda
+          </Button>
+        </div>
+      )}
       {convidarAgenda && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-secondary/40 p-3">
           <p className="text-sm">

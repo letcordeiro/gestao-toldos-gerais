@@ -1,7 +1,8 @@
 "use server";
 
+import crypto from "node:crypto";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
@@ -9,8 +10,21 @@ import { vendedores } from "@/db/schema";
 import {
   criarSessao,
   definirSenhaVendedor,
+  emailReconhecido,
   temNomeSobrenome,
 } from "@/lib/auth";
+
+/**
+ * Compara o token sem vazar, pelo tempo de resposta, quantos caracteres
+ * acertou — `!==` para no primeiro diferente (auditoria de 07/10/2026). O
+ * hash deixa os dois buffers do mesmo tamanho, que é o que `timingSafeEqual`
+ * exige, e também esconde o tamanho do token certo.
+ */
+function tokenConfere(recebido: string, esperado: string): boolean {
+  const a = crypto.createHash("sha256").update(recebido).digest();
+  const b = crypto.createHash("sha256").update(esperado).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 const schema = z
   .object({
@@ -39,7 +53,7 @@ export async function cadastrarVendedor(
   // Confere o token do link contra o configurado (só quem tem o link cadastra).
   const tokenOk = process.env.VENDEDOR_SIGNUP_TOKEN;
   const token = String(formData.get("token") ?? "");
-  if (!tokenOk || token !== tokenOk) {
+  if (!tokenOk || !tokenConfere(token, tokenOk)) {
     return { erro: "Link de cadastro inválido." };
   }
 
@@ -57,14 +71,19 @@ export async function cadastrarVendedor(
   const dados = parsed.data;
   const email = dados.email.toLowerCase();
 
-  // E-mail já cadastrado como vendedor ativo?
-  const existente = await db.query.vendedores.findFirst({
-    where: and(eq(vendedores.email, email), eq(vendedores.ativo, true)),
+  // E-mail que já entra no sistema por QUALQUER porta não se cadastra de
+  // novo. Antes só se olhava vendedor ATIVO: com o e-mail de um desativado,
+  // ou de um admin do env/`usuarios`, nascia um vendedor novo com senha
+  // escolhida por quem tinha o link — e, no caso do admin, a sessão passava a
+  // ser a desse vendedor (auditoria de 07/10/2026). O desativado conta mesmo
+  // inativo: reativar é decisão do gestor, não do link. Compara sem caixa e
+  // sem espaço porque há cadastro antigo gravado do jeito que foi digitado.
+  const vendedorComEmail = await db.query.vendedores.findFirst({
+    where: sql`lower(trim(${vendedores.email})) = ${email}`,
+    columns: { id: true },
   });
-  if (existente) {
-    return {
-      erro: "Este e-mail já tem cadastro. Faça login ou peça a senha ao gestor.",
-    };
+  if (vendedorComEmail || (await emailReconhecido(email))) {
+    return { erro: "Este e-mail já tem acesso. Fale com o gestor." };
   }
 
   const [novo] = await db

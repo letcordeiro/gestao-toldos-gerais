@@ -75,6 +75,9 @@ export function FiltrosFunil({
     if (dir) params.set("dir", dir);
     // Navegação que não muda nada não vai para o roteador: é uma viagem ao
     // servidor à toa e mais uma transição na fila do roteador.
+    // Clique no menu durante a espera da busca: com a conexão lenta, a busca
+    // passava por cima da navegação (auditoria de 07/10/2026).
+    if (window.location.pathname !== "/atendimentos") return;
     const destino = `/atendimentos?${params.toString()}`;
     const atual = `/atendimentos?${new URLSearchParams(window.location.search).toString()}`;
     if (destino === atual) return;

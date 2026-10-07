@@ -22,6 +22,11 @@ export async function GET(
 
   // Vendedor só baixa contrato de orçamento dele.
   const usuario = await usuarioAtual();
+  // Não confia só no middleware: sem usuário, a checagem de vendedor abaixo
+  // passava direto e o arquivo saía (auditoria de 07/10/2026).
+  if (!usuario) {
+    return NextResponse.json({ erro: "não autenticado" }, { status: 401 });
+  }
   if (usuario?.papel === "vendedor") {
     const orc = await db.query.orcamentos.findFirst({
       where: eq(orcamentos.id, contrato.orcamentoId),

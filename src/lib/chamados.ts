@@ -116,13 +116,20 @@ export function descricaoServico(
   return texto || TIPO_SERVICO_LABEL.outros;
 }
 
+/** Fecho da última linha quando o relato não coube na ficha. */
+export const SUFIXO_CONTINUA = "… (continua no sistema)";
+
 /**
  * Quebra o relato do cliente nas linhas de escrita da ficha impressa.
  *
  * Devolve SEMPRE `total` linhas: as que sobram saem em branco, porque a ficha
  * é papel de trabalho — o instalador anota nelas o que encontrou no local.
- * Palavra maior que a linha é cortada em vez de estourar a margem, e o que não
- * couber em `total` linhas é descartado: o relato completo continua na tela.
+ * Palavra maior que a linha é cortada em vez de estourar a margem.
+ *
+ * O que não couber em `total` linhas fica de fora, mas a última linha termina
+ * com "… (continua no sistema)". Antes o corte era mudo: o instalador lia
+ * metade do relato achando que era tudo (auditoria de 07/10/2026). Linha
+ * curta demais para o aviso (só em teste) leva só as reticências.
  */
 export function linhasDaFicha(
   texto: string | null | undefined,
@@ -150,6 +157,19 @@ export function linhasDaFicha(
     }
   }
   if (atual) linhas.push(atual);
+
+  if (total > 0 && linhas.length > total) {
+    const sufixo =
+      SUFIXO_CONTINUA.length < porLinha ? SUFIXO_CONTINUA : "…";
+    const espaco = porLinha - sufixo.length;
+    // Tira palavras do fim da última linha até o aviso caber; se sobrar uma
+    // palavra só e grande, corta a palavra.
+    let ultima = linhas[total - 1];
+    while (ultima.length > espaco && ultima.includes(" ")) {
+      ultima = ultima.slice(0, ultima.lastIndexOf(" "));
+    }
+    linhas[total - 1] = `${ultima.slice(0, Math.max(0, espaco))}${sufixo}`;
+  }
   return Array.from({ length: total }, (_, i) => linhas[i] ?? "");
 }
 

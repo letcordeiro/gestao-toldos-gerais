@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/db";
@@ -62,12 +62,29 @@ export async function salvarVendedor(
   }
   const dados = parsed.data;
 
+  // O login procura o e-mail em minúsculas (`normalizarEmail` em auth.ts):
+  // gravado como foi digitado ("Joao@..."), o vendedor ficava sem conseguir
+  // entrar. E dois vendedores com o mesmo e-mail dividiam o login — entrava
+  // quem o banco devolvesse primeiro (auditoria de 07/10/2026). A comparação
+  // ignora caixa e espaço porque há cadastro antigo gravado sem normalizar.
+  const email = dados.email ? dados.email.trim().toLowerCase() : null;
+  if (email) {
+    const outro = await db.query.vendedores.findFirst({
+      where: and(
+        sql`lower(trim(${vendedores.email})) = ${email}`,
+        dados.id ? ne(vendedores.id, dados.id) : undefined
+      ),
+      columns: { id: true },
+    });
+    if (outro) return { erro: "Este e-mail já é de outro usuário." };
+  }
+
   const valores = {
     nome: dados.nome,
     whatsapp: dados.whatsapp || null,
     telefoneFixo: dados.telefoneFixo || null,
     linkAgendamento: dados.linkAgendamento || null,
-    email: dados.email || null,
+    email,
     papel: dados.papel,
   };
 
@@ -116,7 +133,13 @@ export async function redefinirSenhaUsuario(
     return { erro: "A senha precisa ter ao menos 6 caracteres." };
   }
   // Evita o gestor se trancar para fora tirando o próprio acesso.
-  if (!nova && alvo.email && alvo.email === gestor.email) {
+  // Sem caixa nem espaço: e-mail antigo gravado como "Joao@…" escapava da
+  // trava e o gestor removia a própria senha (auditoria de 07/10/2026).
+  if (
+    !nova &&
+    alvo.email &&
+    alvo.email.trim().toLowerCase() === gestor.email.trim().toLowerCase()
+  ) {
     return { erro: "Você não pode remover o próprio acesso." };
   }
 

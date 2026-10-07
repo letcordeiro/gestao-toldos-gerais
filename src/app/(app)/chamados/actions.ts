@@ -11,8 +11,75 @@ import {
   clientes,
   orcamentos,
 } from "@/db/schema";
-import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { exigirUsuario, veFunilInteiro, type UsuarioAtual } from "@/lib/auth";
+import { vendedorVeChamado } from "@/lib/chamados";
 import { parseParaCentavos } from "@/lib/format";
+
+/**
+ * Carrega o chamado SE quem pediu pode mexer nele. Gestor e atendente passam
+ * direto; vendedor passa pela mesma regra da lista, da tela e da ficha
+ * (`vendedorVeChamado`).
+ *
+ * Server Action é chamável direto: a tela já escondia o chamado alheio, mas
+ * editar, mudar a situação e escrever no histórico aceitavam qualquer id
+ * (auditoria de 07/10/2026). Devolve null nos dois casos — não existe e não é
+ * dele — para não confirmar que o chamado existe.
+ */
+async function chamadoPermitido(usuario: UsuarioAtual, chamadoId: number) {
+  const [linha] = await db
+    .select({
+      chamado: chamados,
+      vendedorDoAtendimentoId: atendimentos.vendedorId,
+    })
+    .from(chamados)
+    .innerJoin(atendimentos, eq(chamados.atendimentoId, atendimentos.id))
+    .where(eq(chamados.id, chamadoId));
+  if (!linha) return null;
+  if (veFunilInteiro(usuario.papel)) return linha.chamado;
+  const ve = vendedorVeChamado(
+    {
+      responsavelId: linha.chamado.responsavelId,
+      vendedorDoAtendimentoId: linha.vendedorDoAtendimentoId,
+    },
+    usuario.vendedorId
+  );
+  return ve ? linha.chamado : null;
+}
+
+/**
+ * Vendedor só abre chamado (e só lista orçamentos) de cliente DELE — a mesma
+ * regra de `atendimentosParaChamado`, que é a lista que a tela oferece, e da
+ * tela do atendimento. Sem dono não entra: lá também não aparece.
+ */
+async function atendimentoEhDele(usuario: UsuarioAtual, atendimentoId: number) {
+  if (veFunilInteiro(usuario.papel)) return true;
+  if (usuario.vendedorId == null) return false;
+  const at = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, atendimentoId),
+    columns: { vendedorId: true },
+  });
+  return at != null && at.vendedorId === usuario.vendedorId;
+}
+
+/**
+ * O orçamento ligado tem que ser do MESMO atendimento do chamado. A garantia
+ * é calculada pela data de instalação desse orçamento: ligar o de outra obra
+ * (mandando o id por fora da tela) dava "na garantia" para quem não estava —
+ * e quem paga a visita é decidido por isso (auditoria de 07/10/2026).
+ */
+async function orcamentoDoAtendimento(
+  orcamentoId: number,
+  atendimentoId: number
+) {
+  const orc = await db.query.orcamentos.findFirst({
+    where: and(
+      eq(orcamentos.id, orcamentoId),
+      eq(orcamentos.atendimentoId, atendimentoId)
+    ),
+    columns: { id: true },
+  });
+  return orc != null;
+}
 
 const SITUACOES = ["aberto", "em_andamento", "resolvido", "cancelado"] as const;
 
@@ -99,8 +166,19 @@ export async function salvarChamado(
   });
   if (!parsed.success) return { erro: parsed.error.issues[0].message };
   const d = parsed.data;
+  const ehVendedor = !veFunilInteiro(usuario.papel);
 
   if (d.id) {
+    const atual = await chamadoPermitido(usuario, d.id);
+    if (!atual) return { erro: "Chamado não encontrado." };
+    // O atendimento vem do banco, nunca do formulário: a edição não troca o
+    // cliente do chamado.
+    if (
+      d.orcamentoId != null &&
+      !(await orcamentoDoAtendimento(d.orcamentoId, atual.atendimentoId))
+    ) {
+      return { erro: "Orçamento não encontrado para este cliente." };
+    }
     await db
       .update(chamados)
       .set({
@@ -109,7 +187,12 @@ export async function salvarChamado(
         tipo: d.tipo,
         prioridade: d.prioridade,
         naGarantia: d.naGarantia,
-        responsavelId: d.responsavelId,
+        // Vendedor não troca o responsável: a lista de responsáveis nem
+        // aparece para ele, e o campo vazio que a tela manda apagava o
+        // responsável a cada edição. Mantém o que estava — forçar "ele mesmo"
+        // tomaria o chamado de quem cuida dele só porque o cliente é seu
+        // (auditoria de 07/10/2026).
+        responsavelId: ehVendedor ? atual.responsavelId : d.responsavelId,
         orcamentoId: d.orcamentoId,
         instalador: d.instalador,
         valor: d.valor,
@@ -118,8 +201,18 @@ export async function salvarChamado(
         visitaEm: d.visitaEm,
       })
       .where(eq(chamados.id, d.id));
-    revalidar(d.id, d.atendimentoId);
+    revalidar(d.id, atual.atendimentoId);
     return { ok: true, criadoId: d.id };
+  }
+
+  if (!(await atendimentoEhDele(usuario, d.atendimentoId))) {
+    return { erro: "Cliente não encontrado." };
+  }
+  if (
+    d.orcamentoId != null &&
+    !(await orcamentoDoAtendimento(d.orcamentoId, d.atendimentoId))
+  ) {
+    return { erro: "Orçamento não encontrado para este cliente." };
   }
 
   const [novo] = await db
@@ -132,7 +225,11 @@ export async function salvarChamado(
       tipo: d.tipo,
       prioridade: d.prioridade,
       naGarantia: d.naGarantia,
-      responsavelId: d.responsavelId ?? usuario.vendedorId ?? null,
+      // Vendedor abre chamado só para si — o servidor não aceita outro nome
+      // vindo por fora da tela (auditoria de 07/10/2026).
+      responsavelId: ehVendedor
+        ? usuario.vendedorId
+        : d.responsavelId ?? usuario.vendedorId ?? null,
       instalador: d.instalador,
       valor: d.valor,
       tipoServico: d.tipoServico,
@@ -154,9 +251,7 @@ export async function mudarSituacaoChamado(
   const id = z.coerce.number().int().positive().parse(chamadoId);
   const nova = z.enum(SITUACOES).parse(situacao);
 
-  const chamado = await db.query.chamados.findFirst({
-    where: eq(chamados.id, id),
-  });
+  const chamado = await chamadoPermitido(usuario, id);
   if (!chamado) return { erro: "Chamado não encontrado" };
   if (chamado.situacao === nova) return {};
 
@@ -192,9 +287,7 @@ export async function adicionarInteracao(
     .safeParse(texto);
   if (!conteudo.success) return { erro: conteudo.error.issues[0].message };
 
-  const chamado = await db.query.chamados.findFirst({
-    where: eq(chamados.id, id),
-  });
+  const chamado = await chamadoPermitido(usuario, id);
   if (!chamado) return { erro: "Chamado não encontrado" };
 
   await db.insert(chamadoInteracoes).values({
@@ -254,8 +347,11 @@ export async function atendimentosParaChamado() {
  * que é o que decide a garantia.
  */
 export async function orcamentosDoAtendimento(atendimentoId: number) {
-  await exigirUsuario();
+  const usuario = await exigirUsuario();
   const id = z.coerce.number().int().positive().parse(atendimentoId);
+  // Lista vazia para cliente de outro vendedor: devolvia os números dos
+  // orçamentos de qualquer atendimento (auditoria de 07/10/2026).
+  if (!(await atendimentoEhDele(usuario, id))) return [];
   return db
     .select({ id: orcamentos.id, numero: orcamentos.numero })
     .from(orcamentos)

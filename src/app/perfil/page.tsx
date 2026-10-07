@@ -27,7 +27,33 @@ async function sair() {
   redirect("/login");
 }
 
-export default async function PerfilPage() {
+/**
+ * O retorno do Google cai aqui com `?agenda=ok|cancelado|estado-invalido|erro:…`
+ * — e a tela não lia: o vendedor voltava do Google sem saber se ligou
+ * (auditoria de 07/10/2026).
+ */
+function mensagemDaAgenda(codigo: string | undefined): { ok: boolean; texto: string } | null {
+  if (!codigo) return null;
+  if (codigo === "ok") return { ok: true, texto: "Agenda do Google conectada." };
+  if (codigo === "cancelado")
+    return { ok: false, texto: "A conexão com o Google foi cancelada. Nada mudou." };
+  if (codigo === "estado-invalido")
+    return {
+      ok: false,
+      texto: "O link de conexão venceu (vale 10 minutos). Clique em Conectar de novo.",
+    };
+  if (codigo.startsWith("erro:"))
+    return { ok: false, texto: `O Google recusou a conexão: ${decodeURIComponent(codigo.slice(5))}` };
+  return null;
+}
+
+export default async function PerfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ agenda?: string }>;
+}) {
+  const { agenda } = await searchParams;
+  const avisoAgenda = mensagemDaAgenda(agenda);
   const usuario = await exigirUsuario();
   // Admin do env (sem cadastro de vendedor) não tem perfil a completar.
   if (usuario.vendedorId == null) redirect("/painel");
@@ -100,6 +126,18 @@ export default async function PerfilPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {avisoAgenda && (
+                <p
+                  className={
+                    "mb-3 rounded-md border p-2 text-sm " +
+                    (avisoAgenda.ok
+                      ? "border-primary/40 bg-primary/5 text-primary"
+                      : "border-destructive/40 bg-destructive/5 text-destructive")
+                  }
+                >
+                  {avisoAgenda.texto}
+                </p>
+              )}
               <AgendaGoogle
                 disponivel={googleConfigurado()}
                 conexao={

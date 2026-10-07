@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { atendimentos, tarefas } from "@/db/schema";
-import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
+import { atendimentos, contratos, orcamentos, tarefas } from "@/db/schema";
+import { exigirUsuario, veFunilInteiro, type UsuarioAtual } from "@/lib/auth";
 import { parseDataBR } from "@/lib/tarefas";
 
 const TIPOS = [
@@ -66,6 +66,50 @@ async function podeMexer(tarefaId: number) {
   return null;
 }
 
+/**
+ * Vendedor só pendura tarefa no que é DELE: atendimento dele (a mesma regra da
+ * tela do atendimento), orçamento dele e contrato de orçamento dele (as mesmas
+ * de `orcamentoEditavel` e do acesso ao contrato).
+ *
+ * A tela só oferece o que é dele, mas a Server Action é chamável direto: dava
+ * para criar tarefa em cliente de outro vendedor e ela aparecia na lista dele
+ * (auditoria de 07/10/2026). Gestor e atendente passam direto.
+ */
+async function vinculosSaoDele(
+  usuario: UsuarioAtual,
+  v: {
+    atendimentoId: number | null;
+    orcamentoId: number | null;
+    contratoId: number | null;
+  }
+): Promise<boolean> {
+  if (veFunilInteiro(usuario.papel)) return true;
+  if (usuario.vendedorId == null) return false;
+  if (v.atendimentoId != null) {
+    const at = await db.query.atendimentos.findFirst({
+      where: eq(atendimentos.id, v.atendimentoId),
+      columns: { vendedorId: true },
+    });
+    if (!at || at.vendedorId !== usuario.vendedorId) return false;
+  }
+  if (v.orcamentoId != null) {
+    const orc = await db.query.orcamentos.findFirst({
+      where: eq(orcamentos.id, v.orcamentoId),
+      columns: { vendedorId: true },
+    });
+    if (!orc || orc.vendedorId !== usuario.vendedorId) return false;
+  }
+  if (v.contratoId != null) {
+    const [ct] = await db
+      .select({ vendedorId: orcamentos.vendedorId })
+      .from(contratos)
+      .innerJoin(orcamentos, eq(contratos.orcamentoId, orcamentos.id))
+      .where(eq(contratos.id, v.contratoId));
+    if (!ct || ct.vendedorId !== usuario.vendedorId) return false;
+  }
+  return true;
+}
+
 export async function salvarTarefa(
   _prev: TarefaFormState,
   formData: FormData
@@ -101,6 +145,9 @@ export async function salvarTarefa(
       })
       .where(eq(tarefas.id, d.id));
   } else {
+    if (!(await vinculosSaoDele(usuario, d))) {
+      return { erro: "Cliente não encontrado." };
+    }
     await db.insert(tarefas).values({
       titulo: d.titulo,
       tipo: d.tipo,
@@ -110,8 +157,12 @@ export async function salvarTarefa(
       atendimentoId: d.atendimentoId,
       orcamentoId: d.orcamentoId,
       contratoId: d.contratoId,
-      // Sem responsável escolhido, a tarefa é de quem criou.
-      responsavelId: d.responsavelId ?? usuario.vendedorId ?? null,
+      // Sem responsável escolhido, a tarefa é de quem criou. Vendedor cria
+      // só para si: não aceita outro nome vindo por fora da tela (auditoria
+      // de 07/10/2026).
+      responsavelId: veFunilInteiro(usuario.papel)
+        ? d.responsavelId ?? usuario.vendedorId ?? null
+        : usuario.vendedorId,
       criadoPor: usuario.nome ?? usuario.email,
     });
   }
@@ -171,8 +222,19 @@ function revalidar(atendimentoId: number | null) {
 
 /** Tarefas pendentes de um atendimento — usado na tela do atendimento. */
 export async function tarefasDoAtendimento(atendimentoId: number) {
-  await exigirUsuario();
+  const usuario = await exigirUsuario();
   const id = z.coerce.number().int().positive().parse(atendimentoId);
+  // Vendedor só lê as do atendimento dele — devolvia as de qualquer cliente
+  // pelo id (auditoria de 07/10/2026).
+  if (
+    !(await vinculosSaoDele(usuario, {
+      atendimentoId: id,
+      orcamentoId: null,
+      contratoId: null,
+    }))
+  ) {
+    return [];
+  }
   return db
     .select()
     .from(tarefas)

@@ -199,6 +199,10 @@ export async function criarOrcamento(
   }
   const dados = parsed.data;
 
+  if (!(await atendimentoPermitido(usuario, dados.atendimentoId))) {
+    return { erro: "Cliente não encontrado." };
+  }
+
   // Vendedor responsável = o usuário logado (quem tem cadastro de vendedor).
   // Admin do env sem vendedor cai no que veio do formulário.
   const vendedorId = usuario.vendedorId ?? dados.vendedorId ?? null;
@@ -288,17 +292,22 @@ export async function atualizarOrcamento(
   _prev: OrcamentoFormState,
   formData: FormData
 ): Promise<OrcamentoFormState> {
-  await exigirComercial();
+  const usuario = await exigirComercial();
 
   const orcamentoId = Number(formData.get("orcamentoId"));
   if (!Number.isInteger(orcamentoId) || orcamentoId <= 0) {
     return { erro: "Orçamento inválido" };
   }
 
-  const existente = await db.query.orcamentos.findFirst({
-    where: eq(orcamentos.id, orcamentoId),
-  });
+  // Vendedor só edita o que é dele (antes: qualquer orçamento pelo id).
+  const existente = await orcamentoEditavel(orcamentoId);
   if (!existente) return { erro: "Orçamento não encontrado" };
+  // Durante o envio pelo WhatsApp o serviço externo é dono do registro: mudar
+  // o status agora fazia o resultado do envio se perder e, voltando para
+  // "agendado", a proposta ia DUAS vezes ao cliente.
+  if (existente.status === "enviando") {
+    return { erro: "A proposta está sendo enviada agora. Espere um instante e tente de novo." };
+  }
 
   let itensBrutos: unknown;
   try {
@@ -331,6 +340,11 @@ export async function atualizarOrcamento(
   }
   const dados = parsed.data;
 
+  if (!(await atendimentoPermitido(usuario, dados.atendimentoId))) {
+    return { erro: "Cliente não encontrado." };
+  }
+  // Vendedor não passa o orçamento para outro nome.
+  if (usuario.papel === "vendedor") dados.vendedorId = usuario.vendedorId ?? undefined;
   const vendedorIdEfetivo = dados.vendedorId ?? existente.vendedorId;
   if (
     dados.status === "agendado" &&
@@ -381,19 +395,25 @@ export async function atualizarOrcamento(
     })
     .where(eq(orcamentos.id, orcamentoId));
 
-  // Regrava os itens (mais simples que fazer diff)
-  await db
-    .delete(orcamentoItens)
-    .where(eq(orcamentoItens.orcamentoId, orcamentoId));
-  await db.insert(orcamentoItens).values(
-    conversao.itens.map((item, i) => ({
-      orcamentoId,
-      descricao: item.descricao,
-      valorMin: item.valorMin,
-      valorMax: item.valorMax,
-      ordem: i,
-    }))
-  );
+  // Regrava os itens (mais simples que fazer diff) — numa transação: se a
+  // gravação falhasse depois do DELETE (banco ocupado no meio de um deploy),
+  // o orçamento ficava SEM itens (auditoria de 07/10/2026).
+  db.transaction((tx) => {
+    tx.delete(orcamentoItens)
+      .where(eq(orcamentoItens.orcamentoId, orcamentoId))
+      .run();
+    tx.insert(orcamentoItens)
+      .values(
+        conversao.itens.map((item, i) => ({
+          orcamentoId,
+          descricao: item.descricao,
+          valorMin: item.valorMin,
+          valorMax: item.valorMax,
+          ordem: i,
+        }))
+      )
+      .run();
+  });
 
   revalidatePath("/orcamentos");
   revalidatePath(`/orcamentos/${orcamentoId}`);
@@ -415,16 +435,26 @@ export async function mudarStatusOrcamento(
   orcamentoId: number,
   status: string
 ) {
-  await exigirComercial();
   const novoStatus = statusSchema.parse(status);
-  // O status "enviado" é reservado ao worker após confirmação da Evolution.
-  if (novoStatus === "enviado" || novoStatus === "enviando") return;
+  // "enviado", "enviando" e "falha_envio" são gravados só pelo serviço de
+  // envio do WhatsApp. "falha_envio" escolhido à mão era o pior: o serviço
+  // pega quem está nesse status para TENTAR DE NOVO — orçamento já enviado
+  // (ou aprovado) ia outra vez ao cliente e voltava para "enviado"
+  // (auditoria de 07/10/2026).
+  if (
+    novoStatus === "enviado" ||
+    novoStatus === "enviando" ||
+    novoStatus === "falha_envio"
+  ) {
+    return;
+  }
   const id = z.coerce.number().int().positive().parse(orcamentoId);
 
-  const orcamento = await db.query.orcamentos.findFirst({
-    where: eq(orcamentos.id, id),
-  });
+  // Vendedor só muda o status do que é dele (antes: qualquer um pelo id).
+  const orcamento = await orcamentoEditavel(id);
   if (!orcamento || orcamento.status === novoStatus) return;
+  // Durante o envio, o serviço é dono do registro (ver atualizarOrcamento).
+  if (orcamento.status === "enviando") return;
   if (novoStatus === "agendado" && !permiteEnvioAutomatico(orcamento.vendedorId)) return;
   if (novoStatus === "agendado" && orcamento.enviadoEm != null) return;
 
@@ -464,6 +494,23 @@ export async function mudarStatusOrcamento(
 
 // Quem pode mexer no orçamento: gestor em qualquer um, vendedor no seu.
 // Atendente não mexe em nenhum.
+/**
+ * Vendedor só monta orçamento em atendimento DELE ou ainda sem dono (que
+ * passa a ser dele — ver criarOrcamento). A tela já escondia os outros, mas a
+ * Server Action é chamável direto (auditoria de 07/10/2026).
+ */
+async function atendimentoPermitido(
+  usuario: { papel: string; vendedorId: number | null },
+  atendimentoId: number
+): Promise<boolean> {
+  if (usuario.papel !== "vendedor") return true;
+  const at = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, atendimentoId),
+    columns: { vendedorId: true },
+  });
+  return at != null && (at.vendedorId == null || at.vendedorId === usuario.vendedorId);
+}
+
 async function orcamentoEditavel(orcamentoId: number) {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
@@ -536,17 +583,30 @@ export async function excluirOrcamento(
   if (orc.status !== "rascunho")
     return { erro: "Só é possível excluir orçamentos em rascunho" };
 
-  // Remove as fotos (arquivos no disco + registros), depois itens e o orçamento.
+  // Antes: apagava os ARQUIVOS das fotos, depois fotos e itens, e só então
+  // tentava o orçamento — que o banco recusava quando havia tarefa, cotação ou
+  // chamado ligado a ele. Resultado: tela de erro e orçamento sem itens e sem
+  // fotos, sem volta (auditoria de 07/10/2026). Agora o banco apaga tudo numa
+  // transação só (tudo ou nada) e os arquivos saem DEPOIS que deu certo.
   const fotos = await db
     .select()
     .from(orcamentoFotos)
     .where(eq(orcamentoFotos.orcamentoId, id));
+  try {
+    db.transaction((tx) => {
+      tx.delete(orcamentoFotos).where(eq(orcamentoFotos.orcamentoId, id)).run();
+      tx.delete(orcamentoItens).where(eq(orcamentoItens.orcamentoId, id)).run();
+      tx.delete(orcamentos).where(eq(orcamentos.id, id)).run();
+    });
+  } catch {
+    return {
+      erro:
+        "Este orçamento tem tarefa, cotação ou chamado ligado a ele. Exclua ou desligue esses itens antes.",
+    };
+  }
   for (const foto of fotos) {
     await removerFotoArquivo(id, foto.arquivo);
   }
-  await db.delete(orcamentoFotos).where(eq(orcamentoFotos.orcamentoId, id));
-  await db.delete(orcamentoItens).where(eq(orcamentoItens.orcamentoId, id));
-  await db.delete(orcamentos).where(eq(orcamentos.id, id));
 
   revalidatePath("/orcamentos");
   revalidatePath(`/atendimentos/${orc.atendimentoId}`);
@@ -555,12 +615,10 @@ export async function excluirOrcamento(
 
 // Cria um novo orçamento (rascunho) copiando todos os dados de um existente.
 export async function duplicarOrcamento(orcamentoId: number) {
-  await exigirComercial();
   const id = z.coerce.number().int().positive().parse(orcamentoId);
 
-  const original = await db.query.orcamentos.findFirst({
-    where: eq(orcamentos.id, id),
-  });
+  // Vendedor só duplica o que é dele.
+  const original = await orcamentoEditavel(id);
   if (!original) return;
 
   const itens = await db

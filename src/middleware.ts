@@ -12,7 +12,13 @@ const ROTAS_PUBLICAS = [
   /^\/contrato\/.+/,
   /^\/pesquisa\/.+/,
   /^\/cotacao\/.+/,
-  /^\/api\/cadastro(\/.*)?$/,
+  // O cron do resumo chama sem cookie, só com o Bearer — a própria rota
+  // confere o token. Fora desta lista, o middleware devolvia 307 para /login
+  // e o curl do cron terminava "com sucesso": o resumo nunca saiu
+  // (auditoria de 07/10/2026).
+  /^\/api\/resumos$/,
+  // Saúde do sistema: só ok/erro, para monitor de uptime.
+  /^\/api\/saude$/,
   /^\/manifest\.webmanifest$/,
 ];
 
@@ -36,5 +42,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|.*\\.(?:png|jpg|svg|ico|webp)).*)"],
+  // Arquivo estático pula o middleware só se TERMINAR em .png/.jpg/… — sem o
+  // `$`, qualquer caminho que tivesse ".png" no meio passava sem login.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|.*\\.(?:png|jpg|svg|ico|webp)$).*)"],
 };

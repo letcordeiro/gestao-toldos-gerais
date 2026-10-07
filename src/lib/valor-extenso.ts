@@ -96,33 +96,37 @@ export function numeroPorExtenso(n: number): string {
     throw new Error("numeroPorExtenso: valor acima do suportado");
   }
 
-  const partes: string[] = [];
+  // Cada parte guarda o valor do SEU grupo. Antes o "e" olhava o grupo pela
+  // posição na lista de partes, que pula grupo zerado: 1.000.500 saía "um
+  // milhão quinhentos", sem o "e" (auditoria de 07/10/2026).
+  const partes: { texto: string; valor: number }[] = [];
   for (let i = grupos.length - 1; i >= 0; i--) {
     const g = grupos[i];
     if (g === 0) continue;
     const escala = ESCALAS[i];
     if (i === 0) {
-      partes.push(grupoPorExtenso(g));
+      partes.push({ texto: grupoPorExtenso(g), valor: g });
     } else if (i === 1) {
       // "mil" não leva "um" na frente: 1000 = "mil", 2000 = "dois mil".
-      partes.push(g === 1 ? "mil" : `${grupoPorExtenso(g)} mil`);
+      partes.push({ texto: g === 1 ? "mil" : `${grupoPorExtenso(g)} mil`, valor: g });
     } else {
-      partes.push(
-        `${grupoPorExtenso(g)} ${g === 1 ? escala.singular : escala.plural}`
-      );
+      partes.push({
+        texto: `${grupoPorExtenso(g)} ${g === 1 ? escala.singular : escala.plural}`,
+        valor: g,
+      });
     }
   }
 
-  // Regra do "e" em português: liga o último grupo quando ele é menor que 100
-  // ou múltiplo exato de 100 (mil e quinhentos, dois mil e trezentos), mas não
-  // quando tem 3 dígitos "cheios" (mil duzentos e trinta e quatro).
-  let texto = partes[0];
+  // Regra do "e" em português: liga a ÚLTIMA parte quando o grupo dela é menor
+  // que 100 ou múltiplo exato de 100 (mil e quinhentos, um milhão e
+  // quinhentos, um milhão e duzentos mil), mas não quando tem 3 dígitos
+  // "cheios" (mil duzentos e trinta e quatro).
+  let texto = partes[0].texto;
   for (let i = 1; i < partes.length; i++) {
-    const idxGrupo = grupos.length - 1 - i;
-    const valorGrupo = grupos[idxGrupo];
+    const { texto: parte, valor } = partes[i];
     const ligaComE =
-      idxGrupo === 0 && (valorGrupo < 100 || valorGrupo % 100 === 0);
-    texto += ligaComE ? ` e ${partes[i]}` : ` ${partes[i]}`;
+      i === partes.length - 1 && (valor < 100 || valor % 100 === 0);
+    texto += ligaComE ? ` e ${parte}` : ` ${parte}`;
   }
   return texto;
 }
@@ -144,14 +148,20 @@ export function valorPorExtenso(centavos: number): string {
 
   const partes: string[] = [];
   if (reais > 0) {
-    partes.push(`${numeroPorExtenso(reais)} ${reais === 1 ? "real" : "reais"}`);
+    // Milhão/bilhão redondo pede "de": "um milhão de reais", não "um milhão
+    // reais" (auditoria de 07/10/2026).
+    const de = reais >= 1_000_000 && reais % 1_000_000 === 0 ? "de " : "";
+    partes.push(
+      `${numeroPorExtenso(reais)} ${de}${reais === 1 ? "real" : "reais"}`
+    );
   }
   if (cents > 0) {
     partes.push(
       `${numeroPorExtenso(cents)} ${cents === 1 ? "centavo" : "centavos"}`
     );
   }
-  if (partes.length === 0) return "zero real";
+  // Zero é plural em português: "zero reais" (auditoria de 07/10/2026).
+  if (partes.length === 0) return "zero reais";
   const texto = partes.join(" e ");
   return negativo ? `menos ${texto}` : texto;
 }

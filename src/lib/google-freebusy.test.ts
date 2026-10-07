@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { lerFreeBusy } from "./google-freebusy";
+import { freeBusyComErro, lerFreeBusy } from "./google-freebusy";
 
 const resposta = (busy: unknown) => ({ calendars: { primary: { busy } } });
 
@@ -55,4 +55,13 @@ test("resposta vazia, estranha ou com erro não quebra", () => {
     lerFreeBusy({ calendars: { primary: { errors: [{ reason: "notFound" }] } } }),
     []
   );
+});
+
+test("resposta 200 com erro no calendário não vira agenda vazia", () => {
+  assert.equal(
+    freeBusyComErro({ calendars: { primary: { errors: [{ reason: "rateLimitExceeded" }], busy: [] } } }),
+    true
+  );
+  assert.equal(freeBusyComErro({ calendars: { primary: { busy: [] } } }), false);
+  assert.equal(freeBusyComErro({}), true);
 });

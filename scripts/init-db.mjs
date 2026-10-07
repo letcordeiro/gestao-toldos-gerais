@@ -23,6 +23,29 @@ const dbPath = process.env.DATABASE_PATH ?? "./data/toldos.db";
 // Garante que a pasta do banco existe (volume persistente pode vir vazio)
 fs.mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
 
+// Sem SESSION_SECRET o sistema subia "saudável" e quebrava no primeiro login
+// (auditoria de 07/10/2026). Melhor não subir e dizer por quê no log.
+if (!process.env.SESSION_SECRET) {
+  console.error("✖ SESSION_SECRET não definido — o sistema não sobe sem ele.");
+  process.exit(1);
+}
+
+// Em produção, banco que NÃO existe é sinal de volume não montado: o Docker
+// criaria um volume vazio, o boot faria seed e o sistema subiria com o funil
+// ZERADO, sem ninguém perceber (os dados ficariam no volume antigo). Para de
+// propósito; banco novo de verdade pede PERMITIR_BANCO_NOVO=1 no primeiro boot.
+if (
+  process.env.NODE_ENV === "production" &&
+  !fs.existsSync(dbPath) &&
+  process.env.PERMITIR_BANCO_NOVO !== "1"
+) {
+  console.error(
+    `✖ Banco não encontrado em ${dbPath}. O volume /data está montado? ` +
+      "Se for mesmo a primeira instalação, suba uma vez com PERMITIR_BANCO_NOVO=1."
+  );
+  process.exit(1);
+}
+
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
@@ -220,8 +243,16 @@ try {
 }
 
 // Fase "Orçamento aprovado" + marcação de quais fases liberam a instalação.
-// Idempotente: só cria a fase se não existir e só marca o que ainda não está.
-// "Perdido" NUNCA libera, mesmo sendo a última da ordem.
+//
+// RODA UMA VEZ SÓ: quando a fase "Orçamento aprovado" ainda não existe (banco
+// antigo ou novo). Antes rodava a CADA boot (auditoria de 07/10/2026):
+//  - forçava de novo "libera instalação" nas fases pelo nome, desfazendo o que
+//    a gestora desmarcasse na tela de Fases;
+//  - e, pior, movia para "Orçamento aprovado" todo atendimento com orçamento
+//    aprovado que estivesse numa fase que não libera — inclusive quem foi
+//    marcado como PERDIDO depois de desistir. Cada deploy ressuscitava esses
+//    negócios no funil e gravava histórico falso.
+// Em produção a fase existe desde 08/2026: daqui para frente isto não roda lá.
 try {
   const LIBERAM = [
     "Orçamento aprovado",
@@ -235,47 +266,38 @@ try {
     .prepare("SELECT id FROM fases WHERE nome = 'Orçamento aprovado'")
     .get();
 
-  if (!existe) {
+  if (!existe) sqlite.transaction(() => {
     // Entra logo depois de "Negociação"; empurra as seguintes uma casa.
     const negociacao = sqlite
       .prepare("SELECT ordem FROM fases WHERE nome = 'Negociação'")
       .get();
     const alvo = negociacao ? negociacao.ordem + 1 : 5;
     sqlite.prepare("UPDATE fases SET ordem = ordem + 1 WHERE ordem >= ?").run(alvo);
-    sqlite
+    const criada = sqlite
       .prepare(
         "INSERT INTO fases (nome, ordem, cor, libera_instalacao) VALUES ('Orçamento aprovado', ?, '#16A34A', 1)"
       )
       .run(alvo);
     console.log(`✔ fase "Orçamento aprovado" criada na ordem ${alvo}`);
-  }
 
-  const marcar = sqlite.prepare(
-    "UPDATE fases SET libera_instalacao = 1 WHERE nome = ? AND libera_instalacao = 0"
-  );
-  let n = 0;
-  for (const nome of LIBERAM) n += marcar.run(nome).changes;
-  if (n > 0) console.log(`✔ ${n} fase(s) marcadas como liberadoras da instalação`);
+    const marcar = sqlite.prepare(
+      "UPDATE fases SET libera_instalacao = 1 WHERE nome = ? AND libera_instalacao = 0"
+    );
+    let n = 0;
+    for (const nome of LIBERAM) n += marcar.run(nome).changes;
+    if (n > 0) console.log(`✔ ${n} fase(s) marcadas como liberadoras da instalação`);
+    sqlite.prepare("UPDATE fases SET libera_instalacao = 0 WHERE nome = 'Perdido'").run();
 
-  // Garantia explícita: fases terminais negativas nunca liberam.
-  sqlite
-    .prepare("UPDATE fases SET libera_instalacao = 0 WHERE nome = 'Perdido'")
-    .run();
-
-  // Alinha o que já existia: orçamento aprovado cujo atendimento ficou numa
-  // fase anterior passa para "Orçamento aprovado", para a ficha aparecer neles
-  // também. Não mexe em quem já está adiante no funil (Em produção etc.).
-  const faseAprovado = sqlite
-    .prepare("SELECT id FROM fases WHERE nome = 'Orçamento aprovado'")
-    .get();
-  if (faseAprovado) {
+    // Alinha o que JÁ existia na hora da criação: orçamento aprovado cujo
+    // atendimento ficou numa fase anterior. Fase perdida fica fora.
     const pendentes = sqlite
       .prepare(
         `SELECT DISTINCT a.id, a.fase_id
            FROM atendimentos a
            JOIN orcamentos o ON o.atendimento_id = a.id
            JOIN fases f ON f.id = a.fase_id
-          WHERE o.status = 'aprovado' AND f.libera_instalacao = 0`
+          WHERE o.status = 'aprovado' AND f.libera_instalacao = 0
+            AND f.nome <> 'Perdido' AND coalesce(f.eh_perdido, 0) = 0`
       )
       .all();
     const mover = sqlite.prepare(
@@ -285,15 +307,15 @@ try {
       "INSERT INTO historico_fases (atendimento_id, fase_anterior_id, fase_nova_id) VALUES (?, ?, ?)"
     );
     for (const a of pendentes) {
-      mover.run(faseAprovado.id, a.id);
-      historiar.run(a.id, a.fase_id, faseAprovado.id);
+      mover.run(criada.lastInsertRowid, a.id);
+      historiar.run(a.id, a.fase_id, criada.lastInsertRowid);
     }
     if (pendentes.length > 0) {
       console.log(
         `✔ ${pendentes.length} atendimento(s) com orçamento aprovado movidos para "Orçamento aprovado"`
       );
     }
-  }
+  })();
 } catch (e) {
   console.warn("• fases de instalação não aplicadas (não crítico):", e.message);
 }
@@ -405,17 +427,10 @@ try {
 
 // Sobe para o topo os subtítulos que são observação geral do orçamento
 // (ver scripts/backfill-subtitulos.mjs para a regra e o que NÃO é tocado).
-try {
-  const { subirObservacoes } = await import("./backfill-subtitulos.mjs");
-  const movidos = subirObservacoes(sqlite);
-  if (movidos.length > 0) {
-    console.log(`✔ ${movidos.length} observação(ões) movidas para o topo do orçamento`);
-    for (const m of movidos)
-      console.log(`   · orçamento ${m.orcamentoId}: "${m.descricao.slice(0, 60)}"`);
-  }
-} catch (e) {
-  console.warn("• subtítulos não reordenados (não crítico):", e.message);
-}
+// O backfill de subtítulos (scripts/backfill-subtitulos.mjs) SAIU do boot em
+// 07/10/2026: corrigia orçamentos antigos, mas rodava a cada deploy e
+// reordenava também orçamento novo e já enviado — o link do cliente mudava
+// sozinho. Já foi aplicado em produção; banco novo não tem o problema.
 
 // Motivos de perda e automações padrão — idempotentes: só entram na primeira
 // vez. Depois disso quem manda é o que a gestora cadastrou na tela.

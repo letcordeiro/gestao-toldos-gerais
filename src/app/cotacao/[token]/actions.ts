@@ -50,8 +50,10 @@ export async function responderCotacao(
       cotacaoFornecedorId: convite.id,
       itemId: item.id,
       // Valor não preenchido (ou inválido) significa "não cotei este item" —
-      // é diferente de cotar por zero.
-      valorUnitario: centavos != null && centavos > 0 ? centavos : null,
+      // é diferente de cotar por zero. (O código antigo jogava o zero junto
+      // com o vazio, contrariando este mesmo comentário — auditoria de
+      // 07/10/2026.)
+      valorUnitario: centavos != null && centavos >= 0 ? centavos : null,
     };
   });
 

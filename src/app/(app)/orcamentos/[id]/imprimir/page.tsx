@@ -19,6 +19,7 @@ import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
 import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { ImprimirAutomatico } from "@/components/shared/imprimir-automatico";
+import { EMPRESA } from "@/lib/empresa";
 
 function Secao({ titulo, texto }: { titulo: string; texto: string | null }) {
   if (!texto) return null;
@@ -200,7 +201,12 @@ export default async function ImprimirOrcamentoPage({
           </div>
         )}
 
-        <div className="border-t border-neutral-200 pt-2 text-center text-[9px] text-neutral-500">
+        {/* Rodapé com contato — mesma regra do PDF (gerar-proposta.ts):
+            WhatsApp do vendedor, ou o telefone dele quando não há WhatsApp;
+            sem vendedor, o contato da empresa. Antes, proposta sem vendedor
+            saía SEM contato nenhum, e com break-inside-avoid o rodapé não fica
+            mais sozinho no topo de uma folha 2 (auditoria de 07/10/2026). */}
+        <div className="break-inside-avoid border-t border-neutral-200 pt-2 text-center text-[9px] text-neutral-500">
           {vendedor ? (
             <>
               <p className="font-bold text-[#004e36]">
@@ -208,7 +214,9 @@ export default async function ImprimirOrcamentoPage({
               </p>
               <p>
                 {[
-                  vendedor.whatsapp ? `WhatsApp ${vendedor.whatsapp}` : null,
+                  (vendedor.whatsapp ?? vendedor.telefone)
+                    ? `WhatsApp ${vendedor.whatsapp ?? vendedor.telefone}`
+                    : null,
                   vendedor.telefoneFixo ? `Fixo ${vendedor.telefoneFixo}` : null,
                   vendedor.email,
                 ]
@@ -216,7 +224,11 @@ export default async function ImprimirOrcamentoPage({
                   .join("  ·  ")}
               </p>
             </>
-          ) : null}
+          ) : (
+            <p>
+              {EMPRESA.razaoSocial} — {EMPRESA.site} · {EMPRESA.telefoneFixo}
+            </p>
+          )}
         </div>
       </div>
 

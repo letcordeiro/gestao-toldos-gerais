@@ -7,6 +7,7 @@ import {
   montarClausulas,
   ordinalClausula,
   qualificacaoPartes,
+  textoMarcaCancelado,
   type DadosContrato,
 } from "./contrato-clausulas";
 import type { LinhaPagamento } from "./contratos";
@@ -170,7 +171,8 @@ test("nada de menção a remoção quando o escopo não é de remoção", () => 
   const comRemocao = JSON.stringify(
     montarClausulas(dados({ escopo: "remocao_fabricacao" }))
   );
-  assert.match(comRemocao, /Remoção, fabricação e instalação/i);
+  // Com artigo desde a auditoria de 07/10/2026.
+  assert.match(comRemocao, /a remoção, a fabricação e a instalação/i);
 });
 
 test("'sinal' só aparece quando existe linha de sinal menor que o total", () => {
@@ -279,16 +281,48 @@ test("observações técnicas com várias linhas viram parágrafos", () => {
         "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO\n\nEstrutura em perfis 50 x 50 mm.\nCalha metálica estrutural.",
     })
   );
-  const p = c[0].paragrafos;
-  assert.equal(p[1], "Observações técnicas:");
-  assert.equal(p[2], "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO");
-  assert.equal(p[3], "Estrutura em perfis 50 x 50 mm.");
-  assert.equal(p[4], "Calha metálica estrutural.");
+  // Depois da lista de produtos, não antes (auditoria de 07/10/2026).
+  const p = c[0].paragrafosFinais ?? [];
+  assert.equal(c[0].paragrafos.length, 1);
+  assert.equal(p[0], "Observações técnicas:");
+  assert.equal(p[1], "COBERTURA TIPO PÉRGOLA EM ALUMÍNIO");
+  assert.equal(p[2], "Estrutura em perfis 50 x 50 mm.");
+  assert.equal(p[3], "Calha metálica estrutural.");
 });
 
 test("observação técnica de uma linha só continua inline", () => {
   const c = montarClausulas(dados({ observacoesTecnicas: "Lona bege." }));
-  assert.equal(c[0].paragrafos[1], "Observações técnicas: Lona bege.");
+  assert.deepEqual(c[0].paragrafosFinais, ["Observações técnicas: Lona bege."]);
+});
+
+test("sem observações técnicas, o objeto não ganha parágrafos finais", () => {
+  assert.equal(montarClausulas(dados())[0].paragrafosFinais, undefined);
+});
+
+test("objeto do contrato leva artigo (auditoria de 07/10/2026)", () => {
+  assert.match(
+    montarClausulas(dados()).at(0)!.paragrafos[0],
+    /tem por objeto a fabricação e a instalação, pela CONTRATADA/
+  );
+  assert.match(
+    montarClausulas(dados({ escopo: "remocao_fabricacao" })).at(0)!.paragrafos[0],
+    /tem por objeto a remoção, a fabricação e a instalação,/
+  );
+  assert.match(
+    montarClausulas(dados({ escopo: "troca_lona" })).at(0)!.paragrafos[0],
+    /tem por objeto a troca de lona,/
+  );
+});
+
+test("marca de cancelado diz qual versão substitui", () => {
+  assert.equal(
+    textoMarcaCancelado(2),
+    "CANCELADO — substituído pela versão 2. Este documento não vale mais."
+  );
+  assert.equal(
+    textoMarcaCancelado(null),
+    "CANCELADO — este documento não vale mais."
+  );
 });
 
 test("frasePagamento: parcelas por prazo listam os vencimentos", () => {

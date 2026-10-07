@@ -10,17 +10,45 @@ export type TipoTarefa =
   | "nota";
 export type PrioridadeTarefa = "baixa" | "media" | "alta";
 
-/** Só a data, sem hora — é assim que prazo se compara. */
-function inicioDoDia(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+/*
+ * DATA SEM HORA (prazo de tarefa, previsão de entrega, prazo de cotação) é
+ * gravada como MEIA-NOITE UTC daquele dia do calendário, e lida sempre com os
+ * getters UTC. "Hoje" é o dia do calendário de BRASÍLIA.
+ *
+ * Antes cada lado usava o fuso da máquina: o servidor roda em UTC e o
+ * navegador em Brasília. A tarefa de 07/10 (meia-noite UTC) aparecia no
+ * navegador como 06/10 às 21h — "ontem / atrasada" na lista, e a janela de
+ * editar mostrava 06/10: cada salvar tirava um dia. E das 21h à meia-noite o
+ * servidor já achava que era amanhã (auditoria de 07/10/2026).
+ *
+ * Os dados antigos continuam certos: o servidor sempre esteve em UTC, então o
+ * que ele gravou como "meia-noite local" já era meia-noite UTC.
+ */
+const MS_DIA = 24 * 60 * 60 * 1000;
+const FUSO = "America/Sao_Paulo";
+
+/** Dia do calendário de uma data-sem-hora gravada (meia-noite UTC). */
+function diaGravado(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-/** Diferença em dias de calendário (b − a), ignorando hora e fuso. */
-function diasEntre(de: Date, ate: Date): number {
-  const MS_DIA = 24 * 60 * 60 * 1000;
-  return Math.round(
-    (inicioDoDia(ate).getTime() - inicioDoDia(de).getTime()) / MS_DIA
-  );
+/** Dia do calendário de Brasília num instante (ex.: agora), como meia-noite UTC. */
+function diaEmBrasilia(instante: Date): number {
+  const [a, m, d] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: FUSO,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(instante)
+    .split("-")
+    .map(Number);
+  return Date.UTC(a, m - 1, d);
+}
+
+/** Dias de calendário de "hoje" (instante, lido em Brasília) até a data gravada. */
+function diasEntre(hoje: Date, prevista: Date): number {
+  return Math.round((diaGravado(prevista) - diaEmBrasilia(hoje)) / MS_DIA);
 }
 
 export const TIPO_TAREFA_LABEL: Record<TipoTarefa, string> = {
@@ -94,9 +122,7 @@ export function textoPrazo(prevista: Date | null, hoje = new Date()): string {
 
 /** Data prevista a partir de um prazo em dias contados de hoje. */
 export function dataDoPrazo(prazoDias: number, base = new Date()): Date {
-  const d = inicioDoDia(base);
-  d.setDate(d.getDate() + prazoDias);
-  return d;
+  return new Date(diaEmBrasilia(base) + prazoDias * MS_DIA);
 }
 
 /** Input "dd/mm/aaaa" ou "aaaa-mm-dd" → Date no início do dia. Null se inválida. */
@@ -105,12 +131,12 @@ export function parseDataBR(valor: string): Date | null {
   if (!texto) return null;
   const br = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (br) {
-    const d = new Date(Number(br[3]), Number(br[2]) - 1, Number(br[1]));
+    const d = new Date(Date.UTC(Number(br[3]), Number(br[2]) - 1, Number(br[1])));
     return isNaN(d.getTime()) ? null : d;
   }
   const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
-    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    const d = new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
     return isNaN(d.getTime()) ? null : d;
   }
   return null;
@@ -119,7 +145,7 @@ export function parseDataBR(valor: string): Date | null {
 /** Date → "aaaa-mm-dd" para preencher <input type="date">. */
 export function paraInputDate(data: Date | null): string {
   if (!data) return "";
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const dia = String(data.getDate()).padStart(2, "0");
-  return `${data.getFullYear()}-${mes}-${dia}`;
+  const mes = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(data.getUTCDate()).padStart(2, "0");
+  return `${data.getUTCFullYear()}-${mes}-${dia}`;
 }

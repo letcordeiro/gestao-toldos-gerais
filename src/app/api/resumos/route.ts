@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { enviarResumosPendentes } from "@/lib/resumo-envio";
 
@@ -22,15 +23,20 @@ export async function POST(req: Request) {
 
   const header = req.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  // Sem comparação de tempo constante aqui de propósito: o token é longo e
-  // aleatório, e a rota não expõe nada além de "mandou / não mandou".
-  if (token !== esperado) {
+  // Comparação em tempo constante: a rota agora é pública no middleware (o
+  // cron chama sem cookie), então o token é a única porta.
+  const a = Buffer.from(token);
+  const b = Buffer.from(esperado);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ erro: "Token inválido." }, { status: 401 });
   }
 
   const resultados = await enviarResumosPendentes();
-  return NextResponse.json({
-    enviados: resultados.filter((r) => r.enviado).length,
-    resultados,
-  });
+  // Sem SMTP nada sai: devolve 503 para o `curl -f` do cron ACUSAR. Com 200 o
+  // cron terminava "com sucesso" e ninguém ficava sabendo.
+  const semSmtp = resultados.some((r) => r.motivo === "SMTP não configurado");
+  return NextResponse.json(
+    { enviados: resultados.filter((r) => r.enviado).length, resultados },
+    { status: semSmtp ? 503 : 200 }
+  );
 }

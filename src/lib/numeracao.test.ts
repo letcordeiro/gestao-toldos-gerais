@@ -67,3 +67,8 @@ test("dígitos fora da faixa são contidos, não quebram", () => {
 test("o exemplo da tela mostra o primeiro número", () => {
   assert.equal(exemplo(PADRAO.contrato, 2026), "CT-2026-0001");
 });
+
+test("sem prefixo e sem ano, número antigo com ano não vira sequencial", () => {
+  const config = { prefixo: "", incluiAno: false, digitos: 3 };
+  assert.equal(proximoNumero(["2026-014", "007"], config, 2026), "008");
+});

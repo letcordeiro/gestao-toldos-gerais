@@ -99,6 +99,19 @@ const styles = StyleSheet.create({
     color: "#6b6b6b",
     textAlign: "center",
   },
+  // Faixa de CANCELADO: repetida no topo de toda página (fixed). Borda e texto
+  // vermelhos, sem depender de fundo — impressora em P&B ainda mostra a caixa.
+  marcaCancelado: {
+    borderWidth: 1.5,
+    borderColor: "#b91c1c",
+    color: "#b91c1c",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 10,
+    textAlign: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
   aditivoTitulo: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
@@ -118,11 +131,27 @@ function Clausulas({ dados }: { dados: DadosContrato }) {
   return (
     <>
       {clausulas.map((c, i) => (
-        <View key={c.titulo} style={styles.clausula} wrap={false}>
-          <Text style={styles.clausulaTitulo}>
-            CLÁUSULA {ordinalClausula(i)} — {c.titulo}
-          </Text>
-          {c.paragrafos.map((p, j) => (
+        // A cláusula QUEBRA entre páginas. Era wrap={false}: com observações
+        // técnicas longas a Cláusula Primeira passava de uma página, pulava
+        // inteira para a 2 (deixando a 1 quase em branco) e, maior que a
+        // folha, o react-pdf sobrepunha as linhas — texto em cima de texto
+        // (auditoria de 07/10/2026). Só o TÍTULO é preso ao primeiro
+        // parágrafo, num bloco wrap={false} pequeno (título + 2 ou 3 linhas):
+        // título sozinho no pé da página não acontece mais. minPresenceAhead
+        // foi testado e NÃO segurou o título no react-pdf — a Cláusula Décima
+        // Primeira ficou órfã no pé da página 2.
+        <View key={c.titulo} style={styles.clausula}>
+          <View wrap={false}>
+            <Text style={styles.clausulaTitulo}>
+              CLÁUSULA {ordinalClausula(i)} — {c.titulo}
+            </Text>
+            {c.paragrafos.slice(0, 1).map((p, j) => (
+              <Text key={j} style={styles.paragrafo}>
+                {p}
+              </Text>
+            ))}
+          </View>
+          {c.paragrafos.slice(1).map((p, j) => (
             <Text key={j} style={styles.paragrafo}>
               {p}
             </Text>
@@ -148,6 +177,22 @@ function Clausulas({ dados }: { dados: DadosContrato }) {
         </View>
       ))}
     </>
+  );
+}
+
+/**
+ * Faixa de contrato CANCELADO, no topo de TODA página. Antes o PDF de um
+ * cancelado saía idêntico ao de um válido — só a página pública HTML avisava,
+ * e o arquivo baixado circulava sem aviso nenhum (auditoria de 07/10/2026).
+ * `fixed` sem posição absoluta: o react-pdf repete a faixa em cada página e
+ * empurra o conteúdo para baixo dela, então nada fica escondido por baixo.
+ */
+function MarcaCancelado({ texto }: { texto?: string | null }) {
+  if (!texto) return null;
+  return (
+    <View fixed style={styles.marcaCancelado}>
+      <Text>{texto}</Text>
+    </View>
   );
 }
 
@@ -198,6 +243,7 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
       author={EMPRESA_CONTRATO.razaoSocial}
     >
       <Page size="A4" style={styles.page}>
+        <MarcaCancelado texto={dados.marcaCancelado} />
         <View style={styles.cabecalho}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={dados.logoDataUri} style={styles.logo} />
@@ -220,12 +266,17 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
 
         <Clausulas dados={dados} />
 
-        <Text style={styles.dataLocal}>
-          {dados.cidadeEmissao},{" "}
-          {dados.dataEmissaoExtenso ?? "____ de ____________ de ______"}.
-        </Text>
+        {/* Local/data e assinaturas na MESMA página: assinatura sem a data
+            ao lado, ou data órfã no pé da folha anterior, enfraquece o
+            documento (auditoria de 07/10/2026). */}
+        <View wrap={false}>
+          <Text style={styles.dataLocal}>
+            {dados.cidadeEmissao},{" "}
+            {dados.dataEmissaoExtenso ?? "____ de ____________ de ______"}.
+          </Text>
 
-        <Assinaturas dados={dados} />
+          <Assinaturas dados={dados} />
+        </View>
 
         <View style={styles.rodape} fixed>
           <Text>
@@ -239,6 +290,7 @@ export function ContratoPDF({ dados }: { dados: DadosContratoPDF }) {
       {/* Aditivos: documento próprio, um por página, referenciando o contrato. */}
       {(dados.aditivos ?? []).map((aditivo) => (
         <Page key={aditivo.numero} size="A4" style={styles.page}>
+          <MarcaCancelado texto={dados.marcaCancelado} />
           <View style={styles.cabecalho}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={dados.logoDataUri} style={styles.logo} />

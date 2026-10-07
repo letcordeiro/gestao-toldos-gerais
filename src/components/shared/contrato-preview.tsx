@@ -29,7 +29,20 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
 
   return (
     <article className="relative space-y-4 text-[13px] leading-relaxed text-foreground">
-      <header className="border-b pb-3">
+      {dados.marcaCancelado && (
+        // Cancelado não pode sair do papel parecendo válido (auditoria de
+        // 07/10/2026). Borda e texto vermelhos, sem fundo: a impressão costuma
+        // descartar fundo e a faixa sumiria.
+        <p className="rounded-md border-2 border-red-700 px-3 py-2 text-center text-sm font-bold text-red-700 break-inside-avoid">
+          {dados.marcaCancelado}
+        </p>
+      )}
+
+      {/* <div>, NÃO <header>: as páginas de impressão escondem
+          `header, nav, footer` para tirar o menu do sistema do papel, e o
+          título do contrato ia junto — o contrato impresso saía sem "CONTRATO
+          DE…", sem o número e sem o aviso de versão (auditoria de 07/10/2026). */}
+      <div className="border-b pb-3">
         <h2 className="text-sm font-semibold tracking-tight text-primary">
           CONTRATO DE FORNECIMENTO E INSTALAÇÃO
           {dados.numero ? ` — Nº ${dados.numero}` : ""}
@@ -37,7 +50,7 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
         {aviso && (
           <p className="text-xs font-semibold text-brand-orange-dark">{aviso}</p>
         )}
-      </header>
+      </div>
 
       <section className="space-y-2 border-b pb-3 text-justify">
         <p>{partes.contratada}</p>
@@ -52,10 +65,21 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
 
       {clausulas.map((c, i) => (
         <section key={c.titulo} className="space-y-1">
-          <h3 className="text-xs font-semibold tracking-wide text-primary">
-            CLÁUSULA {ordinalClausula(i)} — {c.titulo}
-          </h3>
-          {c.paragrafos.map((p, j) => (
+          {/* Título preso ao primeiro parágrafo na impressão: sozinho no pé
+              da página, o título ficava órfão e o texto começava na folha
+              seguinte (auditoria de 07/10/2026). break-after sozinho não
+              basta em todo navegador; o bloco com break-inside garante. */}
+          <div className="space-y-1 break-inside-avoid">
+            <h3 className="text-xs font-semibold tracking-wide text-primary break-after-avoid">
+              CLÁUSULA {ordinalClausula(i)} — {c.titulo}
+            </h3>
+            {c.paragrafos.slice(0, 1).map((p, j) => (
+              <p key={j} className="text-justify">
+                {p}
+              </p>
+            ))}
+          </div>
+          {c.paragrafos.slice(1).map((p, j) => (
             <p key={j} className="text-justify">
               {p}
             </p>
@@ -87,36 +111,41 @@ export function ContratoPreview({ dados }: { dados: DadosContrato }) {
         </section>
       ))}
 
-      <p className="pt-3">
-        {dados.cidadeEmissao},{" "}
-        {dados.dataEmissaoExtenso ?? "____ de ____________ de ______"}.
-      </p>
+      {/* Local/data e assinaturas nunca se separam na impressão, e a linha
+          de assinatura é escura: a cor de borda padrão saía quase invisível
+          no papel (auditoria de 07/10/2026). */}
+      <div className="break-inside-avoid">
+        <p className="pt-3">
+          {dados.cidadeEmissao},{" "}
+          {dados.dataEmissaoExtenso ?? "____ de ____________ de ______"}.
+        </p>
 
-      <div className="grid gap-6 pt-6 sm:grid-cols-2">
-        <div className="border-t pt-1">
-          <p className="font-semibold">
-            {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia})
-          </p>
-          <p className="text-xs text-muted-foreground">
-            CNPJ {EMPRESA_CONTRATO.cnpj}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {dados.representante} — CONTRATADA
-          </p>
-        </div>
-        <div className="border-t pt-1">
-          <p className="font-semibold">{dados.contratante.nome}</p>
-          <p className="text-xs text-muted-foreground">
-            CPF/CNPJ {dados.contratante.documento ?? "____________________"}
-          </p>
-          <p className="text-xs text-muted-foreground">CONTRATANTE</p>
+        <div className="grid gap-6 pt-10 sm:grid-cols-2">
+          <div className="border-t border-neutral-800 pt-1">
+            <p className="font-semibold">
+              {EMPRESA_CONTRATO.razaoSocial} ({EMPRESA_CONTRATO.nomeFantasia})
+            </p>
+            <p className="text-xs text-muted-foreground">
+              CNPJ {EMPRESA_CONTRATO.cnpj}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {dados.representante} — CONTRATADA
+            </p>
+          </div>
+          <div className="border-t border-neutral-800 pt-1">
+            <p className="font-semibold">{dados.contratante.nome}</p>
+            <p className="text-xs text-muted-foreground">
+              CPF/CNPJ {dados.contratante.documento ?? "____________________"}
+            </p>
+            <p className="text-xs text-muted-foreground">CONTRATANTE</p>
+          </div>
         </div>
       </div>
 
       {(dados.aditivos ?? []).map((aditivo) => (
         <section
           key={aditivo.numero}
-          className="mt-6 space-y-2 rounded-lg border bg-secondary/30 p-3"
+          className="mt-6 space-y-2 rounded-lg border bg-secondary/30 p-3 break-inside-avoid"
         >
           <h3 className="text-xs font-semibold tracking-wide text-primary">
             TERMO ADITIVO Nº {aditivo.numero}

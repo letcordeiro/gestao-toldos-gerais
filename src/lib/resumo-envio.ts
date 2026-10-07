@@ -56,11 +56,15 @@ export async function enviarResumo(
   await enviarEmail({ para, copia, copiaOculta: oculta, assunto, html, texto });
 
   // Só marca depois de enviar: se o envio falhar, a próxima chamada tenta de
-  // novo em vez de pular o período.
-  await db
-    .update(resumos)
-    .set({ ultimoEnvioEm: new Date() })
-    .where(eq(resumos.id, resumo.id));
+  // novo em vez de pular o período. "Enviar agora" (forcar) NÃO marca: é um
+  // teste fora da agenda — marcando, um teste às 15h fazia o resumo diário
+  // das 7h do dia seguinte não sair (auditoria de 07/10/2026).
+  if (!forcar) {
+    await db
+      .update(resumos)
+      .set({ ultimoEnvioEm: new Date() })
+      .where(eq(resumos.id, resumo.id));
+  }
 
   return { ...base, enviado: true };
 }

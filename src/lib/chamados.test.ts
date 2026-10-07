@@ -4,6 +4,7 @@ import {
   avaliarGarantia,
   descricaoServico,
   linhasDaFicha,
+  SUFIXO_CONTINUA,
   vendedorVeChamado,
 } from "./chamados";
 
@@ -93,10 +94,32 @@ test("palavra maior que a linha é cortada em vez de estourar a margem", () => {
   assert.deepEqual(linhas, ["abcd", "efgh", "ij"]);
 });
 
-test("relato longo demais é cortado no total de linhas da ficha", () => {
+test("relato longo demais é cortado no total de linhas da ficha, com aviso", () => {
+  // Linha curta demais para "(continua no sistema)": só as reticências.
   const linhas = linhasDaFicha("aaa bbb ccc ddd eee fff", 2, 7);
   assert.equal(linhas.length, 2);
-  assert.deepEqual(linhas, ["aaa bbb", "ccc ddd"]);
+  assert.deepEqual(linhas, ["aaa bbb", "ccc…"]);
+});
+
+test("relato que não cabe avisa que continua no sistema (auditoria de 07/10/2026)", () => {
+  const relato = Array.from({ length: 60 }, (_, i) => `palavra${i}`).join(" ");
+  const linhas = linhasDaFicha(relato);
+  assert.equal(linhas.length, 4);
+  assert.ok(linhas[3].endsWith(SUFIXO_CONTINUA));
+  for (const l of linhas) assert.ok(l.length <= 95, `linha com ${l.length}`);
+  // A última linha corta em fim de palavra, não no meio dela.
+  assert.match(linhas[3], /^palavra\d+( palavra\d+)*… \(continua no sistema\)$/);
+});
+
+test("relato que cabe exatamente não ganha aviso", () => {
+  assert.deepEqual(linhasDaFicha("aaa bbb ccc ddd", 2, 7), ["aaa bbb", "ccc ddd"]);
+  assert.ok(!linhasDaFicha("goteira na calha").some((l) => l.includes("continua")));
+});
+
+test("palavra gigante na última linha também cede espaço ao aviso", () => {
+  const linhas = linhasDaFicha("x".repeat(500), 2, 40);
+  assert.equal(linhas[0], "x".repeat(40));
+  assert.equal(linhas[1], `${"x".repeat(40 - SUFIXO_CONTINUA.length)}${SUFIXO_CONTINUA}`);
 });
 
 test("quebra de linha e espaço repetido viram um espaço só", () => {

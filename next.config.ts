@@ -14,6 +14,24 @@ const nextConfig: NextConfig = {
     : {}),
   // better-sqlite3 é módulo nativo: não deve ser empacotado pelo bundler
   serverExternalPackages: ["better-sqlite3"],
+  // Não anuncia "Next.js" em toda resposta.
+  poweredByHeader: false,
+  // Cabeçalhos de segurança (auditoria de 07/10/2026). Nenhuma tela do sistema
+  // é aberta dentro de iframe, então DENY não quebra nada — e impede que o
+  // login ou o contrato público (com CPF) sejam embutidos em site alheio.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // O padrão do Next é 1 MB, e o formulário de orçamento aceita foto de

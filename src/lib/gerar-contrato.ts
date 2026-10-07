@@ -17,8 +17,11 @@ import {
 } from "@/db/schema";
 import { EMPRESA_CONTRATO } from "@/lib/empresa";
 import { enderecoCompleto } from "@/lib/endereco";
-import type { DadosContrato } from "@/lib/contrato-clausulas";
-import type { LinhaPagamento } from "@/lib/contratos";
+import {
+  textoMarcaCancelado,
+  type DadosContrato,
+} from "@/lib/contrato-clausulas";
+import { lerSnapshot, type LinhaPagamento } from "@/lib/contratos";
 import {
   ContratoPDF,
   type DadosContratoPDF,
@@ -88,6 +91,44 @@ export async function carregarDadosContrato(
       : null,
   }));
 
+  // Contratante: fora do rascunho vale o que foi CONGELADO na emissão. Ler a
+  // tabela `clientes` de hoje fazia o contrato emitido/assinado mudar sozinho
+  // quando alguém corrigia o cadastro — o PDF baixado amanhã não batia com o
+  // papel assinado ontem (auditoria de 07/10/2026). Rascunho ainda é minuta e
+  // acompanha o cadastro; snapshot nulo ou de formato antigo cai no cadastro
+  // atual, como antes. A página pública, a impressão interna e o PDF passam
+  // todos por aqui, então os três mostram o mesmo contratante.
+  const snapshot =
+    contrato.status === "rascunho" ? null : lerSnapshot(contrato.snapshot);
+  const contratante: DadosContrato["contratante"] = snapshot
+    ? {
+        nome: snapshot.cliente.nome,
+        documento: snapshot.cliente.documento,
+        endereco: snapshot.cliente.endereco,
+        telefone: snapshot.cliente.telefone,
+        email: snapshot.cliente.email,
+        representante: contrato.representanteContratante,
+      }
+    : {
+        nome: cliente.nome,
+        documento: cliente.documento,
+        endereco: enderecoCompleto(cliente) || null,
+        telefone: cliente.telefone,
+        email: cliente.email,
+        representante: contrato.representanteContratante,
+      };
+
+  // Cancelado ganha marca no documento. Versão nova aponta para este como pai;
+  // havendo, a marca diz qual versão substitui (auditoria de 07/10/2026).
+  let marcaCancelado: string | null = null;
+  if (contrato.status === "cancelado") {
+    const substituto = await db.query.contratos.findFirst({
+      where: eq(contratos.contratoPaiId, contrato.id),
+      columns: { versao: true },
+    });
+    marcaCancelado = textoMarcaCancelado(substituto?.versao ?? null);
+  }
+
   const dados: DadosContrato = {
     numero: contrato.numero,
     versao: contrato.versao,
@@ -111,14 +152,8 @@ export async function carregarDadosContrato(
     representante: contrato.representante,
     cidadeEmissao: contrato.cidadeEmissao,
     dataEmissaoExtenso: dataExtenso(contrato.dataEmissao),
-    contratante: {
-      nome: cliente.nome,
-      documento: cliente.documento,
-      endereco: enderecoCompleto(cliente) || null,
-      telefone: cliente.telefone,
-      email: cliente.email,
-      representante: contrato.representanteContratante,
-    },
+    marcaCancelado,
+    contratante,
     opcoes: opcoes.map((o) => ({ rotulo: o.rotulo, valor: o.valor })),
     itens: itens.map((i) => ({
       modelo: i.modelo,

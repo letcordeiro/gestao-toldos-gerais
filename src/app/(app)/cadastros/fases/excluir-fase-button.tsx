@@ -48,10 +48,15 @@ export function ExcluirFaseButton({
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                const resultado = await excluirFase(faseId);
-                if (resultado.erro) toast.error(resultado.erro);
-                else toast.success("Fase excluída");
-                setAberto(false);
+                try {
+                  const resultado = await excluirFase(faseId);
+                  if (resultado.erro) toast.error(resultado.erro);
+                  else toast.success("Fase excluída");
+                } catch {
+                  toast.error("Não deu para excluir a fase. Tente de novo.");
+                } finally {
+                  setAberto(false);
+                }
               })
             }
           >

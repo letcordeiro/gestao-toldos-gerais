@@ -22,7 +22,8 @@ Sistema interno de orçamentos e funil de atendimento da Toldos Gerais Ltda (tol
 - `npm run db:push` — aplica schema no SQLite (`./data/toldos.db` local)
 - `npm run db:seed` — seed de fases e modelos (idempotente)
 - Env em `.env.local`: `DATABASE_PATH`, `SESSION_SECRET`, `AUTH_USERS`
-- Login local: `leticia@toldosgerais.com.br` / `toldos2026` (trocar em produção)
+- Login local: `leticia@toldosgerais.com.br` com a senha do `AUTH_USERS` do `.env.local`.
+  **Nunca escreva senha neste arquivo: o repositório é PÚBLICO** (auditoria de 07/10/2026).
   - **Ordem de validação** (`validarCredenciais`): tabela `usuarios` → senha do
     vendedor → `AUTH_USERS` do env. **Linha em `usuarios` ganha do env**: se a
     senha for redefinida pela tela, a do `.env.local` para de valer e este
@@ -913,8 +914,7 @@ base ganha no desktop.
 - Vendedor sem envio automático (todos menos o João) não tem como marcar o
   orçamento como "enviado" — manda pelo WhatsApp e o funil não anda.
 - Endereço e número continuam obrigatórios no cadastro interno de cliente.
-- PDF de contrato cancelado, aberto pelo link direto, não traz marca de
-  cancelado (a página HTML traz).
+- ~~PDF de contrato cancelado sem marca~~ — resolvido em 07/10/2026.
 
 ## A lista de contratos foi absorvida pela de orçamentos (27/08/2026)
 
@@ -968,6 +968,98 @@ do aviso ficava. Intermitente: dependia da ação mexer no que o loop toca.
   commit 95d09c3, a corrida diálogo + navegação abaixo, e o seletor de fase do
   filtro (ele ganhou uma proteção contra navegar para o mesmo lugar, mas não
   era o culpado).
+
+## Auditoria completa (07/10/2026)
+
+Seis auditores (permissões, estabilidade das telas, dados, documentos,
+integrações, infra) e três corretores. Relatório local em
+`AUDITORIA/[C] relatorio-completo-2026-10-07.md` (fora do git). Regras novas:
+
+### Sessão e acesso
+- **`usuarioAtual` só devolve gestor para admin de verdade** (AUTH_USERS ou
+  tabela `usuarios`). Antes, QUALQUER e-mail sem vendedor ativo virava gestor —
+  vendedor desativado (ou com e-mail trocado) seguia logado 30 dias, com acesso
+  total. Vendedor desativado também não entra por linha antiga em `usuarios`.
+- O `state` do OAuth do Google é assinado com prefixo próprio (`oauth-state:`):
+  antes tinha o mesmo formato e segredo do cookie de login e servia de cookie.
+- **Toda Server Action confere o DONO**, não só a tela. Helpers por área:
+  `atendimentoDoUsuario` (atendimentos), `orcamentoEditavel`/`atendimentoPermitido`
+  (orçamentos), `chamadoPermitido` (chamados), `vinculosSaoDele` (tarefas),
+  `vendedorPodeMexer`/`atendimentoEhDele` (visitas). Registro de outro dono
+  responde "não encontrado".
+- Login: 10 erros em 15 min travam o e-mail por 15 min; "esqueci a senha" manda
+  no máximo 3 e-mails em 15 min (`lib/limite-tentativas.ts`, em memória).
+- `cadastro-vendedor` recusa e-mail que já tem acesso (antes dava para tomar o
+  login de um admin pelo link).
+
+### Envio automático pelo WhatsApp
+- `enviado`, `enviando` e **`falha_envio`** só o serviço grava. `falha_envio`
+  escolhido à mão fazia o serviço **mandar a proposta de novo ao cliente**.
+- Com o orçamento em `enviando`, nada muda status nem edita (o resultado do
+  envio se perderia e "agendado" mandaria duas vezes).
+- A outra metade (o serviço na VPS não reenviar o que já tem `enviado_em`, e
+  tratar envio incerto) está FORA deste repositório — pendência.
+
+### Boot (`scripts/init-db.mjs`)
+- O alinhamento de fases roda **uma vez só** (quando "Orçamento aprovado" não
+  existe). Antes rodava a CADA deploy: tirava de "Perdido" quem tinha orçamento
+  aprovado e reimpunha "libera instalação" nas fases pelo nome.
+- O backfill de subtítulos saiu do boot (reordenava orçamento novo e enviado).
+- Sem `SESSION_SECRET`, não sobe. Em produção, banco inexistente (volume não
+  montado) também não sobe — primeira instalação usa `PERMITIR_BANCO_NOVO=1`.
+
+### Dados
+- **Migration nova: `when` = `Date.now()`**. O Drizzle pula em silêncio quem
+  tiver `when` menor que o último aplicado. `npm run test:migrations` trava isso.
+- `0037_indices.sql`: índices nas chaves estrangeiras que as listas somam
+  (a soma do valor do orçamento varria `orcamento_itens` inteira por linha).
+- "Apaga e regrava" usa `db.transaction` (itens do orçamento, exclusão de
+  orçamento). Excluir orçamento com tarefa/cotação ligada agora recusa com
+  mensagem — antes apagava fotos e itens e DEPOIS falhava.
+- **Data sem hora** (prazo de tarefa, previsão de entrega, prazo de cotação):
+  meia-noite UTC do dia, lida com getters UTC; "hoje" é o calendário de
+  Brasília (`lib/tarefas.ts`). Antes o navegador mostrava um dia a menos e cada
+  edição tirava um dia.
+- Excluir fase confere histórico e automações (quase toda fase tem histórico:
+  o banco recusava e a tela caía).
+
+### Telas e documentos
+- `src/app/(app)/error.tsx`: erro aparece dentro da página, menu continua.
+  `global-error.tsx` cobre o layout raiz.
+- Busca com espera (atendimentos, clientes, chamados) não navega se a pessoa
+  já saiu da tela — passava por cima do clique no menu com conexão lenta.
+- `npm run test:deps` pega também hook de uma linha (`useMemo(() => x, [a])`).
+- Contrato: `<header>` dentro da prévia sumia na impressão (o CSS esconde o
+  cabeçalho do sistema) — título e número voltaram. Emitido usa o **snapshot**
+  do cliente, não o cadastro atual. Cancelado sai marcado em todas as páginas.
+  Cláusula longa quebra entre páginas (antes sobrepunha texto).
+
+### Infra
+- `next.config.ts`: `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, HSTS,
+  sem `X-Powered-By`. Nenhuma tela usa iframe.
+- `GET /api/saude` (pública): `{ok:true}` se o banco responde. Base para um
+  monitor de uptime e um HEALTHCHECK no Dokploy (ainda não ligado).
+- `/api/resumos` é pública no middleware (o Bearer protege): antes o cron
+  recebia 307 para o login e o resumo **nunca saiu**. Sem SMTP responde 503.
+  "Enviar agora" não marca `ultimoEnvioEm` (pulava o envio agendado).
+
+### Pendências que dependem da Letícia ou da VPS (não feitas)
+- **Backup de produção não existe** (só o script local). Prioridade.
+- **Fuso horário**: o container roda em UTC; visitas digitadas são gravadas
+  como UTC e a agenda do Google vem no horário real, o que desencontra os
+  horários livres; datas de PDF depois das 21h saem com o dia seguinte. Pôr
+  `TZ` sozinho quebra contratos (que gravam meia-noite UTC) — é projeto com
+  migração de dados.
+- Serviço de envio do WhatsApp (VPS): reenvio de `falha_envio` com
+  `enviado_em`, envio incerto, `enviando` preso, gatilho de follow-up que não
+  nasce, nomes de fase fixos no código, texto de sábado.
+- Repositório público + senha antiga no histórico: trocar a senha de produção
+  se for a mesma; considerar tornar o repositório privado.
+- Node 20 sem suporte desde 04/2026 (migrar os 3 estágios do Dockerfile para 22).
+- Decisões de regra: clientes compartilhados entre vendedores; trocar o
+  vendedor do atendimento não leva orçamentos/contratos; auto-cadastro público
+  junta com cliente existente; escopo do Google (`calendar.freebusy` exige
+  reconectar).
 
 ## Avisos (toasts) abaixo da barra do menu (07/10/2026)
 

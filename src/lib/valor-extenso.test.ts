@@ -36,7 +36,7 @@ test("valorPorExtenso: reais e centavos", () => {
     valorPorExtenso(1234567),
     "doze mil trezentos e quarenta e cinco reais e sessenta e sete centavos"
   );
-  assert.equal(valorPorExtenso(0), "zero real");
+  assert.equal(valorPorExtenso(0), "zero reais");
 });
 
 test("valorPorExtenso: valores típicos de contrato", () => {
@@ -52,4 +52,24 @@ test("valorPorExtenso: valores típicos de contrato", () => {
 
 test("valorPorExtenso: rejeita float", () => {
   assert.throws(() => valorPorExtenso(10.5));
+});
+
+test("valorPorExtenso: milhão redondo, milhão quebrado e zero (auditoria de 07/10/2026)", () => {
+  // R$ 1.000.000,00
+  assert.equal(valorPorExtenso(100000000), "um milhão de reais");
+  // R$ 1.000.500,00 — o grupo dos milhares é zero e o "e" sumia
+  assert.equal(valorPorExtenso(100050000), "um milhão e quinhentos reais");
+  // R$ 0,00
+  assert.equal(valorPorExtenso(0), "zero reais");
+  assert.equal(valorPorExtenso(300000000), "três milhões de reais");
+  assert.equal(
+    valorPorExtenso(100000050),
+    "um milhão de reais e cinquenta centavos"
+  );
+  assert.equal(valorPorExtenso(120000000), "um milhão e duzentos mil reais");
+  assert.equal(numeroPorExtenso(1000001), "um milhão e um");
+  assert.equal(
+    numeroPorExtenso(1000234),
+    "um milhão duzentos e trinta e quatro"
+  );
 });

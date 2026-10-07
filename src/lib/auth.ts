@@ -38,6 +38,26 @@ async function vendedorPorEmail(email: string) {
   });
 }
 
+/** Há vendedor DESATIVADO com este e-mail? (o ativo sai de vendedorPorEmail) */
+async function vendedorDesativado(email: string): Promise<boolean> {
+  const alvo = normalizarEmail(email);
+  if (!alvo) return false;
+  const v = await db.query.vendedores.findFirst({
+    where: and(eq(vendedores.email, alvo), eq(vendedores.ativo, false)),
+  });
+  return Boolean(v);
+}
+
+/** Admin que não é vendedor: está no AUTH_USERS do env ou na tabela usuarios. */
+async function ehAdmin(email: string): Promise<boolean> {
+  const alvo = normalizarEmail(email);
+  if (getUsers().some((u) => u.email.toLowerCase() === alvo)) return true;
+  const usuario = await db.query.usuarios.findFirst({
+    where: eq(usuarios.email, alvo),
+  });
+  return Boolean(usuario);
+}
+
 /** E-mail é reconhecido (env, tabela de usuários OU vendedor com login). */
 export async function emailReconhecido(email: string): Promise<boolean> {
   const alvo = normalizarEmail(email);
@@ -56,6 +76,10 @@ export async function validarCredenciais(
   senha: string
 ): Promise<boolean> {
   const alvo = normalizarEmail(email);
+
+  // Desativado não entra por nenhuma porta — nem por uma linha antiga em
+  // `usuarios`, que tem prioridade logo abaixo.
+  if (await vendedorDesativado(alvo)) return false;
 
   const usuario = await db.query.usuarios.findFirst({
     where: eq(usuarios.email, alvo),
@@ -174,6 +198,13 @@ export async function usuarioAtual(): Promise<UsuarioAtual | null> {
       perfilCompleto: perfilVendedorCompleto(v),
     };
   }
+  // Antes, quem não era vendedor ATIVO caía direto em "gestor". O cookie
+  // guarda só o e-mail e vale 30 dias: vendedor desativado, ou com o e-mail
+  // trocado, continuava logado — e como GESTOR, com acesso a tudo (auditoria
+  // de 07/10/2026). Gestor sem cadastro de vendedor só se o e-mail for de
+  // admin de verdade; qualquer outro caso derruba a sessão.
+  if (await vendedorDesativado(sessao.email)) return null;
+  if (!(await ehAdmin(sessao.email))) return null;
   return {
     email: sessao.email,
     papel: "gestor",

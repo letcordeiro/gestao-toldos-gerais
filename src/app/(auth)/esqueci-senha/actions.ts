@@ -8,6 +8,11 @@ import { tokensSenha } from "@/db/schema";
 import { emailReconhecido } from "@/lib/auth";
 import { emailConfigurado, enviarEmail, emailRedefinirSenha } from "@/lib/email";
 import { urlBase } from "@/lib/url";
+import { LimiteTentativas } from "@/lib/limite-tentativas";
+
+// No máximo 3 e-mails de senha por endereço a cada 15 minutos. A resposta
+// para quem pediu continua a mesma (não revela nada) — só o e-mail não sai.
+const pedidos = new LimiteTentativas(3, 15 * 60_000, 15 * 60_000);
 
 const VALIDADE_MIN = 60;
 
@@ -35,6 +40,8 @@ export async function pedirLinkDeSenha(
   }
 
   const email = parsed.data.email.toLowerCase();
+  if (pedidos.bloqueado(email) > 0) return { ok: true };
+  pedidos.falhou(email);
 
   // Só envia se o e-mail existir de verdade — mas a resposta ao usuário é
   // sempre a mesma, para não revelar quem tem conta no sistema.

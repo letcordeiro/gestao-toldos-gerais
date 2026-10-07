@@ -176,8 +176,9 @@ export async function excluirVisita(visitaId: number) {
 export async function enderecoDoAtendimento(
   atendimentoId: number
 ): Promise<string> {
-  await exigirUsuario();
+  const usuario = await exigirUsuario();
   const id = z.coerce.number().int().positive().parse(atendimentoId);
+  if (!(await atendimentoEhDele(usuario, id))) return "";
   const [linha] = await db
     .select({ cliente: clientes })
     .from(atendimentos)
@@ -277,7 +278,16 @@ export async function disponibilidadeDoDia(
   ignorarVisitaId?: number
 ): Promise<DisponibilidadeDoDia> {
   const usuario = await exigirUsuario();
-  const alvo = vendedorId ?? usuario.vendedorId;
+  // Vendedor só consulta a PRÓPRIA agenda. Olhar a de outro vendedor é coisa
+  // de quem marca para os outros (gestor/atendente) — antes qualquer um
+  // passava o id que quisesse (auditoria de 07/10/2026).
+  const alvo = veFunilInteiro(usuario.papel)
+    ? vendedorId ?? usuario.vendedorId
+    : usuario.vendedorId;
+  // Duração absurda não chega no cálculo de horário livre.
+  if (!Number.isFinite(duracaoMin) || duracaoMin < 15 || duracaoMin > 600) {
+    duracaoMin = 60;
+  }
   if (alvo == null)
     return { estado: "sem_conexao", livres: [], ocupados: [], temParticularOculto: false };
 

@@ -25,7 +25,14 @@ const problemas = [];
       [...s.matchAll(/^\s+(\w+)\s*=\s*(?:\[\]|\{\})\s*,/gm)].map((m) => m[1])
     );
     if (padroes.size === 0) continue;
-    for (const m of s.matchAll(/\},\s*\[([^\]]*)\]\s*\)/g)) {
+    // Lista de dependências: o `[...]` final de useEffect/useMemo/useCallback/
+    // useLayoutEffect, escrito em bloco ("}, [a]") ou numa linha só
+    // ("useMemo(() => x, [a, b])").
+    const listas = [
+      ...s.matchAll(/\},\s*\[([^\]]*)\]\s*\)/g),
+      ...s.matchAll(/\buse(?:Effect|Memo|Callback|LayoutEffect)\([^;]*?,\s*\[([^\]]*)\]\s*\)/g),
+    ];
+    for (const m of listas) {
       const nomes = new Set(m[1].match(/\b\w+\b/g) ?? []);
       for (const n of padroes) {
         if (nomes.has(n)) problemas.push(`${p}: "${n}" tem padrão novo a cada render e é dependência de hook`);

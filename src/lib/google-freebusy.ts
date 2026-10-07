@@ -26,3 +26,19 @@ export function lerFreeBusy(dados: unknown): Intervalo[] {
   }
   return intervalos;
 }
+
+/**
+ * A resposta veio com erro em algum calendário? O Google devolve 200 com
+ * `calendars.primary.errors` e `busy: []` quando estoura limite ou não acha a
+ * agenda — tratar isso como "agenda vazia" faz a atendente marcar visita em
+ * cima de um compromisso (auditoria de 07/10/2026).
+ */
+export function freeBusyComErro(dados: unknown): boolean {
+  const calendars = (dados as { calendars?: Record<string, unknown> })
+    ?.calendars;
+  if (!calendars || typeof calendars !== "object") return true;
+  return Object.values(calendars).some((cal) => {
+    const erros = (cal as { errors?: unknown })?.errors;
+    return Array.isArray(erros) && erros.length > 0;
+  });
+}

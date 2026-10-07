@@ -58,8 +58,12 @@ export function proximoNumero(
   const prefixo = prefixoCompleto(config, ano);
   const maior = numerosExistentes.reduce<number>((max, numero) => {
     if (!numero || !numero.startsWith(prefixo)) return max;
-    const seq = parseInt(numero.slice(prefixo.length), 10);
-    return Number.isFinite(seq) ? Math.max(max, seq) : max;
+    // Só número puro depois do prefixo. Com prefixo vazio e sem ano, o
+    // `parseInt("2026-014")` lia 2026 e o próximo saía "2027" (auditoria de
+    // 07/10/2026).
+    const resto = numero.slice(prefixo.length);
+    if (!/^\d+$/.test(resto)) return max;
+    return Math.max(max, Number(resto));
   }, 0);
   return formatarNumero(config, maior + 1, ano);
 }

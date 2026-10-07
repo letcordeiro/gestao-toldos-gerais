@@ -13,10 +13,18 @@ import {
   fases,
   historicoFases,
   motivosPerda,
+  contratoPagamentos,
+  contratos,
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirSessao, exigirTriagem, usuarioAtual } from "@/lib/auth";
+import {
+  exigirSessao,
+  exigirTriagem,
+  exigirUsuario,
+  usuarioAtual,
+  veFunilInteiro,
+} from "@/lib/auth";
 import { dispararGatilhos } from "@/lib/gatilhos-executor";
 
 const novoAtendimentoSchema = z
@@ -47,6 +55,24 @@ export type NovoAtendimentoState = {
   /** id do atendimento criado — a tela fecha o diálogo e navega. */
   criadoId?: number;
 };
+
+/**
+ * Pode mexer neste atendimento? Gestor e atendente: qualquer um. Vendedor: só
+ * o dele. A tela já só mostrava os dele, mas Server Action é chamável direto —
+ * dava para mudar a fase, as observações e o canal do atendimento de outro
+ * vendedor pelo id (auditoria de 07/10/2026). Devolve o atendimento ou null.
+ */
+async function atendimentoDoUsuario(atendimentoId: number) {
+  const usuario = await exigirUsuario();
+  const atendimento = await db.query.atendimentos.findFirst({
+    where: eq(atendimentos.id, atendimentoId),
+  });
+  if (!atendimento) return null;
+  if (!veFunilInteiro(usuario.papel) && atendimento.vendedorId !== usuario.vendedorId) {
+    return null;
+  }
+  return atendimento;
+}
 
 export async function criarAtendimento(
   _prev: NovoAtendimentoState,
@@ -81,6 +107,15 @@ export async function criarAtendimento(
     usuario.papel === "vendedor" ? usuario.vendedorId : dados.vendedorId ?? null;
   if (!vendedorId) {
     return { erro: "Escolha o vendedor responsável pelo atendimento" };
+  }
+  // A lista da tela já só traz vendedores ativos; o servidor confere também
+  // (atendente não recebe lead — auditoria de 07/10/2026).
+  const responsavel = await db.query.vendedores.findFirst({
+    where: eq(vendedores.id, vendedorId),
+    columns: { ativo: true, papel: true },
+  });
+  if (!responsavel || !responsavel.ativo || responsavel.papel === "atendente") {
+    return { erro: "Escolha um vendedor ativo para o atendimento" };
   }
 
   const faseInicial = await db.query.fases.findFirst({
@@ -149,8 +184,8 @@ const mudarFaseSchema = z.object({
  * quando há mais de um.
  */
 export async function orcamentosParaAprovar(atendimentoId: number) {
-  await exigirSessao();
   const at = z.coerce.number().int().positive().parse(atendimentoId);
+  if (!(await atendimentoDoUsuario(at))) return [];
   const linhas = await db
     .select({
       id: orcamentos.id,
@@ -184,12 +219,11 @@ export async function mudarFase(
   // Preenchido quando a fase de destino é de negócio perdido.
   perda?: { motivoId: number | null; observacao?: string | null }
 ) {
-  await exigirSessao();
-  const parsed = mudarFaseSchema.parse({ atendimentoId, faseId });
+  const validado = mudarFaseSchema.safeParse({ atendimentoId, faseId });
+  if (!validado.success) return;
+  const parsed = validado.data;
 
-  const atendimento = await db.query.atendimentos.findFirst({
-    where: eq(atendimentos.id, parsed.atendimentoId),
-  });
+  const atendimento = await atendimentoDoUsuario(parsed.atendimentoId);
   if (!atendimento || atendimento.faseId === parsed.faseId) return;
 
   const faseNova = await db.query.fases.findFirst({
@@ -314,6 +348,34 @@ export async function marcarContatoAviso(
         where: eq(orcamentos.id, alvo),
       });
       if (!orc || orc.vendedorId !== usuario.vendedorId) return;
+    } else if (
+      aviso.gatilho === "parcela_vencida" ||
+      aviso.gatilho === "contrato_sem_assinatura"
+    ) {
+      // O alvo destes avisos é PARCELA ou CONTRATO, não atendimento. Antes
+      // procurava um atendimento com esse número: o vendedor não conseguia
+      // dispensar o aviso dele, e quando o número coincidia dispensava o de
+      // outro vendedor (auditoria de 07/10/2026). Dono = vendedor do orçamento.
+      let contratoId: number | null = alvo;
+      if (aviso.gatilho === "parcela_vencida") {
+        const parcela = await db.query.contratoPagamentos.findFirst({
+          where: eq(contratoPagamentos.id, alvo),
+          columns: { contratoId: true },
+        });
+        contratoId = parcela?.contratoId ?? null;
+      }
+      if (contratoId == null) return;
+      const contrato = await db.query.contratos.findFirst({
+        where: eq(contratos.id, contratoId),
+        columns: { orcamentoId: true },
+      });
+      const orc = contrato
+        ? await db.query.orcamentos.findFirst({
+            where: eq(orcamentos.id, contrato.orcamentoId),
+            columns: { vendedorId: true },
+          })
+        : null;
+      if (!orc || orc.vendedorId !== usuario.vendedorId) return;
     } else {
       const atendimento = await db.query.atendimentos.findFirst({
         where: eq(atendimentos.id, alvo),
@@ -340,7 +402,8 @@ export async function atribuirVendedor(atendimentoId: number, vendedorId: number
   const vendedor = await db.query.vendedores.findFirst({
     where: eq(vendedores.id, vend),
   });
-  if (!vendedor) return;
+  // Atendente não recebe lead, e desativado não atende ninguém.
+  if (!vendedor || !vendedor.ativo || vendedor.papel === "atendente") return;
 
   await db
     .update(atendimentos)
@@ -362,11 +425,13 @@ export async function atualizarObservacoes(
   _prev: ObservacoesState,
   formData: FormData
 ): Promise<ObservacoesState> {
-  await exigirSessao();
-  const parsed = observacoesSchema.parse({
+  const validado = observacoesSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),
     observacoes: formData.get("observacoes") ?? "",
   });
+  if (!validado.success) return {};
+  const parsed = validado.data;
+  if (!(await atendimentoDoUsuario(parsed.atendimentoId))) return {};
 
   await db
     .update(atendimentos)
@@ -381,23 +446,10 @@ export async function atualizarObservacoes(
 }
 
 
-/** Canais de origem ativos. */
-export async function canaisAtivos(soCadastroPublico = false) {
-  return db
-    .select({ id: canais.id, nome: canais.nome })
-    .from(canais)
-    .where(
-      soCadastroPublico
-        ? and(eq(canais.ativo, true), eq(canais.noCadastroPublico, true))
-        : eq(canais.ativo, true)
-    )
-    .orderBy(asc(canais.ordem), asc(canais.id));
-}
-
 /** Troca o canal de origem — dá para corrigir depois de abrir o atendimento. */
 export async function definirCanal(atendimentoId: number, canalId: number | null) {
-  await exigirSessao();
   const id = z.coerce.number().int().positive().parse(atendimentoId);
+  if (!(await atendimentoDoUsuario(id))) return;
   const canal = canalId == null ? null : z.coerce.number().int().positive().parse(canalId);
   await db
     .update(atendimentos)

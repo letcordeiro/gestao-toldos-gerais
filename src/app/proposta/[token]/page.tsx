@@ -28,7 +28,9 @@ function Secao({
 }) {
   if (!texto) return null;
   return (
-    <div>
+    // break-inside-avoid: na impressão o título não fica no pé de uma folha
+    // com o texto na seguinte (auditoria de 07/10/2026).
+    <div className="break-inside-avoid">
       <h3 className="text-xs font-semibold tracking-wide text-primary">
         {titulo}
       </h3>
@@ -106,9 +108,13 @@ export default async function PropostaPublicaPage({
   const pdfUrl = `/proposta/${token}/pdf`;
 
   return (
-    <main className="min-h-screen bg-muted/30 pb-10">
-      {/* Barra fixa: logo + baixar PDF */}
-      <div className="sticky top-0 z-10 border-b bg-card">
+    // print:min-h-0 + print:bg-white: no iPhone, min-h-screen na impressão vale
+    // a altura do CELULAR e gera folha extra com uma faixa cinza (ver
+    // CLAUDE.md, 02/09/2026).
+    <main className="min-h-screen bg-muted/30 pb-10 print:min-h-0 print:bg-white print:pb-0">
+      {/* Barra fixa: logo + baixar PDF. Fora do papel: impressa, a barra e o
+          botão saíam no topo da proposta (auditoria de 07/10/2026). */}
+      <div className="sticky top-0 z-10 border-b bg-card print:hidden">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2.5">
           <Image
             src="/logo.png"
@@ -127,8 +133,12 @@ export default async function PropostaPublicaPage({
         </div>
       </div>
 
-      <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4">
-        <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm sm:p-7">
+      {/* Margem da folha definida aqui: o cartão perde o recuo na impressão
+          (print:p-0) e, sem @page, navegador sem margem padrão encostava o
+          texto na borda do papel (auditoria de 07/10/2026). */}
+      <style>{`@media print { @page { size: A4 portrait; margin: 12mm; } }`}</style>
+      <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4 print:max-w-none print:p-0">
+        <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm sm:p-7 print:rounded-none print:border-0 print:p-0 print:shadow-none">
           <div className="flex items-start justify-between gap-3 border-b pb-3">
             <Image
               src="/logo.png"
@@ -177,7 +187,7 @@ export default async function PropostaPublicaPage({
           <Secao titulo="MONTAGEM DA COBERTURA" texto={MONTAGEM_COBERTURA} />
           <Secao titulo="GARANTIA" texto={orc.garantiaTexto} />
 
-          <div>
+          <div className="break-inside-avoid">
             <h3 className="text-xs font-semibold tracking-wide text-primary">
               VALOR DO ORÇAMENTO
             </h3>
@@ -216,7 +226,7 @@ export default async function PropostaPublicaPage({
 
           {fotos.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold tracking-wide text-primary">
+              <h3 className="text-xs font-semibold tracking-wide text-primary break-after-avoid">
                 FOTOS
               </h3>
               <p className="mt-1 text-xs italic text-muted-foreground">
@@ -231,7 +241,7 @@ export default async function PropostaPublicaPage({
                     href={`/proposta/${token}/fotos/${f.id}`}
                     target="_blank"
                     rel="noopener"
-                    className="overflow-hidden rounded-md border bg-secondary"
+                    className="break-inside-avoid overflow-hidden rounded-md border bg-secondary"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -246,7 +256,7 @@ export default async function PropostaPublicaPage({
           )}
 
           {vendedor ? (
-            <div className="rounded-lg border bg-secondary/40 p-3 text-sm">
+            <div className="break-inside-avoid rounded-lg border bg-secondary/40 p-3 text-sm">
               <p className="text-xs font-semibold text-primary">
                 VENDEDOR RESPONSÁVEL
               </p>
@@ -264,18 +274,24 @@ export default async function PropostaPublicaPage({
           ) : null}
         </div>
 
-        <div className="mt-4 flex flex-col items-center gap-3">
+        <div className="mt-4 flex flex-col items-center gap-3 break-inside-avoid">
+          {/* Botão não serve no papel; o nome e o site da empresa ficam. */}
           <a
             href={contato}
             target="_blank"
             rel="noopener"
-            className="inline-flex h-11 w-full max-w-xs items-center justify-center rounded-md bg-primary px-4 text-base font-medium text-primary-foreground hover:bg-primary/90"
+            className="print:hidden inline-flex h-11 w-full max-w-xs items-center justify-center rounded-md bg-primary px-4 text-base font-medium text-primary-foreground hover:bg-primary/90"
           >
             Falar no WhatsApp
             {vendedor?.nome ? ` com ${vendedor.nome.split(" ")[0]}` : ""}
           </a>
           <p className="text-center text-xs text-muted-foreground">
             {EMPRESA.razaoSocial} · {EMPRESA.site}
+            {/* O botão some no papel; o número dele continua impresso. */}
+            <span className="hidden print:inline">
+              {" "}
+              · WhatsApp {whatsappVendedor ?? EMPRESA.whatsapp}
+            </span>
           </p>
         </div>
       </div>

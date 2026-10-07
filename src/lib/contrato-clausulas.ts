@@ -4,7 +4,6 @@
 
 import { valorPorExtenso } from "./valor-extenso";
 import {
-  ESCOPO_LABEL,
   letraOpcao,
   MEIO_LABEL,
   type EscopoContrato,
@@ -77,6 +76,14 @@ export type DadosContrato = {
   representante: string;
   cidadeEmissao: string;
   dataEmissaoExtenso: string | null;
+  /**
+   * Marca de contrato CANCELADO ("CANCELADO — substituído pela versão 2"),
+   * impressa no topo de toda página do PDF e na impressão interna. null =
+   * contrato vale. Antes só a página pública HTML tinha faixa: o PDF e a
+   * impressão de um cancelado saíam idênticos a um válido (auditoria de
+   * 07/10/2026).
+   */
+  marcaCancelado?: string | null;
   contratante: {
     nome: string;
     documento: string | null;
@@ -136,8 +143,10 @@ function frasePorGatilho(
 
 // Números pequenos por extenso (dias, parcelas) — sem a moeda.
 function valorPorExtensoSimples(n: number): string {
-  // reaproveita o helper monetário: n reais → texto sem " reais"
-  return valorPorExtenso(n * 100).replace(/ reais?$/, "");
+  // reaproveita o helper monetário: n reais → texto sem " reais". O "de" cobre
+  // o milhão redondo ("um milhão de reais"), que o extenso passou a escrever
+  // na auditoria de 07/10/2026.
+  return valorPorExtenso(n * 100).replace(/ (de )?reais?$/, "");
 }
 
 function formatarDataBR(iso: string): string {
@@ -207,6 +216,19 @@ export function frasePagamento(linha: LinhaPagamento): string {
   return `${partes.join(", ")}.`;
 }
 
+/**
+ * Objeto do contrato com artigo: "tem por objeto a fabricação e a instalação".
+ * Usar o ESCOPO_LABEL em minúsculas dava "tem por objeto fabricação e
+ * instalação", sem artigo — erro de redação num documento jurídico
+ * (auditoria de 07/10/2026). O rótulo curto continua valendo nas telas.
+ */
+const OBJETO_DO_ESCOPO: Record<EscopoContrato, string> = {
+  fabricacao: "a fabricação e a instalação",
+  remocao_fabricacao: "a remoção, a fabricação e a instalação",
+  manutencao: "a manutenção",
+  troca_lona: "a troca de lona",
+};
+
 export type Clausula = {
   titulo: string;
   paragrafos: string[];
@@ -242,9 +264,8 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
   const objeto: Clausula = {
     titulo: "DO OBJETO",
     paragrafos: [
-      `O presente contrato tem por objeto ${ESCOPO_LABEL[
-        dados.escopo
-      ].toLowerCase()}, pela CONTRATADA, dos produtos abaixo discriminados, ` +
+      `O presente contrato tem por objeto ${OBJETO_DO_ESCOPO[dados.escopo]}, ` +
+        "pela CONTRATADA, dos produtos abaixo discriminados, " +
         `a serem instalados em ${dados.localInstalacao || "local a ser indicado pelo CONTRATANTE"}.`,
     ],
     itens: listaItens,
@@ -256,10 +277,14 @@ export function montarClausulas(dados: DadosContrato): Clausula[] {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
+  // As observações vêm DEPOIS da lista de produtos (paragrafosFinais): o
+  // texto anuncia "os produtos abaixo discriminados" e, com as observações
+  // antes, o leitor topava com o descritivo técnico no lugar da lista
+  // (auditoria de 07/10/2026).
   if (linhas.length === 1) {
-    objeto.paragrafos.push(`Observações técnicas: ${linhas[0]}`);
+    objeto.paragrafosFinais = [`Observações técnicas: ${linhas[0]}`];
   } else if (linhas.length > 1) {
-    objeto.paragrafos.push("Observações técnicas:", ...linhas);
+    objeto.paragrafosFinais = ["Observações técnicas:", ...linhas];
   }
   if (dados.flagSobMedida) {
     objeto.paragrafoUnico =
@@ -591,6 +616,17 @@ function qualificacaoContratante(dados: DadosContrato): string {
     `${c.nome}, inscrito(a) no CPF sob o nº ${documento}, residente e ` +
     `domiciliado(a) em ${endereco}${contatos}, doravante denominado(a) CONTRATANTE.`
   );
+}
+
+/**
+ * Texto da marca de contrato cancelado. Com versão nova, diz qual substitui —
+ * é o que a pessoa com o papel na mão precisa para pedir o documento certo
+ * (auditoria de 07/10/2026).
+ */
+export function textoMarcaCancelado(versaoSubstituta: number | null): string {
+  return versaoSubstituta != null
+    ? `CANCELADO — substituído pela versão ${versaoSubstituta}. Este documento não vale mais.`
+    : "CANCELADO — este documento não vale mais.";
 }
 
 /** Cabeçalho de versionamento — só aparece a partir da versão 2. */

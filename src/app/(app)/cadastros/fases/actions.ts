@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { count, eq } from "drizzle-orm";
+import { count, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { atendimentos, fases } from "@/db/schema";
+import { atendimentos, fases, gatilhos, historicoFases } from "@/db/schema";
 import { exigirGestor } from "@/lib/auth";
 
 // Checkbox não enviado vem null; enviado vem "on".
@@ -72,7 +72,35 @@ export async function excluirFase(id: number): Promise<{ erro?: string }> {
     return { erro: `Fase em uso por ${total} atendimento(s).` };
   }
 
-  await db.delete(fases).where(eq(fases.id, faseId));
+  // Também o HISTÓRICO e as automações apontam para a fase. Antes só se
+  // olhava o "agora": quase toda fase já tem histórico, o banco recusava e a
+  // tela inteira caía na página de erro (auditoria de 07/10/2026).
+  const [{ noHistorico }] = await db
+    .select({ noHistorico: count() })
+    .from(historicoFases)
+    .where(or(eq(historicoFases.faseAnteriorId, faseId), eq(historicoFases.faseNovaId, faseId)));
+  if (noHistorico > 0) {
+    return {
+      erro:
+        "Esta fase já aparece no histórico dos atendimentos, então não dá para excluir. " +
+        "Para tirá-la de vista, edite e desmarque “Aparece na lista de atendimentos”.",
+    };
+  }
+  const [{ emAutomacao }] = await db
+    .select({ emAutomacao: count() })
+    .from(gatilhos)
+    .where(eq(gatilhos.faseId, faseId));
+  if (emAutomacao > 0) {
+    return {
+      erro: `Há ${emAutomacao} automação(ões) ligada(s) a esta fase. Mude ou exclua a automação antes.`,
+    };
+  }
+
+  try {
+    await db.delete(fases).where(eq(fases.id, faseId));
+  } catch {
+    return { erro: "Não deu para excluir a fase: ela ainda está em uso." };
+  }
   revalidatePath("/cadastros/fases");
   revalidatePath("/atendimentos");
   return {};

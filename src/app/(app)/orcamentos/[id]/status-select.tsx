@@ -24,8 +24,11 @@ const OPCOES = [
 // envio; "Aguardando envio" depende do vendedor ter envio automático e de o
 // orçamento nunca ter saído. O servidor ignora essas escolhas em silêncio, então
 // oferecê-las fazia o seletor piscar e voltar sem explicar nada.
+// "Falha no envio" também é só do serviço: escolhida à mão, ela fazia o
+// serviço mandar a proposta DE NOVO ao cliente (auditoria de 07/10/2026).
 function opcaoBloqueada(valor: string, podeAgendar: boolean) {
-  if (valor === "enviado" || valor === "enviando") return true;
+  if (valor === "enviado" || valor === "enviando" || valor === "falha_envio")
+    return true;
   if (valor === "agendado") return !podeAgendar;
   return false;
 }
@@ -45,7 +48,9 @@ export function StatusSelect({
   return (
     <Select
       value={status}
-      disabled={pending}
+      // Enquanto o serviço está mandando, ninguém mexe: o resultado do envio
+      // se perderia (ver atualizarOrcamento).
+      disabled={pending || status === "enviando"}
       items={OPCOES}
       onValueChange={(valor) => {
         if (valor && valor !== status) {

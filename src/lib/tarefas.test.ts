@@ -9,8 +9,10 @@ import {
 } from "./tarefas";
 import { gerarPreset } from "./contratos";
 
-const HOJE = new Date(2026, 7, 27); // 27/08/2026
-const dia = (n: number) => new Date(2026, 7, n);
+// "Hoje" é um INSTANTE (lido no calendário de Brasília); prazo é data sem hora
+// gravada como meia-noite UTC.
+const HOJE = new Date("2026-08-27T12:00:00-03:00"); // 27/08/2026, meio-dia em BH
+const dia = (n: number) => new Date(Date.UTC(2026, 7, n));
 
 test("gaveta separa atrasada, hoje, amanhã e próximas", () => {
   assert.equal(gavetaDaTarefa(dia(25), HOJE), "atrasada");
@@ -20,9 +22,16 @@ test("gaveta separa atrasada, hoje, amanhã e próximas", () => {
   assert.equal(gavetaDaTarefa(null, HOJE), "sem_data");
 });
 
-test("gaveta ignora a hora: hoje às 23h ainda é hoje", () => {
-  const hojeTarde = new Date(2026, 7, 27, 23, 30);
-  assert.equal(gavetaDaTarefa(hojeTarde, HOJE), "hoje");
+test("às 23h em Brasília ainda é hoje (o servidor em UTC já estaria no dia seguinte)", () => {
+  const noiteEmBH = new Date("2026-08-27T23:30:00-03:00"); // 02:30 UTC do dia 28
+  assert.equal(gavetaDaTarefa(dia(27), noiteEmBH), "hoje");
+  assert.equal(textoPrazo(dia(28), noiteEmBH), "amanhã");
+  assert.equal(paraInputDate(dataDoPrazo(3, noiteEmBH)), "2026-08-30");
+});
+
+test("data digitada volta igual para o campo (editar não tira um dia)", () => {
+  assert.equal(paraInputDate(parseDataBR("2026-10-07")), "2026-10-07");
+  assert.equal(parseDataBR("2026-10-07")?.toISOString(), "2026-10-07T00:00:00.000Z");
 });
 
 test("texto do prazo fala como gente", () => {
@@ -37,7 +46,7 @@ test("texto do prazo fala como gente", () => {
 test("prazo em dias cai no início do dia", () => {
   const d = dataDoPrazo(3, HOJE);
   assert.equal(paraInputDate(d), "2026-08-30");
-  assert.equal(d.getHours(), 0);
+  assert.equal(d.getUTCHours(), 0);
 });
 
 test("data aceita dd/mm/aaaa e aaaa-mm-dd", () => {

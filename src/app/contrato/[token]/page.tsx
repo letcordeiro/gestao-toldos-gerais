@@ -59,7 +59,10 @@ export default async function ContratoPublicoPage({
   }
 
   return (
-    <main className="min-h-screen bg-muted/30 pb-10">
+    // print:min-h-0 + print:bg-white: no iPhone, min-h-screen na impressão vale
+    // a altura do CELULAR e sai uma folha extra com faixa cinza (CLAUDE.md,
+    // 02/09/2026; conferido na auditoria de 07/10/2026).
+    <main className="min-h-screen bg-muted/30 pb-10 print:min-h-0 print:bg-white print:pb-0">
       <div className="sticky top-0 z-10 border-b bg-card print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
           {/* Logo do emitente do contrato (Alvorada). O WhatsApp abaixo
@@ -127,8 +130,12 @@ export default async function ContratoPublicoPage({
         </div>
       )}
 
-      <div className="mx-auto max-w-3xl px-4 py-5">
-        <div className="rounded-lg border bg-card p-4 sm:p-6">
+      {/* Margem da folha definida aqui: o cartão perde o recuo na impressão
+          (print:p-0) e, sem @page, navegador sem margem padrão encostava o
+          texto na borda do papel (auditoria de 07/10/2026). */}
+      <style>{`@media print { @page { size: A4 portrait; margin: 12mm; } }`}</style>
+      <div className="mx-auto max-w-3xl px-4 py-5 print:max-w-none print:p-0">
+        <div className="rounded-lg border bg-card p-4 sm:p-6 print:rounded-none print:border-0 print:p-0">
           <ContratoPreview dados={carregado.dados} />
         </div>
 

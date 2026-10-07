@@ -233,7 +233,17 @@ export default async function ImprimirFichaPage({
           <p className="text-[6.5px] font-bold uppercase tracking-wide text-neutral-500">
             Desenho / Croqui
           </p>
-          <Quadriculado />
+          <Quadriculado
+            alturaMm={alturaCroquiMm({
+              itens,
+              textosCabecalho: [
+                { texto: endereco, chars: 150 },
+                { texto: linha.cliente.nome, chars: 90 },
+                { texto: ficha?.responsavel, chars: 60 },
+                { texto: linha.cliente.email, chars: 90 },
+              ],
+            })}
+          />
         </div>
       </div>
 
@@ -250,6 +260,61 @@ export default async function ImprimirFichaPage({
   );
 }
 
+// Altura do croqui pelo que a folha já gastou — o mesmo raciocínio do
+// `alturaDesenho` do PDF (proposta-pdf.tsx). Era fixa em 165 mm: com 9
+// produtos a tabela empurrava a grade para fora e a ficha saía em DUAS folhas,
+// a segunda só com o pé da grade (auditoria de 07/10/2026).
+// Medido no Chrome em impressão A4 com margem de 8 mm (281 mm úteis): o resto
+// da ficha sem croqui nem produtos ocupa ~73 mm e cada linha de produto
+// ~5,3 mm. Sobram ~208 mm para croqui + produtos; 200 deixa folga para a
+// diferença entre navegadores.
+const CROQUI_DISPONIVEL_MM = 200;
+const CROQUI_MAX_MM = 165;
+const CROQUI_MIN_MM = 60;
+const LINHA_PRODUTO_MM = 5.6;
+const LINHA_TEXTO_MM = 3.2; // cada linha a mais quando um texto quebra
+
+/** Caracteres que cabem numa linha de cada coluna de produto (9,5px). */
+const CHARS_COLUNA: Record<(typeof COLS)[number]["chave"], number> = {
+  qtde: 8,
+  produto: 36,
+  estrutura: 24,
+  revestimento: 24,
+  rufo: 9,
+  babado: 17,
+  vies: 17,
+};
+
+function linhasDoTexto(texto: string | null | undefined, chars: number) {
+  return texto ? Math.max(1, Math.ceil(texto.length / chars)) : 1;
+}
+
+function alturaCroquiMm({
+  itens,
+  textosCabecalho,
+}: {
+  itens: Array<Record<(typeof COLS)[number]["chave"], string | null>>;
+  textosCabecalho: { texto: string | null | undefined; chars: number }[];
+}): number {
+  let gasto = 0;
+  // Ficha sem produto ainda imprime uma linha em branco.
+  for (const item of itens.length ? itens : [null]) {
+    const linhas = item
+      ? Math.max(
+          ...COLS.map((c) => linhasDoTexto(item[c.chave], CHARS_COLUNA[c.chave]))
+        )
+      : 1;
+    gasto += LINHA_PRODUTO_MM + (linhas - 1) * LINHA_TEXTO_MM;
+  }
+  for (const { texto, chars } of textosCabecalho) {
+    gasto += (linhasDoTexto(texto, chars) - 1) * LINHA_TEXTO_MM;
+  }
+  return Math.min(
+    CROQUI_MAX_MM,
+    Math.max(CROQUI_MIN_MM, CROQUI_DISPONIVEL_MM - gasto)
+  );
+}
+
 /**
  * Área do croqui: folha branca quadriculada.
  *
@@ -263,10 +328,10 @@ export default async function ImprimirFichaPage({
  * As linhas são desenhadas mais largas que a caixa e o excesso é cortado,
  * então a grade fecha a largura certa em qualquer tamanho de papel.
  */
-function Quadriculado() {
+function Quadriculado({ alturaMm }: { alturaMm: number }) {
   const MM = 96 / 25.4; // px por milímetro (CSS: 96px = 1 polegada)
   const passo = 5 * MM; // quadrado de 5 mm
-  const altura = 165 * MM;
+  const altura = alturaMm * MM;
   const largura = 210 * MM; // mais larga que a caixa; o resto é cortado
   const colunas = Math.ceil(largura / passo);
   const linhas = Math.floor(altura / passo);

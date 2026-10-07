@@ -15,6 +15,7 @@ import {
   contratoOpcoes,
   contratoPagamentos,
   contratos,
+  fases,
   modelosToldo,
   orcamentoItens,
   orcamentos,
@@ -145,10 +146,12 @@ export async function gerarContratoDoOrcamento(orcamentoId: number) {
       orc: orcamentos,
       cliente: clientes,
       modeloNome: modelosToldo.nome,
+      faseLibera: fases.liberaInstalacao,
     })
     .from(orcamentos)
     .innerJoin(atendimentos, eq(orcamentos.atendimentoId, atendimentos.id))
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
+    .innerJoin(fases, eq(atendimentos.faseId, fases.id))
     .leftJoin(modelosToldo, eq(orcamentos.modeloId, modelosToldo.id))
     .where(eq(orcamentos.id, id));
   if (!linha) return;
@@ -159,6 +162,13 @@ export async function gerarContratoDoOrcamento(orcamentoId: number) {
   ) {
     return;
   }
+
+  // A mesma regra que mostra o botão "Gerar contrato" na tela do orçamento
+  // (passo "produzir" em orcamentos/[id]/page.tsx): orçamento APROVADO e
+  // atendimento em fase de negócio fechado. O botão só aparecia assim, mas a
+  // action é chamável direto e gerava contrato de rascunho ou de proposta
+  // recusada (auditoria de 07/10/2026).
+  if (linha.orc.status !== "aprovado" || !linha.faseLibera) return;
 
   // Um contrato vivo por orçamento: se já existe, abre o que existe em vez de
   // duplicar (decisão conservadora — evita dois contratos para a mesma venda).
@@ -814,8 +824,27 @@ const aditivoSchema = z.object({
   objeto: z.string().trim().min(1, "Descreva o que muda").max(3000),
   deltaValor: z.coerce.number().int(),
   novoPrazoDiasUteis: z.coerce.number().int().min(0).max(365).nullable(),
-  dataAssinatura: z.string().trim().optional(),
+  // Mesmo formato e mesma leitura de `visitaEm` nos chamados: <input
+  // type="date"> manda "2026-09-03", e a data é montada no fuso local —
+  // new Date("2026-09-03") seria UTC e cairia no dia anterior. Antes
+  // qualquer texto virava `Invalid Date` gravado no aditivo (auditoria de
+  // 07/10/2026). Vazio continua valendo: aditivo ainda sem assinatura.
+  dataAssinatura: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || dataLocal(v) !== null, "Data da assinatura inválida")
+    .transform((v) => (v === "" ? null : dataLocal(v))),
 });
+
+/** "2026-09-03" → Date local; null se o formato ou o dia não existirem. */
+function dataLocal(v: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const [a, m, d] = v.split("-").map(Number);
+  const data = new Date(a, m - 1, d);
+  // 2026-02-31 viraria 3 de março sem reclamar.
+  if (data.getMonth() !== m - 1 || data.getDate() !== d) return null;
+  return data;
+}
 
 export async function gerarAditivo(
   _prev: ContratoFormState,
@@ -836,6 +865,12 @@ export async function gerarAditivo(
   if (!podeFazer(acesso.contrato.status as StatusContrato, "aditivar")) {
     return { erro: "Só contrato assinado pode receber aditivo." };
   }
+  // Desconto maior que o contrato deixava o valor total negativo — e a
+  // cláusula de valor e o plano de pagamento passavam a falar de dinheiro que
+  // não existe (auditoria de 07/10/2026).
+  if (acesso.contrato.valorTotal + d.deltaValor < 0) {
+    return { erro: "O desconto não pode ser maior que o valor do contrato." };
+  }
 
   const existentes = await db
     .select({ numero: contratoAditivos.numero })
@@ -851,7 +886,7 @@ export async function gerarAditivo(
     objeto: d.objeto,
     deltaValor: d.deltaValor,
     novoPrazoDiasUteis: d.novoPrazoDiasUteis,
-    dataAssinatura: d.dataAssinatura ? new Date(d.dataAssinatura) : null,
+    dataAssinatura: d.dataAssinatura,
     snapshot: snapshot ? JSON.stringify(snapshot) : null,
   });
 

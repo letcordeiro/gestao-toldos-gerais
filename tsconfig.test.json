@@ -28,6 +28,7 @@
     "src/lib/visitas.ts",
     "src/lib/busca-cliente.ts",
     "src/lib/telas.ts",
+    "src/lib/limite-tentativas.ts",
     "src/lib/disponibilidade.ts",
     "src/lib/google-freebusy.ts"
   ],
@@ -49,6 +50,7 @@
     "src/lib/visitas.test.ts",
     "src/lib/busca-cliente.test.ts",
     "src/lib/telas.test.ts",
+    "src/lib/limite-tentativas.test.ts",
     "src/lib/disponibilidade.test.ts",
     "src/lib/google-freebusy.test.ts"
   ]
