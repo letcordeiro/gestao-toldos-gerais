@@ -20,7 +20,19 @@ export function veFunilInteiro(papel: Papel): boolean {
   return papel === "gestor" || papel === "atendente";
 }
 
-/** Cria e edita orçamento e contrato. A atendente faz triagem, não comercial. */
+/**
+ * Cria e edita CONTRATO, ficha de instalação, equipe e cotação. A atendente
+ * fica de fora: é a parte que fecha e executa o negócio.
+ */
 export function podeComercial(papel: Papel): boolean {
   return papel !== "atendente";
+}
+
+/**
+ * Cria e edita ORÇAMENTO. Todos os papéis — a atendente passou a montar
+ * orçamento a pedido da Letícia (07/10/2026). O orçamento continua no nome do
+ * VENDEDOR do cliente, não de quem digitou (ver criarOrcamento).
+ */
+export function podeOrcar(papel: Papel): boolean {
+  return papel === "gestor" || papel === "vendedor" || papel === "atendente";
 }

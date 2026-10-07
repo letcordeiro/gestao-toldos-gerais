@@ -70,11 +70,18 @@ src/
 | Funil, orçamentos, contratos e Painel de **todo mundo** | ✅ | ✅ | só o que é dele |
 | Cadastrar cliente e abrir atendimento | ✅ | ✅ | ✅ |
 | **Escolher/trocar o vendedor** do atendimento | ✅ | ✅ | ❌ |
-| Criar/editar orçamento, ficha e contrato | ✅ | ❌ | os dele |
+| Criar/editar **orçamento** (no nome do vendedor do cliente) | ✅ | ✅ (desde 07/10/2026) | os dele |
+| Ficha de instalação, contrato, equipe e cotação | ✅ | ❌ | os dele |
 | Modelos, Fases, Avisos, Usuários | ✅ | ❌ (só consulta) | ❌ (só consulta) |
 
 - `veFunilInteiro(papel)` = gestor ou atendente — troca todo `papel === "gestor"`
-  que era **visibilidade**. `podeComercial(papel)` = qualquer um menos atendente.
+  que era **visibilidade**. `podeComercial(papel)` = qualquer um menos atendente
+  (contrato, ficha, equipe, cotação). `podeOrcar(papel)` = todos — **a
+  atendente monta orçamento desde 07/10/2026** (pedido da Letícia), guard
+  `exigirOrcamento`. O orçamento dela sai no nome do **vendedor do cliente**:
+  ela também é uma linha em `vendedores`, e sem a exceção em `criarOrcamento`
+  a proposta sairia com o nome e o telefone dela. Ela não vira dona do
+  atendimento ao orçar, e não aparece na lista de responsáveis do orçamento.
 - Guards em `auth.ts`: `exigirGestor` (configuração), `exigirTriagem`
   (direcionar cliente), `exigirComercial` (orçamento/contrato).
 - **Atendente não recebe lead**: fica fora da lista de responsáveis e do link

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, and, ne } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
@@ -12,7 +12,7 @@ import {
   GARANTIA_PADRAO,
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
-import { exigirComercial, vendedorDaSessao } from "@/lib/auth";
+import { exigirOrcamento, vendedorDaSessao } from "@/lib/auth";
 import { OrcamentoForm } from "@/components/shared/orcamento-form";
 
 export const metadata = { title: "Novo orçamento" };
@@ -23,8 +23,7 @@ export default async function NovoOrcamentoPage({
 }: {
   searchParams: Promise<{ atendimento?: string }>;
 }) {
-  // Atendente faz triagem, não orçamento: cai de volta no funil.
-  await exigirComercial();
+  const usuario = await exigirOrcamento();
   const { atendimento } = await searchParams;
 
   const listaAtendimentos = await db
@@ -32,6 +31,7 @@ export default async function NovoOrcamentoPage({
       id: atendimentos.id,
       clienteNome: clientes.nome,
       clienteTelefone: clientes.telefone,
+      vendedorId: atendimentos.vendedorId,
     })
     .from(atendimentos)
     .innerJoin(clientes, eq(atendimentos.clienteId, clientes.id))
@@ -43,14 +43,25 @@ export default async function NovoOrcamentoPage({
     .where(eq(modelosToldo.ativo, true))
     .orderBy(asc(modelosToldo.nome));
 
+  // Atendente não é responsável de orçamento: fica fora da lista.
   const listaVendedores = await db
     .select({ id: vendedores.id, nome: vendedores.nome })
     .from(vendedores)
-    .where(eq(vendedores.ativo, true))
+    .where(and(eq(vendedores.ativo, true), ne(vendedores.papel, "atendente")))
     .orderBy(asc(vendedores.nome));
 
-  // Se quem está logado é um vendedor, ele já vem como responsável
-  const vendedorLogado = await vendedorDaSessao();
+  // Vendedor logado já vem fixo como responsável. A ATENDENTE escolhe — e o
+  // padrão é o vendedor do cliente, para o orçamento não sair no nome dela.
+  const vendedorLogado =
+    usuario.papel === "atendente" ? null : await vendedorDaSessao();
+  let vendedorDoCliente: number | undefined;
+  if (usuario.papel === "atendente" && Number(atendimento) > 0) {
+    const at = await db.query.atendimentos.findFirst({
+      where: eq(atendimentos.id, Number(atendimento)),
+      columns: { vendedorId: true },
+    });
+    vendedorDoCliente = at?.vendedorId ?? undefined;
+  }
 
   const voltaAtendimento = Number.isInteger(Number(atendimento)) && Number(atendimento) > 0
     ? Number(atendimento)
@@ -71,7 +82,7 @@ export default async function NovoOrcamentoPage({
         atendimentos={listaAtendimentos}
         modelos={modelos}
         vendedores={listaVendedores}
-        vendedorPadrao={vendedorLogado?.id}
+        vendedorPadrao={vendedorLogado?.id ?? vendedorDoCliente}
         vendedorFixo={vendedorLogado ?? undefined}
         atendimentoInicial={atendimento}
         padroes={{

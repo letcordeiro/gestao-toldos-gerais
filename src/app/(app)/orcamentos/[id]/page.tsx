@@ -32,7 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatarValorItem } from "@/lib/format";
 import { rotuloEstrutura, rotuloFormato } from "@/lib/labels";
-import { podeComercial } from "@/lib/auth";
+import { podeComercial, podeOrcar } from "@/lib/auth";
 import { EMPRESA } from "@/lib/empresa";
 import { MONTAGEM_COBERTURA, aosCuidados, textoValidade } from "@/lib/proposta";
 import { exigirUsuario } from "@/lib/auth";
@@ -118,12 +118,15 @@ export default async function OrcamentoPage({
     .orderBy(asc(orcamentoFotos.ordem));
 
 
-  // Quem chega aqui já pode ver o orçamento; gestor e o vendedor dono editam.
-  // Atendente só consulta — o comercial não é dela.
+  // Quem chega aqui já pode ver o orçamento. EDITAR o orçamento: gestor, o
+  // vendedor dono e a atendente (que monta orçamento desde 07/10/2026).
+  // GERAR CONTRATO continua só com gestor e vendedor dono.
+  const ehDono =
+    usuario.papel === "gestor" ||
+    orcamento.orc.vendedorId === usuario.vendedorId;
   const podeEditar =
-    podeComercial(usuario.papel) &&
-    (usuario.papel === "gestor" ||
-      orcamento.orc.vendedorId === usuario.vendedorId);
+    podeOrcar(usuario.papel) && (usuario.papel === "atendente" || ehDono);
+  const podeGerarContrato = podeComercial(usuario.papel) && ehDono;
 
   const { orc, cliente, vendedor } = orcamento;
 
@@ -355,7 +358,7 @@ export default async function OrcamentoPage({
                   <FileSignature className="size-4" /> Ver contrato
                 </Button>
               ) : (
-                podeEditar && (
+                podeGerarContrato && (
                   <form action={gerarContratoDoOrcamento.bind(null, orc.id)}>
                     <Button type="submit" variant="outline">
                       <FileSignature className="size-4" /> Gerar contrato

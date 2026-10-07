@@ -14,7 +14,7 @@ import {
   orcamentoItens,
   orcamentos,
 } from "@/db/schema";
-import { exigirComercial, podeComercial, usuarioAtual } from "@/lib/auth";
+import { exigirOrcamento, podeOrcar, usuarioAtual } from "@/lib/auth";
 import { parseParaCentavos } from "@/lib/format";
 import { configNumeracao } from "@/lib/numeracao-consulta";
 import { proximoNumero as proximoNumeroFormatado } from "@/lib/numeracao";
@@ -163,8 +163,7 @@ export async function criarOrcamento(
 ): Promise<OrcamentoFormState> {
   const usuario = await usuarioAtual();
   if (!usuario) return { erro: "Sessão expirada" };
-  // Atendente faz triagem, não orçamento.
-  if (!podeComercial(usuario.papel)) {
+  if (!podeOrcar(usuario.papel)) {
     return { erro: "Seu acesso não permite criar orçamento." };
   }
 
@@ -203,9 +202,23 @@ export async function criarOrcamento(
     return { erro: "Cliente não encontrado." };
   }
 
-  // Vendedor responsável = o usuário logado (quem tem cadastro de vendedor).
-  // Admin do env sem vendedor cai no que veio do formulário.
-  const vendedorId = usuario.vendedorId ?? dados.vendedorId ?? null;
+  // Vendedor responsável:
+  // - vendedor (ou gestor com cadastro de vendedor): ele mesmo;
+  // - ATENDENTE: o vendedor escolhido no formulário, que já vem preenchido com
+  //   o vendedor do cliente. Ela também tem linha em `vendedores`, e sem esta
+  //   exceção o orçamento sairia no nome dela — com o telefone dela na
+  //   proposta e fora da lista do vendedor que vai atender (07/10/2026);
+  // - admin do env sem cadastro: o que veio do formulário.
+  let vendedorId: number | null;
+  if (usuario.papel === "atendente") {
+    const at = await db.query.atendimentos.findFirst({
+      where: eq(atendimentos.id, dados.atendimentoId),
+      columns: { vendedorId: true },
+    });
+    vendedorId = dados.vendedorId ?? at?.vendedorId ?? null;
+  } else {
+    vendedorId = usuario.vendedorId ?? dados.vendedorId ?? null;
+  }
 
   if (dados.status === "agendado" && !permiteEnvioAutomatico(vendedorId)) {
     return {
@@ -270,8 +283,9 @@ export async function criarOrcamento(
     }
   }
 
-  // Quem tem cadastro de vendedor e orça um lead do pool vira dono do atendimento.
-  if (usuario.vendedorId != null) {
+  // Quem tem cadastro de vendedor e orça um lead do pool vira dono do
+  // atendimento. A atendente não: ela não recebe lead.
+  if (usuario.vendedorId != null && usuario.papel !== "atendente") {
     const at = await db.query.atendimentos.findFirst({
       where: eq(atendimentos.id, dados.atendimentoId),
     });
@@ -292,7 +306,7 @@ export async function atualizarOrcamento(
   _prev: OrcamentoFormState,
   formData: FormData
 ): Promise<OrcamentoFormState> {
-  const usuario = await exigirComercial();
+  const usuario = await exigirOrcamento();
 
   const orcamentoId = Number(formData.get("orcamentoId"));
   if (!Number.isInteger(orcamentoId) || orcamentoId <= 0) {
@@ -514,7 +528,7 @@ async function atendimentoPermitido(
 async function orcamentoEditavel(orcamentoId: number) {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
-  if (!podeComercial(usuario.papel)) return null;
+  if (!podeOrcar(usuario.papel)) return null;
   const orc = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),
   });

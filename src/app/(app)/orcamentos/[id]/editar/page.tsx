@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, and, ne } from "drizzle-orm";
 import { db } from "@/db";
 import {
   atendimentos,
@@ -17,7 +17,7 @@ import {
   PRAZO_ENTREGA_PADRAO,
 } from "@/lib/proposta";
 import { centavosParaInput } from "@/lib/format";
-import { exigirComercial } from "@/lib/auth";
+import { exigirOrcamento } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -42,8 +42,7 @@ export default async function EditarOrcamentoPage({
   const orcamentoId = Number(id);
   if (!Number.isInteger(orcamentoId)) notFound();
 
-  // Atendente não edita orçamento.
-  const usuario = await exigirComercial();
+  const usuario = await exigirOrcamento();
 
   const orcamento = await db.query.orcamentos.findFirst({
     where: eq(orcamentos.id, orcamentoId),
@@ -89,7 +88,8 @@ export default async function EditarOrcamentoPage({
   const listaVendedores = await db
     .select({ id: vendedores.id, nome: vendedores.nome })
     .from(vendedores)
-    .where(eq(vendedores.ativo, true))
+    // Atendente monta orçamento, mas não é responsável por nenhum.
+    .where(and(eq(vendedores.ativo, true), ne(vendedores.papel, "atendente")))
     .orderBy(asc(vendedores.nome));
 
   // Estrutura legada 'ferro' passa a ser exibida/editada como 'metalica'

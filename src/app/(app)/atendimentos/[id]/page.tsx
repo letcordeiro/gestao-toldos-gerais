@@ -26,7 +26,7 @@ import {
 import { FaseSelect } from "@/components/shared/fase-select";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
-import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
+import { exigirUsuario, podeOrcar, veFunilInteiro } from "@/lib/auth";
 import { buscarTarefas } from "@/lib/tarefas-consulta";
 import { canais, chamados, motivosPerda } from "@/db/schema";
 import {
@@ -241,9 +241,9 @@ export default async function AtendimentoPage({
             irParaChamado
             trigger={<Button variant="outline">Abrir chamado</Button>}
           />
-          {/* Atendente não cria orçamento (exigirComercial a devolveria para a
-              lista sem explicar): o botão só aparece para quem pode usá-lo. */}
-          {podeComercial(usuario.papel) && (
+          {/* O botão só aparece para quem pode orçar — hoje todos os papéis,
+              a atendente inclusive (07/10/2026). */}
+          {podeOrcar(usuario.papel) && (
             <Button
               nativeButton={false}
               render={

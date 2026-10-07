@@ -1,5 +1,5 @@
 import "server-only";
-import { podeComercial, veFunilInteiro, type Papel } from "./papeis";
+import { podeComercial, podeOrcar, veFunilInteiro, type Papel } from "./papeis";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
@@ -183,7 +183,7 @@ export function perfilVendedorCompleto(v: {
  * - Vendedor com login → papel vem da coluna `papel` (gestor|vendedor).
  * - Admin do env/usuarios (ex.: Letícia) → sempre gestor.
  */
-export { PAPEL_LABEL, podeComercial, veFunilInteiro, type Papel } from "./papeis";
+export { PAPEL_LABEL, podeComercial, podeOrcar, veFunilInteiro, type Papel } from "./papeis";
 
 export async function usuarioAtual(): Promise<UsuarioAtual | null> {
   const sessao = await getSessao();
@@ -242,6 +242,13 @@ export async function exigirTriagem(): Promise<UsuarioAtual> {
 export async function exigirComercial(): Promise<UsuarioAtual> {
   const u = await exigirUsuario();
   if (!podeComercial(u.papel)) redirect("/atendimentos");
+  return u;
+}
+
+/** Exige quem pode montar orçamento (hoje: todos os papéis — ver podeOrcar). */
+export async function exigirOrcamento(): Promise<UsuarioAtual> {
+  const u = await exigirUsuario();
+  if (!podeOrcar(u.papel)) redirect("/atendimentos");
   return u;
 }
 

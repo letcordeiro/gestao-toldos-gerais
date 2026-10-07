@@ -34,6 +34,8 @@ type AtendimentoOpcao = {
   id: number;
   clienteNome: string;
   clienteTelefone: string;
+  /** Vendedor do cliente — a atendente orça no nome dele. */
+  vendedorId?: number | null;
 };
 
 type Modelo = {
@@ -224,7 +226,16 @@ export function OrcamentoForm({
                 id="escolhaAtendimento"
                 opcoes={atendimentos}
                 valor={atendimentoId}
-                onValorChange={setAtendimentoId}
+                onValorChange={(id) => {
+                  setAtendimentoId(id);
+                  // Sem vendedor fixo (atendente, gestor sem cadastro): o
+                  // responsável acompanha o cliente escolhido, senão o
+                  // orçamento saía no nome do primeiro da lista.
+                  if (!vendedorFixo && !orcamento) {
+                    const dono = atendimentos.find((a) => String(a.id) === id)?.vendedorId;
+                    if (dono) setVendedorId(String(dono));
+                  }
+                }}
                 placeholder="Digite o nome do cliente"
               />
             </div>

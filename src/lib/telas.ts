@@ -89,7 +89,6 @@ export const TELAS_EXTRAS: TelaExtra[] = [
     label: "Novo orçamento",
     ajuda: "Começar uma proposta do zero",
     grupo: "Atalhos",
-    so: "comercial",
   },
   {
     href: "/cotacoes/nova",

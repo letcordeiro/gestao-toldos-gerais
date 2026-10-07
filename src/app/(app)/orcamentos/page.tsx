@@ -11,7 +11,7 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { exigirUsuario, podeComercial, veFunilInteiro } from "@/lib/auth";
+import { exigirUsuario, podeOrcar, veFunilInteiro } from "@/lib/auth";
 import { ordenarLista } from "@/lib/ordenacao";
 import { ColunaOrdenavel } from "@/components/shared/coluna-ordenavel";
 import { cn } from "@/lib/utils";
@@ -85,7 +85,8 @@ export default async function OrcamentosPage({
   const usuario = await exigirUsuario();
   // Gestor e atendente veem os orçamentos de todo mundo.
   const veTudo = veFunilInteiro(usuario.papel);
-  const ehComercial = podeComercial(usuario.papel);
+  // Novo orçamento: todos os papéis, a atendente inclusive (07/10/2026).
+  const podeCriar = podeOrcar(usuario.papel);
   // Vendedor vê só os próprios orçamentos.
   const escopo =
     !veTudo && usuario.vendedorId != null
@@ -202,7 +203,7 @@ export default async function OrcamentosPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Orçamentos</h1>
-        {ehComercial && (
+        {podeCriar && (
           <Button nativeButton={false} render={<Link href="/orcamentos/novo" />}>
             Novo orçamento
           </Button>
