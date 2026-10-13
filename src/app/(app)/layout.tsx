@@ -9,6 +9,7 @@ import { BottomNav } from "./bottom-nav";
 import { MenuSuspenso } from "./menu-config";
 import { BuscaTelas } from "./busca-telas";
 import { TELAS_EXTRAS, type Tela } from "@/lib/telas";
+import { ehDemo } from "@/lib/demo";
 
 async function sair() {
   "use server";
@@ -210,6 +211,16 @@ export default async function AppLayout({
     // computador não acontece — por isso passou tanto tempo sem ninguém achar.
     <div className="min-h-screen bg-background print:min-h-0 print:bg-white">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
+        {ehDemo() && (
+          // Ninguém pode confundir a demo com o sistema de verdade: um cliente
+          // cadastrado aqui some no próximo deploy.
+          <p className="bg-amber-100 px-4 py-1 text-center text-xs text-amber-900 print:hidden">
+            Demonstração · dados fictícios, apagados a cada atualização ·{" "}
+            <Link href="/login" className="font-medium underline">
+              trocar de perfil
+            </Link>
+          </p>
+        )}
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-between gap-3 py-2.5">
             <Link

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { validarCredenciais, criarSessao } from "@/lib/auth";
 import { LimiteTentativas, minutosRestantes } from "@/lib/limite-tentativas";
+import { CONTAS_DEMO, ehDemo } from "@/lib/demo";
 
 // 10 senhas erradas em 15 minutos travam aquele e-mail por 15 minutos; o IP
 // tem teto maior (várias pessoas da loja podem sair do mesmo endereço).
@@ -53,5 +54,20 @@ export async function login(
   porEmail.acertou(chaveEmail);
 
   await criarSessao(email);
+  redirect("/painel");
+}
+
+/**
+ * "Entrar como …" da demonstração: sessão direto, sem senha.
+ *
+ * Só existe com DEMO=1 (app demo-toldos.cordena.net). Em produção esta action
+ * recusa qualquer chamada — ela é exposta como endpoint, então a checagem tem
+ * que estar AQUI, não só no botão escondido.
+ */
+export async function entrarDemo(formData: FormData): Promise<void> {
+  if (!ehDemo()) redirect("/login");
+  const conta = CONTAS_DEMO.find((c) => c.papel === formData.get("papel"));
+  if (!conta) redirect("/login");
+  await criarSessao(conta.email);
   redirect("/painel");
 }

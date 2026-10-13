@@ -30,12 +30,23 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
+// Demonstração (DEMO=1, demo-toldos.cordena.net): o banco recomeça do zero a
+// cada boot, com dados fictícios (scripts/seed-demo.mjs). Assim o que alguém
+// mexeu na demo some no próximo deploy, e as datas — visitas da semana,
+// prazos — continuam atuais. NUNCA ligar DEMO no app de produção.
+const DEMO = process.env.DEMO === "1";
+if (DEMO) {
+  for (const f of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) fs.rmSync(f, { force: true });
+  console.log("• Modo demonstração: banco recriado do zero");
+}
+
 // Em produção, banco que NÃO existe é sinal de volume não montado: o Docker
 // criaria um volume vazio, o boot faria seed e o sistema subiria com o funil
 // ZERADO, sem ninguém perceber (os dados ficariam no volume antigo). Para de
 // propósito; banco novo de verdade pede PERMITIR_BANCO_NOVO=1 no primeiro boot.
 if (
   process.env.NODE_ENV === "production" &&
+  !DEMO &&
   !fs.existsSync(dbPath) &&
   process.env.PERMITIR_BANCO_NOVO !== "1"
 ) {
@@ -112,7 +123,8 @@ if (italiano.changes > 0)
 const contarVendedores = sqlite
   .prepare("SELECT count(*) AS c FROM vendedores")
   .get().c;
-if (contarVendedores === 0) {
+// Na demo os vendedores são os fictícios do seed-demo, não a equipe real.
+if (contarVendedores === 0 && !DEMO) {
   const insert = sqlite.prepare(
     "INSERT INTO vendedores (nome, telefone, email, ativo) VALUES (?, ?, ?, 1)"
   );
@@ -518,6 +530,16 @@ try {
   }
 } catch (e) {
   console.warn("• canais não semeados (não crítico):", e.message);
+}
+
+if (DEMO) {
+  // Sem try/catch de propósito: demo sem dados é demo quebrada, melhor não subir.
+  const { semearDemo } = await import("./seed-demo.mjs");
+  const r = semearDemo(sqlite);
+  console.log(`✔ Demonstração: ${r.contas} contas e ${r.clientes} clientes fictícios`);
+  const { semearContratos } = await import("./seed-contratos.mjs");
+  const c = semearContratos(sqlite);
+  console.log(`✔ Demonstração: ${c.criados} contrato(s) de exemplo`);
 }
 
 sqlite.close();
