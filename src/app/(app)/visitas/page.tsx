@@ -40,6 +40,8 @@ import { AgendaSemana, type ItemDaSemana } from "./agenda-semana";
 import { BloqueioDialog } from "./bloqueio-dialog";
 import { excluirBloqueio } from "./bloqueios-actions";
 import { ExcluirConfirmado } from "../cadastros/excluir-confirmado";
+import { GuiaDaTela } from "@/components/shared/guia-da-tela";
+import { guiaDeVisitas } from "@/lib/guia-visitas";
 
 export const metadata = { title: "Visitas" };
 
@@ -192,6 +194,11 @@ export default async function VisitasPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <GuiaDaTela
+            titulo="Guia de Visitas"
+            descricao="Agenda, visitas de venda, horários bloqueados e chamados de visita e manutenção."
+            secoes={guiaDeVisitas(usuario.papel)}
+          />
           <div className="flex rounded-lg border p-0.5">
             {(
               [

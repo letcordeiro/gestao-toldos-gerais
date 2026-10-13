@@ -31,6 +31,7 @@
     "src/lib/limite-tentativas.ts",
     "src/lib/disponibilidade.ts",
     "src/lib/agenda.ts",
+    "src/lib/guia-visitas.ts",
     "src/lib/google-freebusy.ts"
   ],
   "files": [
@@ -54,6 +55,7 @@
     "src/lib/limite-tentativas.test.ts",
     "src/lib/disponibilidade.test.ts",
     "src/lib/agenda.test.ts",
+    "src/lib/guia-visitas.test.ts",
     "src/lib/google-freebusy.test.ts"
   ]
 }

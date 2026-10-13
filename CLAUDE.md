@@ -714,6 +714,21 @@ o bloqueio **semanal** é cadastrado uma vez e vale toda semana.
 - Os avisos de "conecte / reconecte sua agenda do Google" saíram da tela de
   Visitas e da janela de visita.
 
+## Guia da tela de Visitas (13/10/2026)
+
+Botão **"Como usar"** no cabeçalho de Visitas abre o guia da aba: onde marcar
+(visita de venda × chamado de visita × chamado de manutenção), ler a semana,
+agendar, o que fazer depois, bloquear horário, abrir chamado e quem pode o quê.
+
+- Texto em `src/lib/guia-visitas.ts` (puro, testado): **muda com o papel** —
+  a atendente não lê passo a passo de bloquear, o vendedor não é mandado
+  escolher "Quem vai" (o campo não aparece para ele). `**x**` vira negrito.
+- `components/shared/guia-da-tela.tsx` é genérico: outra aba ganha guia
+  escrevendo só o conteúdo (`SecaoGuia[]`) e pondo o componente no cabeçalho.
+- **Mudou a tela, muda o guia**: nome de botão no guia é o da tela, entre `**`.
+- O guia diz com todas as letras que **chamado não entra na agenda** (só guarda
+  o dia da ida, sem hora). Se isso mudar, tirar o aviso.
+
 ## Agenda do Google por vendedor (31/08/2026)
 
 Cada vendedor conecta a PRÓPRIA agenda em `/perfil`. O sistema usa isso só para
