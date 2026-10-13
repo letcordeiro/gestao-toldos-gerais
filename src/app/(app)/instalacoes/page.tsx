@@ -51,7 +51,8 @@ export default async function InstalacoesPage({
           <h1 className="text-2xl font-semibold tracking-tight">Instalações</h1>
           <p className="text-sm text-muted-foreground">
             Negócios fechados que ainda não tiveram a entrega registrada. O
-            prazo é a previsão de entrega da ficha de instalação.
+            prazo é a previsão de entrega da ficha de instalação. Ao mover o
+            cliente para Concluído, a instalação sai daqui.
           </p>
         </div>
         {/* Só gestor: a tela de comissões exige gestor e devolvia a

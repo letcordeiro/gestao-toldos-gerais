@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  paraInputLocal,
   agruparPorDia,
   conflitos,
   linkDaRota,
@@ -129,4 +130,11 @@ test("acima do limite do Maps, avisa quantas paradas ficaram de fora", () => {
   assert.ok(url);
   const p = new URL(url).searchParams;
   assert.equal(p.get("destination"), "End 10");
+});
+
+test("valor do campo de editar sai no relógio de quem gravou", () => {
+  // paraData grava com new Date(a, m-1, d, h, min); o campo tem que devolver
+  // exatamente o que foi digitado, senão salvar sem mexer move a visita.
+  assert.equal(paraInputLocal(new Date(2026, 9, 14, 14, 0)), "2026-10-14T14:00");
+  assert.equal(paraInputLocal(new Date(2026, 0, 5, 9, 5)), "2026-01-05T09:05");
 });

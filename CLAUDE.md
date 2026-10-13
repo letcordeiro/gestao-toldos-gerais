@@ -714,6 +714,22 @@ o bloqueio **semanal** é cadastrado uma vez e vale toda semana.
 - Os avisos de "conecte / reconecte sua agenda do Google" saíram da tela de
   Visitas e da janela de visita.
 
+## Visitas: editar pela semana, "Todos" vazio e instalação concluída (13/10/2026)
+
+- **Clicar na visita da semana abre a janela dela** (`visita-na-semana.tsx`):
+  Editar / remarcar, situação, WhatsApp, Abrir cliente e apagar. Antes o
+  clique ia para o atendimento, que não mostra visita nenhuma.
+- **Valor do campo de editar é montado no SERVIDOR** (`paraInputLocal` em
+  `lib/visitas.ts`; `VisitaEdicao.inicio` é string). Montado no navegador, com
+  o celular em Brasília e o servidor em UTC, a janela abria 3h antes e salvar
+  sem mexer movia a visita 3h para trás. Teste: subir com `TZ=UTC`.
+- **"Todos" parecia vazio**: bloqueio de DIA INTEIRO de qualquer vendedor
+  esticava a grade para 0h–24h e as visitas caíam abaixo da tela. Agora ele
+  não dimensiona a grade, só pinta a coluna dentro da faixa visível.
+- **Instalação em fase terminal (Concluído) sai da lista e do aviso do
+  painel** (`buscarInstalacoes`). "Concluído" também libera instalação, e o
+  aviso de "instalação vencida" só sumia preenchendo a entrega na ficha.
+
 ## Guia da tela de Visitas (13/10/2026)
 
 Botão **"Como usar"** no cabeçalho de Visitas abre o guia da aba: onde marcar

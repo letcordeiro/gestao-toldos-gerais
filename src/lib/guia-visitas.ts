@@ -63,7 +63,7 @@ export function guiaDeVisitas(papel: Papel): SecaoGuia[] {
         "**← Anterior**, **Esta semana** e **Próxima →** trocam de semana. O dia de hoje fica destacado em verde.",
         "Caixa com a borda colorida é **visita**. A cor diz a situação: laranja agendada, azul confirmada, verde realizada, vermelho não compareceu, cinza cancelada.",
         "Caixa listrada é **horário bloqueado**: o vendedor não está disponível.",
-        "Clicar na visita abre o atendimento do cliente.",
+        "Clicar na visita abre a janela dela: **Editar / remarcar**, situação, WhatsApp, **Abrir cliente** e apagar.",
         ...(veTodos
           ? [
               "Os nomes acima da grade mostram a agenda de um vendedor só. Em **Todos**, cada caixa diz de quem é.",
@@ -101,13 +101,13 @@ export function guiaDeVisitas(papel: Papel): SecaoGuia[] {
     {
       id: "depois",
       titulo: "Depois de marcar",
-      resumo: "As ações de cada visita ficam na visão **Lista**.",
+      resumo: "Clique na visita, na semana, ou use os botões da visão **Lista**.",
       pontos: [
         "**Situação**: troque para Confirmada quando o cliente confirmar e para Realizada depois da visita. Não compareceu e Cancelada também ficam ali.",
-        "**Lápis**: muda horário, duração, endereço ou quem vai. Cliente pediu outro dia? Use o lápis em vez de apagar e marcar de novo.",
+        "**Editar / remarcar** (o lápis, na Lista): muda dia, horário, duração, endereço ou quem vai. Cliente pediu outro dia? Remarque em vez de apagar e marcar de novo.",
         "**WhatsApp**: abre a conversa com o cliente.",
         "**Lixeira**: apaga a visita, depois de confirmar.",
-        "**Abrir rota do dia**: abre o Google Maps saindo da loja e passando pelas visitas na ordem dos horários, até 10 paradas.",
+        "**Abrir rota do dia** (na Lista): abre o Google Maps saindo da loja e passando pelas visitas na ordem dos horários, até 10 paradas.",
         "**choca com a visita anterior**, em vermelho: a visita começa antes da anterior terminar. Remarque uma das duas.",
       ],
     },

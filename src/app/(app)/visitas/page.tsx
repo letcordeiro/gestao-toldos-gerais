@@ -16,6 +16,7 @@ import {
   linkDaRota,
   linkDoEndereco,
   paradasForaDaRota,
+  paraInputLocal,
   type SituacaoVisita,
 } from "@/lib/visitas";
 import { EMPRESA } from "@/lib/empresa";
@@ -44,6 +45,8 @@ import { GuiaDaTela } from "@/components/shared/guia-da-tela";
 import { guiaDeVisitas } from "@/lib/guia-visitas";
 
 export const metadata = { title: "Visitas" };
+
+const primeiraMaiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export default async function VisitasPage({
   searchParams,
@@ -153,7 +156,30 @@ export default async function VisitasPage({
         titulo: v.clienteNome,
         detalhe: veTudo && filtroVendedor == null ? v.vendedorNome : null,
         situacao: v.situacao as SituacaoVisita,
-        href: `/atendimentos/${v.atendimentoId}`,
+        // Datas formatadas AQUI, no relógio do servidor — o mesmo que gravou.
+        visita: {
+          id: v.id,
+          atendimentoId: v.atendimentoId,
+          clienteNome: v.clienteNome,
+          clienteTelefone: v.clienteTelefone,
+          vendedorNome: v.vendedorNome,
+          quando: primeiraMaiuscula(
+            `${format(v.inicioEm, "EEEE, d/MM", { locale: ptBR })} · ${format(v.inicioEm, "HH:mm")} às ${format(fimDaVisita(v), "HH:mm")}`
+          ),
+          data: format(v.inicioEm, "dd/MM/yyyy"),
+          hora: format(v.inicioEm, "HH:mm"),
+          endereco: v.endereco,
+          observacoes: v.observacoes,
+          situacao: v.situacao as SituacaoVisita,
+          edicao: {
+            id: v.id,
+            inicio: paraInputLocal(v.inicioEm),
+            duracaoMin: v.duracaoMin,
+            endereco: v.endereco,
+            observacoes: v.observacoes,
+            vendedorId: v.vendedorId,
+          },
+        },
       });
     }
     for (const dia of dias) {
@@ -277,7 +303,13 @@ export default async function VisitasPage({
               </div>
             )}
           </div>
-          <AgendaSemana dias={dias} itens={itensSemana} hoje={hoje} />
+          <AgendaSemana
+            dias={dias}
+            itens={itensSemana}
+            hoje={hoje}
+            responsaveis={listaResponsaveis}
+            ehAtendente={usuario.papel === "atendente"}
+          />
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold">Horários bloqueados</h2>
@@ -460,7 +492,7 @@ export default async function VisitasPage({
                           <VisitaDialog
                             visita={{
                               id: v.id,
-                              inicioEm: v.inicioEm,
+                              inicio: paraInputLocal(v.inicioEm),
                               duracaoMin: v.duracaoMin,
                               endereco: v.endereco,
                               observacoes: v.observacoes,

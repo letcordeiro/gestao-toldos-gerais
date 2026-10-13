@@ -30,7 +30,8 @@ export type Instalacao = {
 
 /**
  * O que está para instalar. Entra na lista o orçamento de negócio fechado
- * (fase com "negócio fechado") que ainda não teve a entrega registrada.
+ * (fase com "negócio fechado") que ainda não teve a entrega registrada — e
+ * cujo atendimento não está numa fase terminal (Concluído).
  *
  * A gaveta é a MESMA das tarefas (`gavetaDaTarefa`): vencida, hoje, amanhã,
  * próximas, sem data. Duas telas que falam de prazo devem contar o prazo do
@@ -43,6 +44,10 @@ export async function buscarInstalacoes(
     eq(clientes.ativo, true),
     // Negócio fechado: é a fase que diz isso, não o status do orçamento.
     eq(fases.liberaInstalacao, true),
+    // Fase terminal ("Concluído") = obra entregue. "Concluído" também libera
+    // instalação, e sem isto o aviso de "instalação vencida" não saía nunca
+    // para quem só move a fase e não preenche a entrega na ficha (13/10/2026).
+    eq(fases.terminal, false),
     // Entrega ainda não aconteceu (ou a ficha nem foi aberta).
     or(
       isNull(orcamentoInstalacao.dataEntrega),

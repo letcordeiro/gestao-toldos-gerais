@@ -73,6 +73,20 @@ export function agruparPorDia<T extends VisitaNaAgenda>(
     });
 }
 
+/**
+ * Date → "2026-09-01T09:00" (formato do input datetime-local), no relógio do
+ * SERVIDOR — o mesmo que `paraData` usa para gravar.
+ *
+ * Tem que ser montado no servidor e chegar pronto ao navegador: montado lá,
+ * com o relógio do celular (Brasília) contra o servidor em UTC, a janela de
+ * editar abria 3h antes do horário marcado — e salvar sem olhar movia a
+ * visita 3h para trás.
+ */
+export function paraInputLocal(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** Fim previsto da visita — usado para avisar quando duas se sobrepõem. */
 export function fimDaVisita(v: {
   inicioEm: Date;

@@ -27,7 +27,8 @@ const SELECT =
 
 export type VisitaEdicao = {
   id: number;
-  inicioEm: Date;
+  /** "aaaa-mm-ddTHH:MM", já montado no servidor (ver `paraInputLocal`). */
+  inicio: string;
   duracaoMin: number;
   endereco: string | null;
   observacoes: string | null;
@@ -76,7 +77,7 @@ export function VisitaDialog({
   // Estes três passam a ser controlados porque a agenda depende deles: mudar
   // o dia, a duração ou quem vai muda o que está livre.
   const [inicio, setInicio] = useState(
-    visita ? paraInput(visita.inicioEm) : padraoInicial()
+    visita ? visita.inicio : padraoInicial()
   );
   const [duracao, setDuracao] = useState(String(visita?.duracaoMin ?? 60));
   const [quemVai, setQuemVai] = useState(String(visita?.vendedorId ?? ""));
@@ -135,7 +136,7 @@ export function VisitaDialog({
   // cancelado voltava na próxima abertura como se tivesse valido.
   const abrirOuFechar = (open: boolean) => {
     if (open && visita) {
-      setInicio(paraInput(visita.inicioEm));
+      setInicio(visita.inicio);
       setDuracao(String(visita.duracaoMin));
       setQuemVai(String(visita.vendedorId ?? ""));
       setEndereco(visita.endereco ?? "");

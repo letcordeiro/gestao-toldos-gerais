@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { DIAS_SEMANA, hhmmDe } from "@/lib/agenda";
+import { DIAS_SEMANA, ehDiaInteiro, hhmmDe } from "@/lib/agenda";
 import { SITUACAO_VISITA_COR, type SituacaoVisita } from "@/lib/visitas";
+import { VisitaNaSemana, type VisitaDaSemana } from "./visita-na-semana";
 
 /**
  * A semana da agenda do próprio sistema (13/10/2026): visitas e bloqueios,
@@ -19,7 +19,8 @@ export type ItemDaSemana =
       titulo: string; // cliente
       detalhe: string | null; // vendedor (quando a tela mostra vários)
       situacao: SituacaoVisita;
-      href: string;
+      /** Tudo o que a janela de editar precisa. */
+      visita: VisitaDaSemana;
     }
   | {
       tipo: "bloqueio";
@@ -44,15 +45,24 @@ export function AgendaSemana({
   dias,
   itens,
   hoje,
+  responsaveis,
+  ehAtendente,
 }: {
   dias: string[];
   itens: ItemDaSemana[];
   hoje: string;
+  responsaveis: { id: number; nome: string }[];
+  ehAtendente: boolean;
 }) {
   // A grade vai das 8h às 18h e cresce para caber o que houver fora disso
   // (a faculdade das 19h às 22h tem que aparecer).
-  const inicioHora = Math.min(8, ...itens.map((i) => Math.floor(i.inicioMin / 60)));
-  const fimHora = Math.max(18, ...itens.map((i) => Math.ceil(i.fimMin / 60)));
+  // Bloqueio de DIA INTEIRO não estica a grade: ele ia de 0h a 24h, a grade
+  // passava a começar à meia-noite e as visitas do dia caíam lá embaixo, fora
+  // da tela — no "Todos" parecia que não havia visita nenhuma (13/10/2026).
+  // Ele pinta a coluna inteira dentro da faixa que já está à vista.
+  const dimensionam = itens.filter((i) => !(i.tipo === "bloqueio" && ehDiaInteiro(i)));
+  const inicioHora = Math.min(8, ...dimensionam.map((i) => Math.floor(i.inicioMin / 60)));
+  const fimHora = Math.max(18, ...dimensionam.map((i) => Math.ceil(i.fimMin / 60)));
   const horas = Array.from({ length: fimHora - inicioHora }, (_, i) => inicioHora + i);
   const doDia = (dia: string) =>
     itens.filter((i) => i.dia === dia).sort((a, b) => a.inicioMin - b.inicioMin);
@@ -101,8 +111,13 @@ export function AgendaSemana({
                 <div key={h} className="absolute inset-x-0 border-t border-dashed border-border/70" style={{ top: i * ALTURA_HORA }} />
               ))}
               {doDia(dia).map((item) => {
-                const top = ((item.inicioMin - inicioHora * 60) / 60) * ALTURA_HORA;
-                const altura = Math.max(18, ((item.fimMin - item.inicioMin) / 60) * ALTURA_HORA - 2);
+                const ini = Math.max(item.inicioMin, inicioHora * 60);
+                const fim = Math.min(item.fimMin, fimHora * 60);
+                const top = ((ini - inicioHora * 60) / 60) * ALTURA_HORA;
+                const altura = Math.max(18, ((fim - ini) / 60) * ALTURA_HORA - 2);
+                const faixa = item.tipo === "bloqueio" && ehDiaInteiro(item)
+                  ? "Dia inteiro"
+                  : `${hhmmDe(item.inicioMin)}–${hhmmDe(item.fimMin)}`;
                 const caixa = (
                   <div
                     className={cn(
@@ -116,17 +131,26 @@ export function AgendaSemana({
                       height: altura,
                       ...(item.tipo === "visita" ? { borderLeftColor: SITUACAO_VISITA_COR[item.situacao] } : {}),
                     }}
-                    title={`${hhmmDe(item.inicioMin)}–${hhmmDe(item.fimMin)} ${item.titulo}`}
+                    title={`${faixa} ${item.titulo}`}
                   >
-                    <span className="font-medium tabular-nums">{hhmmDe(item.inicioMin)}</span>{" "}
+                    <span className="font-medium tabular-nums">
+                      {item.tipo === "bloqueio" && ehDiaInteiro(item) ? "Dia inteiro" : hhmmDe(item.inicioMin)}
+                    </span>{" "}
                     <span className={item.tipo === "visita" ? "font-medium" : ""}>{item.titulo}</span>
                     {item.detalhe && <span className="block truncate text-muted-foreground">{item.detalhe}</span>}
                   </div>
                 );
                 return item.tipo === "visita" ? (
-                  <Link key={`v${item.id}`} href={item.href}>
-                    {caixa}
-                  </Link>
+                  <VisitaNaSemana
+                    key={`v${item.id}`}
+                    visita={item.visita}
+                    responsaveis={responsaveis}
+                    ehAtendente={ehAtendente}
+                  >
+                    <button type="button" className="contents text-left">
+                      {caixa}
+                    </button>
+                  </VisitaNaSemana>
                 ) : (
                   <div key={item.id}>{caixa}</div>
                 );
@@ -160,7 +184,9 @@ export function AgendaSemana({
                     const linha = (
                       <div className="flex gap-3 px-3 py-2 text-sm">
                         <span className="w-24 shrink-0 tabular-nums text-muted-foreground">
-                          {hhmmDe(item.inicioMin)}–{hhmmDe(item.fimMin)}
+                          {item.tipo === "bloqueio" && ehDiaInteiro(item)
+                            ? "Dia inteiro"
+                            : `${hhmmDe(item.inicioMin)}–${hhmmDe(item.fimMin)}`}
                         </span>
                         <span className="min-w-0">
                           <span className={item.tipo === "visita" ? "font-medium text-primary" : "text-muted-foreground"}>
@@ -172,7 +198,15 @@ export function AgendaSemana({
                     );
                     return (
                       <li key={item.tipo === "visita" ? `v${item.id}` : item.id}>
-                        {item.tipo === "visita" ? <Link href={item.href}>{linha}</Link> : linha}
+                        {item.tipo === "visita" ? (
+                          <VisitaNaSemana visita={item.visita} responsaveis={responsaveis} ehAtendente={ehAtendente}>
+                            <button type="button" className="block w-full text-left hover:bg-secondary/60">
+                              {linha}
+                            </button>
+                          </VisitaNaSemana>
+                        ) : (
+                          linha
+                        )}
                       </li>
                     );
                   })}
