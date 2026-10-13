@@ -324,7 +324,7 @@ function PainelDaAgenda({
     return (
       <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
         {agenda.mensagem ?? "Não deu para ver a agenda do Google."} Os horários
-        abaixo consideram só as visitas marcadas aqui.
+        consideram as visitas e os bloqueios marcados aqui.
       </p>
     );
   }
@@ -361,14 +361,8 @@ function PainelDaAgenda({
       {/* Sem dizer QUANDO nem O QUÊ: só que o buraco na agenda tem dono. */}
       {agenda.temParticularOculto && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Há compromissos particulares no dia — eles já saíram dos horários
-          livres acima.
-        </p>
-      )}
-      {agenda.estado === "sem_conexao" && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Esta pessoa ainda não conectou o Google Agenda: os horários acima
-          consideram só as visitas marcadas aqui.
+          Há horários bloqueados pelo vendedor no dia — eles já saíram dos
+          horários livres acima.
         </p>
       )}
     </div>

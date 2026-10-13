@@ -958,6 +958,32 @@ export const visitas = sqliteTable("visitas", {
 // ninguém, e o escopo pedido ao Google é de leitura.
 // ---------------------------------------------------------------------------
 
+// Agenda do próprio sistema (13/10/2026): horário em que o vendedor não pode
+// receber visita. Sem Google. Ver drizzle/0039_agenda_bloqueios.sql e
+// src/lib/agenda.ts (regras puras, testadas).
+export const agendaBloqueios = sqliteTable("agenda_bloqueios", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  vendedorId: integer("vendedor_id")
+    .notNull()
+    .references(() => vendedores.id, { onDelete: "cascade" }),
+  recorrencia: text("recorrencia", { enum: ["unico", "semanal"] })
+    .notNull()
+    .default("unico"),
+  /** "aaaa-mm-dd": o dia (único) ou o início da vigência (semanal). */
+  data: text("data"),
+  /** 0 = domingo … 6 = sábado. Só no semanal. */
+  diaSemana: integer("dia_semana"),
+  inicioMin: integer("inicio_min").notNull(),
+  fimMin: integer("fim_min").notNull(),
+  /** Semanal: último dia em que vale ("aaaa-mm-dd"). Vazio = sem fim. */
+  ate: text("ate"),
+  motivo: text("motivo"),
+  criadoPor: text("criado_por"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const agendasGoogle = sqliteTable("agendas_google", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   // Uma linha por vendedor: conectar de novo substitui a anterior.

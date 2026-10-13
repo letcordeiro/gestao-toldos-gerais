@@ -1,15 +1,16 @@
 import { CartaoClicavel } from "@/components/shared/item-clicavel";
 import Link from "next/link";
-import { asc, eq, gte, and, type SQL } from "drizzle-orm";
+import { asc, eq, gte, lt, and, type SQL } from "drizzle-orm";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { db } from "@/db";
-import { atendimentos, clientes, vendedores, visitas } from "@/db/schema";
+import { agendaBloqueios, atendimentos, clientes, vendedores, visitas } from "@/db/schema";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import {
   SITUACAO_VISITA_COR,
   SITUACAO_VISITA_LABEL,
   agruparPorDia,
+  chaveDoDia,
   conflitos,
   fimDaVisita,
   linkDaRota,
@@ -24,25 +25,54 @@ import { Button } from "@/components/ui/button";
 import { SituacaoVisitaSelect, ExcluirVisitaButton } from "./acoes-visita";
 import { VisitaDialog } from "./visita-dialog";
 import { atendimentosParaVisita, responsaveisDeVisita } from "./actions";
-import { conexaoDoVendedor, googleConfigurado } from "@/lib/google-agenda";
+import {
+  bloqueioEncerrado,
+  descreverBloqueio,
+  diasDaSemana,
+  ehDiaISO,
+  hojeISO,
+  segundaDaSemana,
+  somarDias,
+  valeNoDia,
+  type Bloqueio,
+} from "@/lib/agenda";
+import { AgendaSemana, type ItemDaSemana } from "./agenda-semana";
+import { BloqueioDialog } from "./bloqueio-dialog";
+import { excluirBloqueio } from "./bloqueios-actions";
+import { ExcluirConfirmado } from "../cadastros/excluir-confirmado";
 
 export const metadata = { title: "Visitas" };
 
 export default async function VisitasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string }>;
+  searchParams: Promise<{ ver?: string; semana?: string; de?: string }>;
 }) {
-  const { ver } = await searchParams;
+  const { ver, semana, de } = await searchParams;
   const usuario = await exigirUsuario();
   const veTudo = veFunilInteiro(usuario.papel);
   const passadas = ver === "passadas";
+  // A agenda abre na SEMANA (13/10/2026); a lista de antes continua em
+  // "Lista" e em "Ver anteriores".
+  const modoSemana = ver !== "lista" && !passadas;
+  const hoje = hojeISO();
+  const segunda = segundaDaSemana(ehDiaISO(semana) ? semana : hoje);
+  const dias = diasDaSemana(segunda);
+  // Gestor/atendente podem olhar a agenda de um vendedor só (?de=id).
+  const filtroVendedor =
+    veTudo && Number(de) > 0 ? Number(de) : !veTudo ? usuario.vendedorId : null;
 
   const filtros: (SQL | undefined)[] = [];
   // A agenda olha para frente: o que já passou fica atrás de um botão.
-  if (!passadas) filtros.push(gte(visitas.inicioEm, startOfDay(new Date())));
-  if (!veTudo && usuario.vendedorId != null) {
-    filtros.push(eq(visitas.vendedorId, usuario.vendedorId));
+  if (modoSemana) {
+    const [a, m, d] = segunda.split("-").map(Number);
+    filtros.push(gte(visitas.inicioEm, new Date(a, m - 1, d)));
+    filtros.push(lt(visitas.inicioEm, new Date(a, m - 1, d + 7)));
+  } else if (!passadas) {
+    filtros.push(gte(visitas.inicioEm, startOfDay(new Date())));
+  }
+  if (filtroVendedor != null) {
+    filtros.push(eq(visitas.vendedorId, filtroVendedor));
   }
 
   const linhas = await db
@@ -74,30 +104,83 @@ export default async function VisitasPage({
     responsaveisDeVisita(),
   ]);
 
-  // O convite para conectar a agenda mora AQUI, e não só no perfil: é nesta
-  // tela que a falta dela aparece, e ninguém entra no perfil sem motivo.
-  // Só para quem recebe visita — a atendente marca a agenda dos outros, a
-  // dela não entra na conta de horário livre de ninguém.
-  const recebeVisita =
-    googleConfigurado() &&
-    usuario.vendedorId != null &&
-    usuario.papel !== "atendente";
-  const minhaAgenda = recebeVisita
-    ? await conexaoDoVendedor(usuario.vendedorId!)
-    : null;
-  const convidarAgenda = recebeVisita && minhaAgenda == null;
-  // Conectada mas com erro (o Google derruba a conexão a cada 7 dias enquanto
-  // o app está em modo Teste): antes a faixa só aparecia para quem NUNCA
-  // conectou, e o vendedor não sabia que a agenda tinha parado de valer
-  // (auditoria de 07/10/2026).
-  const reconectarAgenda = recebeVisita && Boolean(minhaAgenda?.ultimoErro);
+  // --- Agenda do próprio sistema: bloqueios -------------------------------
+  // A agenda não depende mais do Google (13/10/2026): os avisos de "conecte
+  // sua agenda" saíram desta tela. O Google continua opcional no perfil.
+  const bloqueios: (Bloqueio & { vendedorNome: string | null })[] = await db
+    .select({
+      id: agendaBloqueios.id,
+      vendedorId: agendaBloqueios.vendedorId,
+      recorrencia: agendaBloqueios.recorrencia,
+      data: agendaBloqueios.data,
+      diaSemana: agendaBloqueios.diaSemana,
+      inicioMin: agendaBloqueios.inicioMin,
+      fimMin: agendaBloqueios.fimMin,
+      ate: agendaBloqueios.ate,
+      motivo: agendaBloqueios.motivo,
+      vendedorNome: vendedores.nome,
+    })
+    .from(agendaBloqueios)
+    .leftJoin(vendedores, eq(agendaBloqueios.vendedorId, vendedores.id))
+    .where(filtroVendedor != null ? eq(agendaBloqueios.vendedorId, filtroVendedor) : undefined);
+  const bloqueiosVigentes = bloqueios.filter((b) => !bloqueioEncerrado(b, hoje));
+  // Privacidade (regra de 31/08/2026): o MOTIVO é do dono da agenda e do
+  // gestor. A atendente vê só "Indisponível".
+  const veMotivo = (vendedorId: number) =>
+    usuario.papel === "gestor" || usuario.vendedorId === vendedorId;
+  const podeMexerBloqueio = (vendedorId: number) =>
+    usuario.papel === "gestor" ||
+    (usuario.papel === "vendedor" && usuario.vendedorId === vendedorId);
+  const podeBloquear = usuario.papel === "gestor" || usuario.papel === "vendedor";
+  const vendedoresDaAgenda = listaResponsaveis.length
+    ? listaResponsaveis
+    : usuario.vendedorId != null
+      ? [{ id: usuario.vendedorId, nome: usuario.nome ?? "Você" }]
+      : [];
+
+  const itensSemana: ItemDaSemana[] = [];
+  if (modoSemana) {
+    for (const v of linhas) {
+      const ini = v.inicioEm.getHours() * 60 + v.inicioEm.getMinutes();
+      itensSemana.push({
+        tipo: "visita",
+        id: v.id,
+        dia: chaveDoDia(v.inicioEm),
+        inicioMin: ini,
+        fimMin: Math.min(24 * 60, ini + v.duracaoMin),
+        titulo: v.clienteNome,
+        detalhe: veTudo && filtroVendedor == null ? v.vendedorNome : null,
+        situacao: v.situacao as SituacaoVisita,
+        href: `/atendimentos/${v.atendimentoId}`,
+      });
+    }
+    for (const dia of dias) {
+      for (const b of bloqueios) {
+        if (!valeNoDia(b, dia)) continue;
+        itensSemana.push({
+          tipo: "bloqueio",
+          id: `b${b.id}-${dia}`,
+          dia,
+          inicioMin: b.inicioMin,
+          fimMin: b.fimMin,
+          titulo: veMotivo(b.vendedorId) && b.motivo ? b.motivo : "Indisponível",
+          detalhe: veTudo && filtroVendedor == null ? b.vendedorNome : null,
+        });
+      }
+    }
+  }
+  const linkSemana = (seg: string) => {
+    const q = new URLSearchParams({ semana: seg });
+    if (veTudo && filtroVendedor != null) q.set("de", String(filtroVendedor));
+    return `/visitas?${q.toString()}`;
+  };
 
   const paraAgenda = linhas.map((l) => ({
     ...l,
     situacao: l.situacao as SituacaoVisita,
   }));
-  const dias = agruparPorDia<(typeof paraAgenda)[number]>(paraAgenda);
-  const hoje = new Date();
+  const diasLista = agruparPorDia<(typeof paraAgenda)[number]>(paraAgenda);
+  const agora = new Date();
 
   return (
     <div className="space-y-4">
@@ -105,19 +188,42 @@ export default async function VisitasPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Visitas</h1>
           <p className="text-sm text-muted-foreground">
-            A agenda de campo, dia a dia e em ordem de horário.
+            A agenda de campo: visitas e horários bloqueados de cada vendedor.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={
-              <Link href={passadas ? "/visitas" : "/visitas?ver=passadas"} />
-            }
-          >
-            {passadas ? "Ver próximas" : "Ver anteriores"}
-          </Button>
+          <div className="flex rounded-lg border p-0.5">
+            {(
+              [
+                ["Semana", "/visitas", modoSemana],
+                ["Lista", "/visitas?ver=lista", ver === "lista"],
+                ["Anteriores", "/visitas?ver=passadas", passadas],
+              ] as const
+            ).map(([rotulo, href, ativo]) => (
+              <Link
+                key={rotulo}
+                href={href}
+                className={
+                  "rounded-md px-3 py-1.5 text-sm " +
+                  (ativo ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                {rotulo}
+              </Link>
+            ))}
+          </div>
+          {podeBloquear && (
+            <BloqueioDialog
+              trigger={<Button variant="outline">Bloquear horário</Button>}
+              vendedores={vendedoresDaAgenda}
+              vendedorFixo={
+                usuario.papel === "vendedor" && usuario.vendedorId != null
+                  ? { id: usuario.vendedorId, nome: usuario.nome ?? "Você" }
+                  : undefined
+              }
+              hoje={hoje}
+            />
+          )}
           <VisitaDialog
             atendimentos={opcoesAtendimento}
             responsaveis={listaResponsaveis}
@@ -127,42 +233,85 @@ export default async function VisitasPage({
         </div>
       </div>
 
-      {reconectarAgenda && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-          <p className="text-sm">
-            <strong className="font-medium">Sua agenda do Google parou de responder</strong>
-            <span className="text-muted-foreground">
-              {" "}
-              — enquanto isso, quem marca visita para você não vê seus
-              compromissos. Reconecte para voltar a valer.
-            </span>
-          </p>
-          <Button size="sm" nativeButton={false} render={<a href="/api/google/conectar" />}>
-            Reconectar agenda
-          </Button>
-        </div>
-      )}
-      {convidarAgenda && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-secondary/40 p-3">
-          <p className="text-sm">
-            <strong className="font-medium">Conecte sua agenda do Google</strong>
-            <span className="text-muted-foreground">
-              {" "}
-              — quem marcar visita para você passa a ver seus horários livres.
-              Só as faixas ocupadas, nunca o que você tem marcado.
-            </span>
-          </p>
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={<a href="/api/google/conectar" />}
-          >
-            Conectar
-          </Button>
+      {modoSemana && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href={linkSemana(somarDias(segunda, -7))} scroll={false} />}>
+                ← Anterior
+              </Button>
+              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={linkSemana(segundaDaSemana(hoje))} scroll={false} />}>
+                Esta semana
+              </Button>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href={linkSemana(somarDias(segunda, 7))} scroll={false} />}>
+                Próxima →
+              </Button>
+            </div>
+            {veTudo && vendedoresDaAgenda.length > 1 && (
+              <div className="flex flex-wrap gap-1 text-sm">
+                {[{ id: null as number | null, nome: "Todos" }, ...vendedoresDaAgenda].map((v) => {
+                  const q = new URLSearchParams({ semana: segunda });
+                  if (v.id != null) q.set("de", String(v.id));
+                  const ativo = (filtroVendedor ?? null) === v.id;
+                  return (
+                    <Link
+                      key={v.id ?? "todos"}
+                      href={`/visitas?${q.toString()}`}
+                      scroll={false}
+                      className={
+                        "rounded-full border px-2.5 py-1 " +
+                        (ativo ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")
+                      }
+                    >
+                      {v.nome}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <AgendaSemana dias={dias} itens={itensSemana} hoje={hoje} />
+
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold">Horários bloqueados</h2>
+            {bloqueiosVigentes.length === 0 ? (
+              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Nenhum horário bloqueado.
+                {podeBloquear &&
+                  " Use “Bloquear horário” para tirar da agenda o que se repete toda semana — faculdade, curso — ou um dia de folga."}
+              </p>
+            ) : (
+              <ul className="divide-y rounded-lg border bg-card">
+                {bloqueiosVigentes.map((b) => (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                    <span>
+                      <span className="font-medium">{descreverBloqueio(b)}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {[
+                          veTudo ? b.vendedorNome : null,
+                          veMotivo(b.vendedorId) ? b.motivo : "Indisponível",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </span>
+                    {podeMexerBloqueio(b.vendedorId) && (
+                      <ExcluirConfirmado
+                        titulo="Desbloquear este horário?"
+                        descricao={`${descreverBloqueio(b)} volta a aparecer como livre para marcar visita.`}
+                        excluir={excluirBloqueio.bind(null, b.id)}
+                        sucesso="Horário desbloqueado"
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       )}
 
-      {dias.length === 0 ? (
+      {modoSemana ? null : diasLista.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           {passadas
             ? "Nenhuma visita anterior."
@@ -170,12 +319,12 @@ export default async function VisitasPage({
         </p>
       ) : (
         <div className="space-y-6">
-          {dias.map((dia) => {
+          {diasLista.map((dia) => {
             // A rota sai do endereço da empresa e segue a ordem dos horários.
             const rota = linkDaRota(dia.visitas, EMPRESA.endereco);
             const foraDaRota = paradasForaDaRota(dia.visitas);
             const emConflito = new Set(conflitos(dia.visitas));
-            const ehHoje = isSameDay(dia.data, hoje);
+            const ehHoje = isSameDay(dia.data, agora);
 
             return (
               <section key={dia.chave} className="space-y-2">

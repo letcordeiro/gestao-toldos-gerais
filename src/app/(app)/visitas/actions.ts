@@ -5,12 +5,14 @@ import { and, asc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
+  agendaBloqueios,
   atendimentos,
   clientes,
   fases,
   vendedores,
   visitas,
 } from "@/db/schema";
+import { intervalosDoDia } from "@/lib/agenda";
 import { exigirUsuario, veFunilInteiro } from "@/lib/auth";
 import { enderecoCompleto } from "@/lib/endereco";
 import {
@@ -325,6 +327,18 @@ export async function disponibilidadeDoDia(
     }));
 
   const doSistema = [...ocupados];
+
+  // Bloqueios da agenda do PRÓPRIO sistema (faculdade, médico, folga) — a
+  // agenda não depende mais do Google (13/10/2026). Para quem não é o dono,
+  // eles valem como compromisso particular: tiram o horário dos livres, mas o
+  // motivo não aparece (regra de privacidade de 31/08/2026).
+  const linhasBloqueio = await db
+    .select()
+    .from(agendaBloqueios)
+    .where(eq(agendaBloqueios.vendedorId, alvo));
+  const bloqueados = intervalosDoDia(linhasBloqueio, diaISO);
+  ocupados.push(...bloqueados);
+
   const doGoogle = await ocupadosDoVendedor(alvo, inicioDoDia, fimDoDia);
   if (doGoogle.estado === "ok") ocupados.push(...doGoogle.ocupados);
 
@@ -345,8 +359,8 @@ export async function disponibilidadeDoDia(
   const visiveis = noExpediente(ehDono ? ocupados : doSistema);
   const particularOculto =
     !ehDono &&
-    doGoogle.estado === "ok" &&
-    noExpediente(doGoogle.ocupados).length > 0;
+    (noExpediente(bloqueados).length > 0 ||
+      (doGoogle.estado === "ok" && noExpediente(doGoogle.ocupados).length > 0));
 
   if (doGoogle.estado === "erro") {
     return {

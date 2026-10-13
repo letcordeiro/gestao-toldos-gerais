@@ -30,6 +30,7 @@
     "src/lib/telas.ts",
     "src/lib/limite-tentativas.ts",
     "src/lib/disponibilidade.ts",
+    "src/lib/agenda.ts",
     "src/lib/google-freebusy.ts"
   ],
   "files": [
@@ -52,6 +53,7 @@
     "src/lib/telas.test.ts",
     "src/lib/limite-tentativas.test.ts",
     "src/lib/disponibilidade.test.ts",
+    "src/lib/agenda.test.ts",
     "src/lib/google-freebusy.test.ts"
   ]
 }

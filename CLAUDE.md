@@ -683,6 +683,37 @@ preço muda com o tempo e trocar número não pode depender de deploy:
 - `paralisacaoDiaria` — R$ 800,00 por dia perdido quando o CLIENTE manda parar
   a obra. Mora no PRAZO, que é onde a prorrogação é tratada.
 
+## Agenda do próprio sistema, sem Google (13/10/2026)
+
+Pedido da Letícia: "a agenda do próprio sistema, sem vincular no Google". O app
+do Google está preso em modo Teste (a conexão cai a cada 7 dias) e não há
+Workspace. O que o Google dava — "quando o vendedor NÃO pode" — virou
+**bloqueio** aqui dentro. E resolve a dúvida de 31/08 sobre a faculdade do João:
+o bloqueio **semanal** é cadastrado uma vez e vale toda semana.
+
+- Tabela `agenda_bloqueios` (0039): `recorrencia` `unico` | `semanal`, `data`
+  (o dia, ou o início da vigência), `dia_semana` (0 = domingo), `inicio_min` /
+  `fim_min` (minutos desde 00:00; 0–1440 = dia inteiro), `ate` (fim opcional),
+  `motivo`. **Datas em texto "aaaa-mm-dd"** — dia de calendário, sem fuso.
+- `src/lib/agenda.ts` — regras puras e testadas: `valeNoDia`,
+  `intervalosDoDia` (no MESMO relógio de `janelaDoDia`, senão o bloqueio cairia
+  3h fora do lugar no servidor em UTC), `descreverBloqueio`, `validarBloqueio`,
+  e a semana (`hojeISO` em Brasília, `segundaDaSemana`, `diasDaSemana`).
+- **Quem mexe**: o próprio vendedor na agenda dele e o gestor em qualquer uma
+  (`visitas/bloqueios-actions.ts`). A atendente não cria nem apaga.
+- **Privacidade (regra de 31/08 continua)**: o MOTIVO só aparece para o dono e
+  para o gestor. Para a atendente é "Indisponível", e na janela de visita o
+  bloqueio só some dos horários livres ("há horários bloqueados pelo vendedor").
+- `disponibilidadeDoDia` soma visitas + bloqueios (+ Google, se alguém ainda
+  tiver conectado — ficou opcional no perfil).
+- Tela **Visitas** abre na **Semana** (`agenda-semana.tsx`): grade de segunda a
+  domingo no computador (cresce para caber o que houver fora das 8h–18h), lista
+  por dia no celular. "Lista" e "Anteriores" são a tela de antes. Gestor e
+  atendente filtram por vendedor (`?de=`), e há navegação por semana
+  (`?semana=aaaa-mm-dd`). Abaixo, "Horários bloqueados" com desbloquear.
+- Os avisos de "conecte / reconecte sua agenda do Google" saíram da tela de
+  Visitas e da janela de visita.
+
 ## Agenda do Google por vendedor (31/08/2026)
 
 Cada vendedor conecta a PRÓPRIA agenda em `/perfil`. O sistema usa isso só para
