@@ -714,6 +714,26 @@ o bloqueio **semanal** é cadastrado uma vez e vale toda semana.
 - Os avisos de "conecte / reconecte sua agenda do Google" saíram da tela de
   Visitas e da janela de visita.
 
+## Demonstração: demo-toldos.cordena.net (13/10/2026)
+
+App **separado** no Dokploy (projeto Toldos Gerais → app **demo**,
+`applicationId kdCTszb80I7ticg0aq4MJ`), mesmo repositório e branch, volume
+`toldos-demo-data`. Envs: `DEMO=1`, `DATABASE_PATH`, `APP_URL`,
+`SESSION_SECRET` próprio. Sem SMTP, sem Google — nada sai de lá.
+
+- `DEMO=1` faz o `init-db` **apagar e recriar o banco a cada boot** e rodar
+  `scripts/seed-demo.mjs` (4 pessoas, 12 clientes em todas as fases,
+  orçamentos, visitas da semana, bloqueios, tarefas, instalação, chamados) +
+  `seed-contratos.mjs`. Datas contam do dia do boot. Telefones `99999-…`.
+- Login vira **"Entrar como gestor / atendente / vendedor"**, sem senha
+  (`entrarDemo` em `login/actions.ts`, que recusa sem `DEMO=1`). Contas em
+  `src/lib/demo.ts` — os e-mails têm que bater com os do seed.
+- Faixa amarela no topo de toda tela ("Demonstração · dados fictícios").
+- **NUNCA pôr `DEMO=1` no app de produção**: apagaria o banco real no boot.
+- **Não tem autodeploy**: o webhook do GitHub aponta só para produção. Para
+  atualizar (e zerar) a demo: `POST /api/application.deploy` com o
+  `applicationId` acima.
+
 ## Visitas: editar pela semana, "Todos" vazio e instalação concluída (13/10/2026)
 
 - **Clicar na visita da semana abre a janela dela** (`visita-na-semana.tsx`):
