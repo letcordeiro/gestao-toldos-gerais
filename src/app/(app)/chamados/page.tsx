@@ -43,6 +43,7 @@ export default async function ChamadosPage({
     .select({
       id: chamados.id,
       assunto: chamados.assunto,
+      natureza: chamados.natureza,
       tipo: chamados.tipo,
       prioridade: chamados.prioridade,
       situacao: chamados.situacao,
@@ -166,6 +167,17 @@ export default async function ChamadosPage({
                     >
                       {c.assunto}
                     </Link>
+                    {/* Visita ou manutenção (DEM-0021) — dá para ver sem abrir. */}
+                    <span
+                      className={
+                        "ml-2 rounded-full px-2 py-0.5 align-middle text-[11px] font-medium " +
+                        (c.natureza === "visita"
+                          ? "bg-sky-100 text-sky-800"
+                          : "bg-secondary text-muted-foreground")
+                      }
+                    >
+                      {c.natureza === "visita" ? "Visita" : "Manutenção"}
+                    </span>
                   </p>
                   <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                     <Link

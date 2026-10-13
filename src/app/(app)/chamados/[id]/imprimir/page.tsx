@@ -3,7 +3,7 @@ import { ImprimirAutomatico } from "@/components/shared/imprimir-automatico";
 import { fichaPermitida } from "../ficha-dados";
 import { FichaOrdem } from "../ficha-ordem";
 
-export const metadata = { title: "Ordem de manutenção" };
+export const metadata = { title: "Ordem de serviço" };
 
 /**
  * A ficha para IMPRIMIR, em HTML.

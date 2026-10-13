@@ -12,7 +12,7 @@ import {
   orcamentos,
 } from "@/db/schema";
 import { exigirUsuario, veFunilInteiro, type UsuarioAtual } from "@/lib/auth";
-import { vendedorVeChamado } from "@/lib/chamados";
+import { vendedorVeChamado, lerNatureza } from "@/lib/chamados";
 import { parseParaCentavos } from "@/lib/format";
 
 /**
@@ -108,7 +108,11 @@ const chamadoSchema = z.object({
     .union([z.literal(""), z.coerce.number().int().positive()])
     .transform((v) => (v === "" ? null : v)),
 
-  // --- Ordem de Manutenção ---
+  // Manutenção ou visita (DEM-0021). Vazio/desconhecido = manutenção, que é o
+  // que todo chamado era antes.
+  natureza: z.unknown().transform(lerNatureza),
+
+  // --- Ordem de Manutenção / de Visita ---
   instalador: z
     .string()
     .trim()
@@ -160,12 +164,19 @@ export async function salvarChamado(
     responsavelId: formData.get("responsavelId") ?? "",
     instalador: formData.get("instalador") ?? "",
     valor: formData.get("valor") ?? "",
+    natureza: formData.get("natureza") ?? "",
     tipoServico: formData.get("tipoServico") ?? "",
     servicoOutros: formData.get("servicoOutros") ?? "",
     visitaEm: formData.get("visitaEm") ?? "",
   });
   if (!parsed.success) return { erro: parsed.error.issues[0].message };
   const d = parsed.data;
+  // Visita é a ida para AVALIAR: ainda não há serviço definido. Limpa o que
+  // tivesse ficado de quando o chamado era manutenção.
+  if (d.natureza === "visita") {
+    d.tipoServico = null;
+    d.servicoOutros = null;
+  }
   const ehVendedor = !veFunilInteiro(usuario.papel);
 
   if (d.id) {
@@ -196,6 +207,7 @@ export async function salvarChamado(
         orcamentoId: d.orcamentoId,
         instalador: d.instalador,
         valor: d.valor,
+        natureza: d.natureza,
         tipoServico: d.tipoServico,
         servicoOutros: d.servicoOutros,
         visitaEm: d.visitaEm,
@@ -232,6 +244,7 @@ export async function salvarChamado(
         : d.responsavelId ?? usuario.vendedorId ?? null,
       instalador: d.instalador,
       valor: d.valor,
+      natureza: d.natureza,
       tipoServico: d.tipoServico,
       servicoOutros: d.servicoOutros,
       visitaEm: d.visitaEm,

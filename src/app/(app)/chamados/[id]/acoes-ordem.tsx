@@ -19,9 +19,12 @@ import { Button } from "@/components/ui/button";
 export function AcoesOrdem({
   chamadoId,
   nomeArquivo,
+  titulo = "Ordem de Manutenção",
 }: {
   chamadoId: number;
   nomeArquivo: string;
+  /** "Ordem de Manutenção" ou "Ordem de Visita" — vai no compartilhar. */
+  titulo?: string;
 }) {
   const [compartilhando, setCompartilhando] = useState(false);
   const pdf = `/chamados/${chamadoId}/pdf`;
@@ -45,7 +48,7 @@ export function AcoesOrdem({
       if (navigator.canShare?.({ files: [arquivo] })) {
         await navigator.share({
           files: [arquivo],
-          title: "Ordem de Manutenção",
+          title: titulo,
         });
         return;
       }

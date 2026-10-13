@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TIPO_CHAMADO_LABEL, type TipoServico } from "@/lib/chamados";
+import { TIPO_CHAMADO_LABEL, type TipoServico, NATUREZA_CHAMADO_LABEL, type NaturezaChamado } from "@/lib/chamados";
 import { centavosParaInput, mascaraMoeda } from "@/lib/format";
 import { SeletorCliente } from "@/components/shared/seletor-cliente";
 import {
@@ -36,6 +36,7 @@ export type ChamadoEdicao = {
   orcamentoId: number | null;
   instalador: string | null;
   valor: number | null;
+  natureza: NaturezaChamado;
   tipoServico: TipoServico | null;
   servicoOutros: string | null;
   visitaEm: Date | null;
@@ -98,6 +99,10 @@ export function ChamadoDialog({
   // sempre visível faria a ficha ser preenchida com texto que não é impresso.
   const [tipoServico, setTipoServico] = useState<string>(
     chamado?.tipoServico ?? ""
+  );
+  // DEM-0021: antes todo chamado nascia "Ordem de manutenção", sem escolha.
+  const [natureza, setNatureza] = useState<NaturezaChamado>(
+    chamado?.natureza ?? "manutencao"
   );
   const [valor, setValor] = useState<string>(
     centavosParaInput(chamado?.valor ?? null)
@@ -179,6 +184,48 @@ export function ChamadoDialog({
               />
             </div>
           )}
+
+          {/* Visita ou manutenção — a primeira decisão do chamado: muda o
+              título da ficha que a equipe leva e o que ela pede (DEM-0021). */}
+          <input type="hidden" name="natureza" value={natureza} />
+          <div className="space-y-1.5">
+            <Label id="rotulo-natureza">O que é *</Label>
+            <div
+              role="radiogroup"
+              aria-labelledby="rotulo-natureza"
+              className="grid grid-cols-2 gap-2"
+            >
+              {(["manutencao", "visita"] as const).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={natureza === n}
+                  onClick={() => setNatureza(n)}
+                  className={
+                    "rounded-md border px-3 py-2 text-left text-sm transition-colors " +
+                    (natureza === n
+                      ? "border-primary bg-primary/10 font-medium text-primary"
+                      : "hover:bg-secondary")
+                  }
+                >
+                  {NATUREZA_CHAMADO_LABEL[n]}
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    {n === "manutencao"
+                      ? "Ir ao local fazer o serviço"
+                      : "Ir ao local avaliar o problema"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {natureza === "visita" && (
+              <p className="text-xs text-muted-foreground">
+                Visita para <strong>medir e fazer orçamento</strong> de cliente
+                novo não é chamado: use <strong>Agendar visita</strong> na tela
+                do atendimento — assim ela entra na agenda do vendedor.
+              </p>
+            )}
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="assunto">Assunto *</Label>
@@ -286,10 +333,12 @@ export function ChamadoDialog({
           {/* Campos da ficha impressa que a equipe leva ao cliente. */}
           <fieldset className="space-y-3 rounded-md border p-3">
             <legend className="px-1 text-xs font-medium text-muted-foreground">
-              Ordem de manutenção
+              {natureza === "visita" ? "Ordem de visita" : "Ordem de manutenção"}
             </legend>
 
             <div className="grid gap-3 sm:grid-cols-2">
+              {/* Visita ainda não tem serviço definido: é para avaliar. */}
+              {natureza === "manutencao" && (
               <div className="space-y-1.5">
                 <Label htmlFor="tipoServico">Serviço</Label>
                 <select
@@ -304,6 +353,7 @@ export function ChamadoDialog({
                   <option value="outros">Outros</option>
                 </select>
               </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="visitaEm">Data da ida ao local</Label>
                 <Input
@@ -317,7 +367,7 @@ export function ChamadoDialog({
               </div>
             </div>
 
-            {tipoServico === "outros" && (
+            {natureza === "manutencao" && tipoServico === "outros" && (
               <div className="space-y-1.5">
                 <Label htmlFor="servicoOutros">Qual serviço</Label>
                 <Input

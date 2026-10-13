@@ -733,6 +733,10 @@ export const chamados = sqliteTable("chamados", {
   valor: integer("valor"),
   // Serviço da ficha de papel: vedação é o caso mais comum e ganha marcação
   // própria; o resto vai em `servicoOutros`, escrito por quem atende.
+  // Manutenção (o serviço) ou visita (ir ao local avaliar) — DEM-0021.
+  natureza: text("natureza", { enum: ["manutencao", "visita"] })
+    .notNull()
+    .default("manutencao"),
   tipoServico: text("tipo_servico", { enum: ["vedacao", "outros"] }),
   servicoOutros: text("servico_outros"),
   // Dia combinado da ida ao local. Só a data: a hora se acerta no telefone.

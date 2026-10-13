@@ -45,7 +45,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(doc.buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${baixar ? "attachment" : "inline"}; filename="${nomeArquivoOrdem(doc.clienteNome)}"`,
+      "Content-Disposition": `${baixar ? "attachment" : "inline"}; filename="${nomeArquivoOrdem(doc.clienteNome, doc.natureza)}"`,
     },
   });
 }

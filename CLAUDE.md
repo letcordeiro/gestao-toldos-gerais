@@ -544,6 +544,28 @@ Massa de teste: `node scripts/preview-ordem-manutencao.mjs` monta
 `data/preview-ordem.db` do zero (roda todas as migrations) com três chamados —
 ficha cheia, ficha vazia e serviço "outros".
 
+## Chamado: visita ou manutenção (DEM-0021, 13/10/2026)
+
+Antes todo chamado nascia "Ordem de manutenção", sem escolha. Agora a janela
+de abrir chamado começa por **"O que é"**: **Manutenção** (ir fazer o serviço —
+padrão, igual a antes) ou **Visita** (ir ao local avaliar o problema).
+
+- Coluna `chamados.natureza` (`manutencao` | `visita`, padrão `manutencao`) —
+  migration `0038_chamado_natureza`. Chamados antigos ficaram manutenção.
+- `lib/chamados.ts`: `NaturezaChamado`, `tituloDaOrdem()` ("Ordem de
+  Manutenção" / "Ordem de Visita") e `lerNatureza()` (vazio = manutenção),
+  com teste.
+- Visita esconde o campo **Serviço** (Vedação/Outros) na janela e o servidor
+  zera esse campo: ainda não há serviço definido. Na FICHA IMPRESSA a linha
+  Vedação/Outros continua em branco, para o instalador marcar no local — o
+  desenho da meia folha A4 não muda.
+- Título muda na janela, na tela do chamado, na ficha (tela, impressão e PDF)
+  e no nome do arquivo (`ordem-visita-…pdf`). A lista de chamados mostra a
+  etiqueta Visita/Manutenção.
+- **Visita de VENDA** (medir para orçamento de cliente novo) NÃO é chamado: a
+  janela avisa para usar "Agendar visita", que entra na agenda do vendedor
+  (módulo Visitas, com horário livre do Google).
+
 ## Escolher cliente: seletor com busca (31/08/2026)
 
 `components/shared/seletor-cliente.tsx` — um componente só, usado no diálogo de

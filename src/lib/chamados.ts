@@ -92,6 +92,31 @@ export const GARANTIA_COR: Record<StatusGarantia, string> = {
 // A ficha que a equipe leva impressa para o cliente assinar no local.
 // ---------------------------------------------------------------------------
 
+/**
+ * O que o chamado é (DEM-0021, 13/10/2026). Antes todo chamado era "Ordem de
+ * Manutenção"; agora quem abre escolhe:
+ * - manutenção: vai executar o serviço (vedação, motor, troca de lona…);
+ * - visita: vai ao local AVALIAR o problema antes de decidir o que fazer.
+ * Visita de VENDA (medir para orçamento) não é chamado — é Visitas, que entra
+ * na agenda dos vendedores.
+ */
+export type NaturezaChamado = "manutencao" | "visita";
+
+export const NATUREZA_CHAMADO_LABEL: Record<NaturezaChamado, string> = {
+  manutencao: "Manutenção",
+  visita: "Visita",
+};
+
+/** Título da ficha impressa: "Ordem de Manutenção" ou "Ordem de Visita". */
+export function tituloDaOrdem(natureza: NaturezaChamado | null | undefined): string {
+  return natureza === "visita" ? "Ordem de Visita" : "Ordem de Manutenção";
+}
+
+/** Valor que veio de fora (formulário, banco antigo) → natureza válida. */
+export function lerNatureza(valor: unknown): NaturezaChamado {
+  return valor === "visita" ? "visita" : "manutencao";
+}
+
 export type TipoServico = "vedacao" | "outros";
 
 export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {

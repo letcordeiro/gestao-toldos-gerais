@@ -34,7 +34,7 @@ export default async function FichaChamadoPage({
         >
           <ArrowLeft className="size-4" /> Voltar ao chamado
         </Link>
-        <h1 className="mt-1 font-heading text-xl">Ordem de Manutenção</h1>
+        <h1 className="mt-1 font-heading text-xl">{carregada.dados.titulo}</h1>
         <p className="text-sm text-muted-foreground">
           {carregada.clienteNome} · sai em meia folha A4, para cortar no
           tracejado.
@@ -43,7 +43,8 @@ export default async function FichaChamadoPage({
 
       <AcoesOrdem
         chamadoId={chamadoId}
-        nomeArquivo={nomeArquivoOrdem(carregada.clienteNome)}
+        nomeArquivo={nomeArquivoOrdem(carregada.clienteNome, carregada.natureza)}
+        titulo={carregada.dados.titulo}
       />
 
       {/* A ficha tem largura de papel (210mm). Em tela estreita ela não

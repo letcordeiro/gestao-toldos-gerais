@@ -112,6 +112,8 @@ const styles = StyleSheet.create({
 });
 
 export type DadosOrdemManutencao = {
+  /** "Ordem de Manutenção" ou "Ordem de Visita" (DEM-0021). */
+  titulo: string;
   numero: string | null;
   clienteNome: string;
   clienteTelefone: string;
@@ -183,7 +185,7 @@ function Caixa({ marcada, rotulo }: { marcada: boolean; rotulo: string }) {
 export function OrdemManutencaoPDF({ dados }: { dados: DadosOrdemManutencao }) {
   return (
     <Document
-      title={`Ordem de Manutenção — ${dados.clienteNome}`}
+      title={`${dados.titulo} — ${dados.clienteNome}`}
       author={EMPRESA.razaoSocial}
     >
       {/* Folha A4, ficha na metade de cima: imprime e corta no tracejado. */}
@@ -192,7 +194,7 @@ export function OrdemManutencaoPDF({ dados }: { dados: DadosOrdemManutencao }) {
         <View style={styles.cabecalho}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={dados.logoDataUri} style={styles.logo} />
-          <Text style={styles.titulo}>Ordem de Manutenção</Text>
+          <Text style={styles.titulo}>{dados.titulo}</Text>
           <Text style={styles.numero}>
             {dados.numero ? `Orçamento ${dados.numero}` : " "}
           </Text>

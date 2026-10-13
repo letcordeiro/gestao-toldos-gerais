@@ -170,6 +170,7 @@ export default async function ChamadoPage({
               orcamentoId: chamado.orcamentoId,
               instalador: chamado.instalador,
               valor: chamado.valor,
+              natureza: chamado.natureza,
               tipoServico: chamado.tipoServico,
               servicoOutros: chamado.servicoOutros,
               visitaEm: chamado.visitaEm,
@@ -246,10 +247,19 @@ export default async function ChamadoPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Ordem de manutenção</CardTitle>
+          <CardTitle className="text-base">
+            {chamado.natureza === "visita" ? "Ordem de visita" : "Ordem de manutenção"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
-          <Dado rotulo="Serviço" valor={descricaoServico(chamado.tipoServico, chamado.servicoOutros)} />
+          <Dado
+            rotulo="Serviço"
+            valor={
+              chamado.natureza === "visita"
+                ? "Visita para avaliar"
+                : descricaoServico(chamado.tipoServico, chamado.servicoOutros)
+            }
+          />
           <Dado rotulo="Instalador" valor={chamado.instalador} />
           <Dado
             rotulo="Ida ao local"

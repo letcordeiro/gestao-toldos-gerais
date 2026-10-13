@@ -58,7 +58,7 @@ export function FichaOrdem({ d }: { d: DadosOrdemManutencao }) {
         <div className="mb-3 flex items-center justify-between">
           <Image src="/logo.png" alt="Toldos Gerais" width={82} height={44} />
           <p className="text-[15pt] font-bold text-[#004e36]">
-            Ordem de Manutenção
+            {d.titulo}
           </p>
           <p className="text-[7.5pt] text-neutral-500">
             {d.numero ? `Orçamento ${d.numero}` : " "}

@@ -15,7 +15,11 @@ import {
   orcamentos,
   vendedores,
 } from "@/db/schema";
-import { linhasDaFicha } from "@/lib/chamados";
+import {
+  linhasDaFicha,
+  tituloDaOrdem,
+  type NaturezaChamado,
+} from "@/lib/chamados";
 import { enderecoCompleto } from "@/lib/endereco";
 import { formatarCentavos } from "@/lib/format";
 import {
@@ -24,7 +28,10 @@ import {
 } from "@/app/(app)/chamados/[id]/pdf/ordem-manutencao-pdf";
 
 /** Nome de arquivo sem acento nem espaço — cabeçalho HTTP não aceita. */
-export function nomeArquivoOrdem(clienteNome: string): string {
+export function nomeArquivoOrdem(
+  clienteNome: string,
+  natureza: NaturezaChamado = "manutencao"
+): string {
   const apelido =
     clienteNome
       .normalize("NFD")
@@ -32,7 +39,8 @@ export function nomeArquivoOrdem(clienteNome: string): string {
       .replace(/[^a-zA-Z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .toLowerCase() || "cliente";
-  return `ordem-manutencao-${apelido}.pdf`;
+  const tipo = natureza === "visita" ? "ordem-visita" : "ordem-manutencao";
+  return `${tipo}-${apelido}.pdf`;
 }
 
 export type OrdemGerada = {
@@ -41,6 +49,7 @@ export type OrdemGerada = {
    *  `vendedorVeChamado` para barrar vendedor de chamado alheio. */
   vendedorId: number | null;
   responsavelId: number | null;
+  natureza: NaturezaChamado;
   buffer: Buffer;
 };
 
@@ -60,6 +69,7 @@ export type OrdemCarregada = {
   vendedorId: number | null;
   /** Quem cuida do chamado — entra em `vendedorVeChamado`. */
   responsavelId: number | null;
+  natureza: NaturezaChamado;
   dados: DadosOrdemManutencao;
 };
 
@@ -105,6 +115,7 @@ export async function dadosDaOrdem(
   const logo = fs.readFileSync(path.join(process.cwd(), "public", "logo.png"));
 
   const dados: DadosOrdemManutencao = {
+    titulo: tituloDaOrdem(chamado.natureza),
     numero: linha.numero ?? null,
     clienteNome: cliente.nome,
     clienteTelefone: cliente.telefone,
@@ -126,6 +137,7 @@ export async function dadosDaOrdem(
     clienteNome: cliente.nome,
     vendedorId: linha.vendedorId,
     responsavelId: chamado.responsavelId,
+    natureza: chamado.natureza,
     dados,
   };
 }
@@ -146,6 +158,7 @@ export async function gerarOrdemManutencao(
     clienteNome: carregada.clienteNome,
     vendedorId: carregada.vendedorId,
     responsavelId: carregada.responsavelId,
+    natureza: carregada.natureza,
     buffer,
   };
 }

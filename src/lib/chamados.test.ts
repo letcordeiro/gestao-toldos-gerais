@@ -6,6 +6,8 @@ import {
   linhasDaFicha,
   SUFIXO_CONTINUA,
   vendedorVeChamado,
+  tituloDaOrdem,
+  lerNatureza,
 } from "./chamados";
 
 const HOJE = new Date(2026, 7, 27); // 27/08/2026
@@ -141,4 +143,14 @@ test("vendedor vê o chamado dele, o sem dono e o do cliente dele — e só", ()
   assert.ok(!vendedorVeChamado({ responsavelId: outro, vendedorDoAtendimentoId: outro }, joao));
   // usuário sem cadastro de vendedor não passa por esta regra
   assert.ok(!vendedorVeChamado({ responsavelId: null, vendedorDoAtendimentoId: null }, null));
+});
+
+test("chamado escolhe visita ou manutenção; o padrão é manutenção (DEM-0021)", () => {
+  assert.equal(tituloDaOrdem("visita"), "Ordem de Visita");
+  assert.equal(tituloDaOrdem("manutencao"), "Ordem de Manutenção");
+  // Chamado antigo / valor vazio continua sendo manutenção, como sempre foi.
+  assert.equal(tituloDaOrdem(null), "Ordem de Manutenção");
+  assert.equal(lerNatureza("visita"), "visita");
+  assert.equal(lerNatureza(""), "manutencao");
+  assert.equal(lerNatureza("qualquer"), "manutencao");
 });
