@@ -729,7 +729,7 @@ App **separado** no Dokploy (projeto Toldos Gerais → app **demo**,
   (`entrarDemo` em `login/actions.ts`, que recusa sem `DEMO=1`). Contas em
   `src/lib/demo.ts` — os e-mails têm que bater com os do seed.
 - Faixa amarela no topo de toda tela ("Demonstração · dados fictícios").
-- **NUNCA pôr `DEMO=1` no app de produção**: apagaria o banco real no boot.
+- **NUNCA pôr `DEMO=1` no app de produção.** Há trava: com DEMO o boot só apaga banco vazio ou só com contas `@demo.toldos`; com gente de verdade ele para e não sobe.
 - **Não tem autodeploy**: o webhook do GitHub aponta só para produção. Para
   atualizar (e zerar) a demo: `POST /api/application.deploy` com o
   `applicationId` acima.

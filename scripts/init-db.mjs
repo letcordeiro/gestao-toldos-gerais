@@ -36,6 +36,27 @@ if (!process.env.SESSION_SECRET) {
 // prazos — continuam atuais. NUNCA ligar DEMO no app de produção.
 const DEMO = process.env.DEMO === "1";
 if (DEMO) {
+  // Trava: DEMO=1 posto por engano no app de produção apagaria o banco real.
+  // Só apaga banco que esteja vazio ou que só tenha as contas da demo.
+  if (fs.existsSync(dbPath)) {
+    const atual = new Database(dbPath, { readonly: true });
+    let reais = 0;
+    try {
+      reais = atual
+        .prepare("SELECT count(*) AS c FROM vendedores WHERE coalesce(email, '') NOT LIKE '%@demo.toldos'")
+        .get().c;
+    } catch {
+      // banco sem a tabela: não tem dado de ninguém
+    }
+    atual.close();
+    if (reais > 0) {
+      console.error(
+        `✖ DEMO=1, mas o banco em ${dbPath} tem ${reais} pessoa(s) de verdade. ` +
+          "Não apago: tire o DEMO deste app (ou aponte DATABASE_PATH para outro arquivo)."
+      );
+      process.exit(1);
+    }
+  }
   for (const f of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) fs.rmSync(f, { force: true });
   console.log("• Modo demonstração: banco recriado do zero");
 }
