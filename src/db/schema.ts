@@ -218,6 +218,23 @@ export const orcamentoFotos = sqliteTable("orcamento_fotos", {
     .default(sql`(unixepoch())`),
 });
 
+// Fotos do ATENDIMENTO (0040): as que o cliente manda no WhatsApp do Tadeu.
+// O lead ainda não tem orçamento, então não cabem em orcamento_fotos.
+// `mensagem_id` (id da mensagem no WhatsApp) impede anexar a mesma foto 2x.
+export const atendimentoFotos = sqliteTable("atendimento_fotos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  atendimentoId: integer("atendimento_id")
+    .notNull()
+    .references(() => atendimentos.id, { onDelete: "cascade" }),
+  arquivo: text("arquivo").notNull(),
+  legenda: text("legenda"),
+  origem: text("origem", { enum: ["tadeu", "equipe"] }).notNull().default("equipe"),
+  mensagemId: text("mensagem_id"),
+  criadoEm: integer("criado_em", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 // Ficha de INSTALAÇÃO (ordem de serviço interna, só para vendedor/gestor).
 // Preenchida quando o cliente fecha; sai como página 2 do PDF autenticado.
 // Nunca entra no PDF público do cliente (/proposta/[token]/pdf).

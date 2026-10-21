@@ -24,6 +24,20 @@ export function caminhoFoto(orcamentoId: number, arquivo: string): string {
   return path.join(dirFotos(orcamentoId), path.basename(arquivo));
 }
 
+// Fotos do atendimento (as do WhatsApp do Tadeu): uploads/atendimentos/<id>/.
+// Quem grava é o Tadeu, na VPS, direto no volume — o app só lê.
+export function caminhoFotoAtendimento(atendimentoId: number, arquivo: string): string {
+  return path.join(uploadsDir(), "atendimentos", String(atendimentoId), path.basename(arquivo));
+}
+
+export function lerFotoAtendimento(atendimentoId: number, arquivo: string): Buffer | null {
+  try {
+    return fs.readFileSync(caminhoFotoAtendimento(atendimentoId, arquivo));
+  } catch {
+    return null;
+  }
+}
+
 const EXTENSOES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",

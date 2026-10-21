@@ -714,6 +714,21 @@ o bloqueio **semanal** é cadastrado uma vez e vale toda semana.
 - Os avisos de "conecte / reconecte sua agenda do Google" saíram da tela de
   Visitas e da janela de visita.
 
+## Fotos do atendimento — WhatsApp do Tadeu (21/10/2026)
+
+As fotos que o cliente manda no WhatsApp do Tadeu entram no **lead**, em
+"Fotos do cliente" na tela do atendimento. O lead ainda não tem orçamento,
+então não cabem em `orcamento_fotos`.
+
+- Tabela `atendimento_fotos` (0040), arquivos em `uploads/atendimentos/<id>/`
+  (mesmo volume do banco). `mensagem_id` único: a mesma foto não entra 2x.
+- **Quem grava é a bridge do Tadeu, na VPS**, direto no volume
+  (`/var/lib/docker/volumes/toldos-data/_data`), não o app. Ela baixa a foto
+  da Evolution, guarda até existir atendimento aberto e então anexa. O app só
+  lê: rota `/atendimentos/[id]/fotos/[fotoId]`, com a regra da tela (vendedor
+  só vê as do próprio atendimento).
+- Código da bridge e do plugin do Tadeu: `../infra/tadeu-atendimento/`.
+
 ## Demonstração: demo-toldos.cordena.net (13/10/2026)
 
 App **separado** no Dokploy (projeto Toldos Gerais → app **demo**,

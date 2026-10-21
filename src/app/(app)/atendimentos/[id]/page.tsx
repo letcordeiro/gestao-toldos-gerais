@@ -28,7 +28,7 @@ import { linkWhatsApp } from "@/lib/whatsapp";
 import { enderecoCompleto } from "@/lib/endereco";
 import { exigirUsuario, podeOrcar, veFunilInteiro } from "@/lib/auth";
 import { buscarTarefas } from "@/lib/tarefas-consulta";
-import { canais, chamados, motivosPerda } from "@/db/schema";
+import { atendimentoFotos, canais, chamados, motivosPerda } from "@/db/schema";
 import {
   SITUACAO_CHAMADO_COR,
   SITUACAO_CHAMADO_LABEL,
@@ -94,6 +94,13 @@ export default async function AtendimentoPage({
   }
 
   const todasFases = await db.select().from(fases).orderBy(asc(fases.ordem));
+
+  // Fotos que o cliente mandou no WhatsApp do Tadeu (0040).
+  const fotosCliente = await db
+    .select()
+    .from(atendimentoFotos)
+    .where(eq(atendimentoFotos.atendimentoId, atendimento.id))
+    .orderBy(asc(atendimentoFotos.criadoEm), asc(atendimentoFotos.id));
 
   // Gestor e atendente redirecionam o cliente entre os vendedores.
   const podeDirecionar = veFunilInteiro(usuario.papel);
@@ -392,6 +399,57 @@ export default async function AtendimentoPage({
             />
           </CardContent>
         </Card>
+
+        {fotosCliente.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Fotos do cliente{" "}
+                <span className="font-normal text-muted-foreground">
+                  ({fotosCliente.length})
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {fotosCliente.map((f) => {
+                  const src = `/atendimentos/${atendimento.id}/fotos/${f.id}`;
+                  return (
+                    <li key={f.id} className="space-y-1">
+                      <a
+                        href={src}
+                        target="_blank"
+                        rel="noopener"
+                        className="block overflow-hidden rounded-md border bg-muted"
+                        title="Abrir em tamanho grande"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- rota autenticada, sem otimização do Next */}
+                        <img
+                          src={src}
+                          alt={f.legenda || "Foto enviada pelo cliente"}
+                          loading="lazy"
+                          className="aspect-square w-full object-cover"
+                        />
+                      </a>
+                      <p className="text-[11px] leading-tight text-muted-foreground">
+                        {f.origem === "tadeu" ? "WhatsApp · " : ""}
+                        {/* Horário de Brasília: o servidor roda em UTC. */}
+                        {f.criadoEm.toLocaleString("pt-BR", {
+                          timeZone: "America/Sao_Paulo",
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {f.legenda ? ` · ${f.legenda}` : ""}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
